@@ -1074,8 +1074,12 @@ public class EntryEditor extends JPanel implements VetoableChangeListener, Entry
         public StoreFieldAction() {
             super("Store field value");
             putValue(Action.SHORT_DESCRIPTION, "Store field value");
+
         }
 
+        //TODO: Aqui ta o que tenho que mudar
+        // Ver onde ele valida a BibTexKey, adicionar as validações extras
+        // Ver onde ele pode validar o ano e adicionar a validação necessária
         @Override
         public void actionPerformed(ActionEvent event) {
             boolean movingAway = movingToDifferentEntry;
@@ -1156,7 +1160,7 @@ public class EntryEditor extends JPanel implements VetoableChangeListener, Entry
                     set = !((entry.hasField(fieldEditor.getFieldName()))
                             && toSet.equals(entry.getField(fieldEditor.getFieldName())));
                 }
-
+                //TODO: MEXER AQUI
                 if (set) {
                     try {
                         // The following statement attempts to write the

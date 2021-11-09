@@ -63,8 +63,8 @@ class EntryEditorTab {
 
     private final JPanel panel = new JPanel();
 
-    private final JScrollPane scrollPane = new JScrollPane(panel,
-            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+    private final JScrollPane scrollPane = new JScrollPane(panel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
     private final List<String> fields;
 
@@ -112,8 +112,8 @@ class EntryEditorTab {
         scrollPane.setFocusCycleRoot(true);
     }
 
-    private void setupPanel(JabRefFrame frame, BasePanel bPanel, boolean addKeyField,
-                            boolean compressed, String title) {
+    private void setupPanel(JabRefFrame frame, BasePanel bPanel, boolean addKeyField, boolean compressed,
+            String title) {
 
         setupKeyBindings(panel.getInputMap(JComponent.WHEN_FOCUSED), panel.getActionMap());
 
@@ -125,8 +125,7 @@ class EntryEditorTab {
         int fieldsPerRow = compressed ? 2 : 1;
 
         String colSpec = compressed ? "fill:pref, 1dlu, fill:10dlu:grow, 1dlu, fill:pref, "
-                + "8dlu, fill:pref, 1dlu, fill:10dlu:grow, 1dlu, fill:pref"
-                : "fill:pref, 1dlu, fill:pref:grow, 1dlu, fill:pref";
+                + "8dlu, fill:pref, 1dlu, fill:10dlu:grow, 1dlu, fill:pref" : "fill:pref, 1dlu, fill:pref:grow, 1dlu, fill:pref";
         StringBuilder stringBuilder = new StringBuilder();
         int rows = (int) Math.ceil((double) fields.size() / fieldsPerRow);
         for (int i = 0; i < rows; i++) {
@@ -139,8 +138,7 @@ class EntryEditorTab {
         }
         String rowSpec = stringBuilder.toString();
 
-        DefaultFormBuilder builder = new DefaultFormBuilder
-                (new FormLayout(colSpec, rowSpec), panel);
+        DefaultFormBuilder builder = new DefaultFormBuilder(new FormLayout(colSpec, rowSpec), panel);
 
         // BibTex edit fields are defined here
         for (int i = 0; i < fields.size(); i++) {
@@ -213,7 +211,6 @@ class EntryEditorTab {
         }
     }
 
-
     private BibEntry getEntry() {
         return entry;
     }
@@ -282,8 +279,6 @@ class EntryEditorTab {
         setEntry(getEntry());
     }
 
-
-
     public void setEntry(BibEntry entry) {
         try {
             updating = true;
@@ -303,13 +298,18 @@ class EntryEditorTab {
         if (!editors.containsKey(field)) {
             return false;
         }
+        if (field.equals("year")) {
+            return false;
+        }
+        System.out.println(field);
+        System.out.println(content);
         FieldEditor fieldEditor = editors.get(field);
         // trying to preserve current edit position (fixes SF bug #1285)
-        if(fieldEditor.getTextComponent() instanceof JTextComponent) {
+        if (fieldEditor.getTextComponent() instanceof JTextComponent) {
             int initialCaretPosition = ((JTextComponent) fieldEditor).getCaretPosition();
             fieldEditor.setText(content);
             int textLength = fieldEditor.getText().length();
-            if(initialCaretPosition<textLength) {
+            if (initialCaretPosition < textLength) {
                 ((JTextComponent) fieldEditor).setCaretPosition(initialCaretPosition);
             } else {
                 ((JTextComponent) fieldEditor).setCaretPosition(textLength);

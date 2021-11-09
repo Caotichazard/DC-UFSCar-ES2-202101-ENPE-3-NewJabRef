@@ -20,6 +20,7 @@ package net.sf.jabref.logic.labelpattern;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1393,7 +1394,7 @@ public class LabelPatternUtil {
      * @param key             mayBeNull
      * @param enforceLegalKey make sure that the key is legal in all respects
      */
-    public static String checkLegalKey(String key, boolean enforceLegalKey) {
+    public static String checkLegalKey(String key, boolean enforceLegalKey) {//TODO cheacegem da chave Bib
         if (key == null) {
             return null;
         }
@@ -1418,11 +1419,30 @@ public class LabelPatternUtil {
                 newKey.append(c);
             }
         }
+        StringBuilder newKey2 = new StringBuilder();
+        if (newKey.length() < 2) {
+            Random r = new Random();
+            char c = (char) (r.nextInt(26) + 'a');
+            newKey2.append(Character.toUpperCase(c));
+            newKey2.append(c);
+        } else {
+            if (Character.isDigit(newKey.charAt(0))) {
+                Random r = new Random();
+                char c = (char) (r.nextInt(26) + 'a');
+                newKey2.append(Character.toUpperCase(c));
+                newKey2.append(c);
+            } else {
+                newKey2.append(newKey.toString());
+            }
+
+        }
+
+        System.out.println(newKey2.toString());
 
         // Replace non-English characters like umlauts etc. with a sensible
         // letter or letter combination that bibtex can accept.
 
-        return StringUtil.replaceSpecialCharacters(newKey.toString());
+        return StringUtil.replaceSpecialCharacters(newKey2.toString());
     }
 
     public static List<String> getDefaultLabelPattern() {
