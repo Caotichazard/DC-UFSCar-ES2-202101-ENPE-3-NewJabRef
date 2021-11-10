@@ -301,8 +301,7 @@ class EntryEditorTab {
         if (field.equals("year")) {
             return false;
         }
-        System.out.println(field);
-        System.out.println(content);
+
         FieldEditor fieldEditor = editors.get(field);
         // trying to preserve current edit position (fixes SF bug #1285)
         if (fieldEditor.getTextComponent() instanceof JTextComponent) {

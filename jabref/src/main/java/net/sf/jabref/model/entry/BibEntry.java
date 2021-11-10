@@ -24,6 +24,7 @@ import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.time.Year;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -363,6 +364,16 @@ public class BibEntry {
             throw new IllegalArgumentException("The field name '" + name + "' is reserved");
         }
 
+        // Added Checking of valid year, compares to the maximum o Year (-999,999,999 and 999,999,999)
+        if (fieldName.equals("year")) {
+
+            Long inputYear = Long.valueOf(value);
+
+            if ((inputYear < Year.MIN_VALUE) || (inputYear > Year.MAX_VALUE)) {
+                throw new IllegalArgumentException("The field name '" + name + "'must contain a valid year");
+            }
+
+        }
         changed = true;
 
         String oldValue = fields.get(fieldName);
