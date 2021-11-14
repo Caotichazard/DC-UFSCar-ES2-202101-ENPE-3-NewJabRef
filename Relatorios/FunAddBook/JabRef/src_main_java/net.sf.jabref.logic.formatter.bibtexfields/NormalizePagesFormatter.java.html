@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>NormalizePagesFormatter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.formatter.bibtexfields</a> &gt; <span class="el_source">NormalizePagesFormatter.java</span></div><h1>NormalizePagesFormatter.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.formatter.bibtexfields;
+
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.logic.formatter.Formatter;
+import net.sf.jabref.logic.l10n.Localization;
+
+/**
+ * This class includes sensible defaults for consistent formatting of BibTex page numbers.
+ *
+ * From BibTex manual:
+ * One or more page numbers or range of numbers, such as 42--111 or 7,41,73--97 or 43+
+ * (the '+' in this last example indicates pages following that don't form a simple range).
+ * To make it easier to maintain Scribe-compatible databases, the standard styles convert
+ * a single dash (as in 7-33) to the double dash used in TEX to denote number ranges (as in 7--33).
+ */
+<span class="fc" id="L19">public class NormalizePagesFormatter implements Formatter {</span>
+
+<span class="fc" id="L21">    private static final Pattern PAGES_DETECT_PATTERN = Pattern.compile(&quot;\\A(\\d+)-{1,2}(\\d+)\\Z&quot;);</span>
+
+    private static final String REJECT_LITERALS = &quot;[^a-zA-Z0-9,\\-\\+,]&quot;;
+<span class="fc" id="L24">    private static final String PAGES_REPLACE_PATTERN = &quot;$1--$2&quot;;</span>
+
+
+    @Override
+    public String getName() {
+<span class="nc" id="L29">        return Localization.lang(&quot;Normalize page numbers&quot;);</span>
+    }
+
+    @Override
+    public String getKey() {
+<span class="fc" id="L34">        return &quot;normalize_page_numbers&quot;;</span>
+    }
+
+    /**
+     * Format page numbers, separated either by commas or double-hyphens.
+     * Converts the range number format of the &lt;code&gt;pages&lt;/code&gt; field to page_number--page_number.
+     * Removes unwanted literals except letters, numbers and -+ signs.
+     * Keeps the existing String if the resulting field does not match the expected Regex.
+     *
+     * &lt;example&gt;
+     *     1-2 -&gt; 1--2
+     *     1,2,3 -&gt; 1,2,3
+     *     {1}-{2} -&gt; 1--2
+     *     43+ -&gt; 43+
+     *     Invalid -&gt; Invalid
+     * &lt;/example&gt;
+     */
+    @Override
+    public String format(String value) {
+<span class="nc" id="L53">        Objects.requireNonNull(value);</span>
+
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (value.isEmpty()) {</span>
+            // nothing to do
+<span class="nc" id="L57">            return value;</span>
+        }
+
+        // remove unwanted literals incl. whitespace
+<span class="nc" id="L61">        String cleanValue = value.replaceAll(REJECT_LITERALS, &quot;&quot;);</span>
+        // try to find pages pattern
+<span class="nc" id="L63">        Matcher matcher = PAGES_DETECT_PATTERN.matcher(cleanValue);</span>
+        // replace
+<span class="nc" id="L65">        String newValue = matcher.replaceFirst(PAGES_REPLACE_PATTERN);</span>
+        // replacement?
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if(matcher.matches()) {</span>
+            // write field
+<span class="nc" id="L69">            return newValue;</span>
+        }
+<span class="nc" id="L71">        return value;</span>
+    }
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L76">        return Localization.lang(&quot;Normalize pages to BibTeX standard.&quot;);</span>
+    }
+
+    @Override
+    public String getExampleInput() {
+<span class="nc" id="L81">        return &quot;1 - 2&quot;;</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L86">        return defaultHashCode();</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="nc" id="L91">        return defaultEquals(obj);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

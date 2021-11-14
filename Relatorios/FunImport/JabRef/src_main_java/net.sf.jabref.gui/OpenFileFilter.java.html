@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>OpenFileFilter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">OpenFileFilter.java</span></div><h1>OpenFileFilter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.HashSet;
+import java.util.Set;
+
+public class OpenFileFilter extends javax.swing.filechooser.FileFilter implements FilenameFilter {
+
+<span class="fc" id="L25">    private final Set&lt;String&gt; extSet = new HashSet&lt;&gt;();</span>
+    private final String desc;
+
+
+<span class="fc" id="L29">    public OpenFileFilter(String[] extensions) {</span>
+<span class="fc" id="L30">        StringBuilder buf = new StringBuilder();</span>
+<span class="fc" id="L31">        int numExt = extensions.length;</span>
+
+<span class="pc bpc" id="L33" title="1 of 2 branches missed.">        if (numExt &gt; 0) {</span>
+<span class="fc" id="L34">            buf.append('*');</span>
+<span class="fc" id="L35">            buf.append(extensions[0]);</span>
+
+<span class="fc" id="L37">            extSet.add(extensions[0]);</span>
+        }
+
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">        for (int curExt = 1; curExt &lt; numExt; curExt++) {</span>
+<span class="nc" id="L41">            buf.append(&quot;, *&quot;);</span>
+<span class="nc" id="L42">            buf.append(extensions[curExt]);</span>
+
+<span class="nc" id="L44">            extSet.add(extensions[curExt]);</span>
+        }
+
+<span class="fc" id="L47">        desc = buf.toString();</span>
+<span class="fc" id="L48">    }</span>
+
+    public OpenFileFilter() {
+<span class="nc" id="L51">        this(new String[] {</span>
+<span class="nc" id="L52">                &quot;.bib&quot;,</span>
+<span class="nc" id="L53">                &quot;.dat&quot;, // silverplatter ending</span>
+<span class="nc" id="L54">                &quot;.txt&quot;, // windows puts &quot;.txt&quot; extentions and for scifinder</span>
+<span class="nc" id="L55">                &quot;.ris&quot;,</span>
+<span class="nc" id="L56">                &quot;.ref&quot;, // refer/endnote format</span>
+<span class="nc" id="L57">                &quot;.fcgi&quot;, // default for pubmed</span>
+<span class="nc" id="L58">                &quot;.bibx&quot;, // default for BibTeXML</span>
+<span class="nc" id="L59">                &quot;.xml&quot;</span>
+        });
+<span class="nc" id="L61">    }</span>
+
+    public OpenFileFilter(String s) {
+<span class="fc" id="L64">        this(s.split(&quot;[, ]+&quot;, 0));</span>
+<span class="fc" id="L65">    }</span>
+
+    @Override
+    public boolean accept(File file) {
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (file.isDirectory()) {</span>
+<span class="nc" id="L70">            return true;</span>
+        }
+
+<span class="nc" id="L73">        return accept(file.getName());</span>
+    }
+
+    private boolean accept(String filename) {
+
+<span class="nc" id="L78">        String lowerCaseFileName = filename.toLowerCase();</span>
+<span class="nc" id="L79">        int dotPos = lowerCaseFileName.lastIndexOf('.');</span>
+
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (dotPos == -1) {</span>
+<span class="nc" id="L82">            return false;</span>
+        }
+
+<span class="nc" id="L85">        int dotDotPos = lowerCaseFileName.lastIndexOf('.', dotPos - 1); // for dot.dot extensions</span>
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        return extSet.contains(lowerCaseFileName.substring(dotPos)) ||</span>
+<span class="nc bnc" id="L88" title="All 4 branches missed.">                ((dotDotPos &gt;= 0) &amp;&amp; extSet.contains(lowerCaseFileName.substring(dotDotPos)));</span>
+    }
+
+    @Override
+    public String getDescription() {
+<span class="fc" id="L93">        return desc;</span>
+    }
+
+    @Override
+    public boolean accept(File dir, String name) {
+<span class="nc" id="L98">        return accept(new File(dir.getPath() + name));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

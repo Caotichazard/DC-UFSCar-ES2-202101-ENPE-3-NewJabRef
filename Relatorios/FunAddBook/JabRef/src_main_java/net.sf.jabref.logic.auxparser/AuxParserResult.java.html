@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AuxParserResult.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.auxparser</a> &gt; <span class="el_source">AuxParserResult.java</span></div><h1>AuxParserResult.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.auxparser;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.database.BibDatabase;
+
+public class AuxParserResult {
+
+    private final BibDatabase masterDatabase;
+<span class="nc" id="L14">    private final Set&lt;String&gt; uniqueKeys = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L15">    private final List&lt;String&gt; unresolvedKeys = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L17">    private final BibDatabase auxDatabase = new BibDatabase();</span>
+    private int nestedAuxCount;
+    private int crossRefEntriesCount;
+
+<span class="nc" id="L21">    public AuxParserResult(BibDatabase masterDatabase) {</span>
+<span class="nc" id="L22">        this.masterDatabase = masterDatabase;</span>
+<span class="nc" id="L23">    }</span>
+
+    public BibDatabase getGeneratedBibDatabase() {
+<span class="nc" id="L26">        return auxDatabase;</span>
+    }
+
+    public List&lt;String&gt; getUnresolvedKeys() {
+<span class="nc" id="L30">        return unresolvedKeys;</span>
+    }
+
+    public int getFoundKeysInAux() {
+<span class="nc" id="L34">        return uniqueKeys.size();</span>
+    }
+
+    public int getResolvedKeysCount() {
+<span class="nc" id="L38">        return auxDatabase.getEntryCount() - crossRefEntriesCount;</span>
+    }
+
+    public int getUnresolvedKeysCount() {
+<span class="nc" id="L42">        return unresolvedKeys.size();</span>
+    }
+
+    /**
+     * Query the number of extra entries pulled in due to crossrefs from other entries.
+     *
+     * @return The number of additional entries pulled in due to crossref
+     */
+    public int getCrossRefEntriesCount() {
+<span class="nc" id="L51">        return crossRefEntriesCount;</span>
+    }
+
+    public void increaseCrossRefEntriesCounter() {
+<span class="nc" id="L55">        crossRefEntriesCount++;</span>
+<span class="nc" id="L56">    }</span>
+
+    public void increaseNestedAuxFilesCounter() {
+<span class="nc" id="L59">        nestedAuxCount++;</span>
+<span class="nc" id="L60">    }</span>
+
+    /**
+     * Prints parsing statistics
+     *
+     * @param includeMissingEntries
+     * @return
+     */
+    public String getInformation(boolean includeMissingEntries) {
+<span class="nc" id="L69">        StringBuilder result = new StringBuilder();</span>
+
+<span class="nc" id="L71">        result.append(Localization.lang(&quot;keys_in_database&quot;)).append(' ').append(masterDatabase.getEntryCount()).append('\n')</span>
+<span class="nc" id="L72">                .append(Localization.lang(&quot;found_in_aux_file&quot;)).append(' ').append(getFoundKeysInAux()).append('\n')</span>
+<span class="nc" id="L73">                .append(Localization.lang(&quot;resolved&quot;)).append(' ').append(getResolvedKeysCount()).append('\n')</span>
+<span class="nc" id="L74">                .append(Localization.lang(&quot;not_found&quot;)).append(' ').append(getUnresolvedKeysCount()).append('\n')</span>
+<span class="nc" id="L75">                .append(Localization.lang(&quot;crossreferenced entries included&quot;)).append(' ')</span>
+<span class="nc" id="L76">                .append(crossRefEntriesCount).append('\n');</span>
+
+<span class="nc bnc" id="L78" title="All 4 branches missed.">        if (includeMissingEntries &amp;&amp; (getUnresolvedKeysCount() &gt; 0)) {</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">            for (String entry : unresolvedKeys) {</span>
+<span class="nc" id="L80">                result.append(entry).append('\n');</span>
+            }
+        }
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (nestedAuxCount &gt; 0) {</span>
+<span class="nc" id="L84">            result.append(Localization.lang(&quot;nested_aux_files&quot;)).append(' ').append(nestedAuxCount);</span>
+        }
+<span class="nc" id="L86">        return result.toString();</span>
+    }
+
+    public Set&lt;String&gt; getUniqueKeys() {
+<span class="nc" id="L90">        return uniqueKeys;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

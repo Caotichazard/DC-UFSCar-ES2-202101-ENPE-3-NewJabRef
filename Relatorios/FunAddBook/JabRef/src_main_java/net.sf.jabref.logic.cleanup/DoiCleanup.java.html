@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DoiCleanup.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.cleanup</a> &gt; <span class="el_source">DoiCleanup.java</span></div><h1>DoiCleanup.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+package net.sf.jabref.logic.cleanup;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.logic.formatter.bibtexfields.ClearFormatter;
+import net.sf.jabref.logic.util.DOI;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Formats the DOI (e.g. removes http part) and also moves DOIs from note, url or ee field to the doi field.
+ */
+<span class="nc" id="L29">public class DoiCleanup implements CleanupJob {</span>
+
+    /**
+     * Fields to check for DOIs.
+     */
+<span class="nc" id="L34">    private static final String[] FIELDS = {&quot;note&quot;, &quot;url&quot;, &quot;ee&quot;};</span>
+
+    @Override
+    public List&lt;FieldChange&gt; cleanup(BibEntry entry) {
+
+<span class="nc" id="L39">        List&lt;FieldChange&gt; changes = new ArrayList&lt;&gt;();</span>
+
+        // First check if the Doi Field is empty
+<span class="nc bnc" id="L42" title="All 2 branches missed.">        if (entry.hasField(&quot;doi&quot;)) {</span>
+<span class="nc" id="L43">            String doiFieldValue = entry.getField(&quot;doi&quot;);</span>
+
+<span class="nc" id="L45">            Optional&lt;DOI&gt; doi = DOI.build(doiFieldValue);</span>
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">            if (doi.isPresent()) {</span>
+<span class="nc" id="L48">                String newValue = doi.get().getDOI();</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">                if (!doiFieldValue.equals(newValue)) {</span>
+<span class="nc" id="L50">                    entry.setField(&quot;doi&quot;, newValue);</span>
+
+<span class="nc" id="L52">                    FieldChange change = new FieldChange(entry, &quot;doi&quot;, doiFieldValue, newValue);</span>
+<span class="nc" id="L53">                    changes.add(change);</span>
+                }
+
+                // Doi field seems to contain Doi -&gt; cleanup note, url, ee field
+<span class="nc bnc" id="L57" title="All 2 branches missed.">                for (String field : FIELDS) {</span>
+<span class="nc" id="L58">                    DOI.build(entry.getField(field)).ifPresent(unused -&gt; removeFieldValue(entry, field, changes));</span>
+                }
+            }
+<span class="nc" id="L61">        } else {</span>
+            // As the Doi field is empty we now check if note, url, or ee field contains a Doi
+<span class="nc bnc" id="L63" title="All 2 branches missed.">            for (String field : FIELDS) {</span>
+<span class="nc" id="L64">                Optional&lt;DOI&gt; doi = DOI.build(entry.getField(field));</span>
+
+<span class="nc bnc" id="L66" title="All 2 branches missed.">                if (doi.isPresent()) {</span>
+                    // update Doi
+<span class="nc" id="L68">                    String oldValue = entry.getField(&quot;doi&quot;);</span>
+<span class="nc" id="L69">                    String newValue = doi.get().getDOI();</span>
+
+<span class="nc" id="L71">                    entry.setField(&quot;doi&quot;, newValue);</span>
+
+<span class="nc" id="L73">                    FieldChange change = new FieldChange(entry, &quot;doi&quot;, oldValue, newValue);</span>
+<span class="nc" id="L74">                    changes.add(change);</span>
+
+<span class="nc" id="L76">                    removeFieldValue(entry, field, changes);</span>
+                }
+            }
+        }
+
+<span class="nc" id="L81">        return changes;</span>
+    }
+
+    private void removeFieldValue(BibEntry entry, String field, List&lt;FieldChange&gt; changes) {
+<span class="nc" id="L85">        CleanupJob eraser = new FieldFormatterCleanup(field, new ClearFormatter());</span>
+<span class="nc" id="L86">        changes.addAll(eraser.cleanup(entry));</span>
+<span class="nc" id="L87">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

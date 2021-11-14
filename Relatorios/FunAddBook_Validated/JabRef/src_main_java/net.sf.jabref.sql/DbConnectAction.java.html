@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DbConnectAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.sql</a> &gt; <span class="el_source">DbConnectAction.java</span></div><h1>DbConnectAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.sql;
+
+import java.awt.event.ActionEvent;
+import java.sql.Connection;
+
+import javax.swing.AbstractAction;
+import javax.swing.JOptionPane;
+
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.actions.BaseAction;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.sql.exporter.DatabaseExporter;
+
+/**
+ * Created by IntelliJ IDEA. User: alver Date: Mar 27, 2008 Time: 6:05:13 PM To
+ * change this template use File | Settings | File Templates.
+ * &lt;p&gt;
+ * Jan 20th Adjusted to accomodate changes on SQL Exporter module by ifsteinm
+ */
+public class DbConnectAction implements BaseAction {
+
+    private final BasePanel panel;
+
+<span class="fc" id="L39">    public DbConnectAction(BasePanel panel) {</span>
+<span class="fc" id="L40">        this.panel = panel;</span>
+<span class="fc" id="L41">    }</span>
+
+    public AbstractAction getAction() {
+<span class="nc" id="L44">        return new DbImpAction();</span>
+    }
+
+<span class="nc" id="L47">    private class DbImpAction extends AbstractAction {</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L51">            action();</span>
+
+<span class="nc" id="L53">        }</span>
+    }
+
+    @Override
+    public void action() {
+
+<span class="nc" id="L59">        DBStrings dbs = panel.getBibDatabaseContext().getMetaData().getDBStrings();</span>
+
+        // init DB strings if necessary
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (!dbs.isInitialized()) {</span>
+<span class="nc" id="L63">            dbs.initialize();</span>
+        }
+
+        // show connection dialog
+<span class="nc" id="L67">        DBConnectDialog dbd = new DBConnectDialog(panel.frame(), dbs);</span>
+<span class="nc" id="L68">        dbd.setLocationRelativeTo(panel);</span>
+<span class="nc" id="L69">        dbd.setVisible(true);</span>
+
+        // connect to database to test DBStrings
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (!dbd.isConnectedToDB()) {</span>
+<span class="nc" id="L73">            return;</span>
+        }
+
+<span class="nc" id="L76">        dbs = dbd.getDBStrings();</span>
+
+        try {
+
+<span class="nc" id="L80">            panel.frame().output(</span>
+<span class="nc" id="L81">                    Localization.lang(&quot;Establishing SQL connection...&quot;));</span>
+<span class="nc" id="L82">            DatabaseExporter exporter = new DBExporterAndImporterFactory().getExporter(dbs.getDbPreferences().getServerType());</span>
+<span class="nc" id="L83">            try (Connection conn = exporter.connectToDB(dbs)) {</span>
+                // Nothing
+<span class="nc bnc" id="L85" title="All 8 branches missed.">            }</span>
+<span class="nc" id="L86">            dbs.isConfigValid(true);</span>
+<span class="nc" id="L87">            panel.frame().output(</span>
+<span class="nc" id="L88">                    Localization.lang(&quot;SQL connection established.&quot;));</span>
+<span class="nc" id="L89">        } catch (Exception ex) {</span>
+<span class="nc" id="L90">            String errorMessage = SQLUtil.getExceptionMessage(ex);</span>
+<span class="nc" id="L91">            dbs.isConfigValid(false);</span>
+
+<span class="nc" id="L93">            String preamble = Localization.lang(&quot;Could not connect to SQL database for the following reason:&quot;);</span>
+<span class="nc" id="L94">            panel.frame().output(preamble + &quot;  &quot; + errorMessage);</span>
+
+<span class="nc" id="L96">            JOptionPane.showMessageDialog(panel.frame(), preamble + '\n' + errorMessage,</span>
+<span class="nc" id="L97">                    Localization.lang(&quot;Connect to SQL database&quot;),</span>
+<span class="nc" id="L98">                    JOptionPane.ERROR_MESSAGE);</span>
+        } finally {
+<span class="nc" id="L100">            panel.getBibDatabaseContext().getMetaData().setDBStrings(dbs);</span>
+<span class="nc" id="L101">            dbd.dispose();</span>
+        }
+<span class="nc" id="L103">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

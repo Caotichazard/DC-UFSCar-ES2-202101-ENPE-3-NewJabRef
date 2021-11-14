@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>Priority.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.specialfields</a> &gt; <span class="el_source">Priority.java</span></div><h1>Priority.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.specialfields;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.Icon;
+
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.logic.l10n.Localization;
+
+public class Priority extends SpecialField {
+
+    private static Priority INSTANCE;
+
+<span class="fc" id="L30">    private final Icon icon = IconTheme.JabRefIcon.PRIORITY.getSmallIcon();</span>
+
+
+<span class="fc" id="L33">    private Priority() {</span>
+<span class="fc" id="L34">        List&lt;SpecialFieldValue&gt; values = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L35">        values.add(new SpecialFieldValue(this, null, &quot;clearPriority&quot;, Localization.lang(&quot;Clear priority&quot;), null,</span>
+<span class="fc" id="L36">                Localization.lang(&quot;No priority information&quot;)));</span>
+        Icon tmpicon;
+<span class="fc" id="L38">        tmpicon = IconTheme.JabRefIcon.PRIORITY_HIGH.getSmallIcon();</span>
+        // DO NOT TRANSLATE &quot;prio1&quot; etc. as this makes the .bib files non portable
+<span class="fc" id="L40">        values.add(new SpecialFieldValue(this, &quot;prio1&quot;, &quot;setPriority1&quot;, Localization.lang(&quot;Set priority to high&quot;),</span>
+<span class="fc" id="L41">                tmpicon, Localization.lang(&quot;Priority high&quot;)));</span>
+<span class="fc" id="L42">        tmpicon = IconTheme.JabRefIcon.PRIORITY_MEDIUM.getSmallIcon();</span>
+<span class="fc" id="L43">        values.add(new SpecialFieldValue(this, &quot;prio2&quot;, &quot;setPriority2&quot;, Localization.lang(&quot;Set priority to medium&quot;),</span>
+<span class="fc" id="L44">                tmpicon, Localization.lang(&quot;Priority medium&quot;)));</span>
+<span class="fc" id="L45">        tmpicon = IconTheme.JabRefIcon.PRIORITY_LOW.getSmallIcon();</span>
+<span class="fc" id="L46">        values.add(new SpecialFieldValue(this, &quot;prio3&quot;, &quot;setPriority3&quot;, Localization.lang(&quot;Set priority to low&quot;),</span>
+<span class="fc" id="L47">                tmpicon, Localization.lang(&quot;Priority low&quot;)));</span>
+<span class="fc" id="L48">        this.setValues(values);</span>
+<span class="fc" id="L49">        TEXT_DONE_PATTERN = &quot;Set priority to '%0' for %1 entries&quot;;</span>
+<span class="fc" id="L50">    }</span>
+
+    public static Priority getInstance() {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (Priority.INSTANCE == null) {</span>
+<span class="fc" id="L54">            Priority.INSTANCE = new Priority();</span>
+        }
+<span class="fc" id="L56">        return Priority.INSTANCE;</span>
+    }
+
+    @Override
+    public String getFieldName() {
+<span class="nc" id="L61">        return SpecialFieldsUtils.FIELDNAME_PRIORITY;</span>
+    }
+
+    @Override
+    public Icon getRepresentingIcon() {
+<span class="fc" id="L66">        return this.icon;</span>
+    }
+
+    @Override
+    public String getToolTip() {
+<span class="fc" id="L71">        return Localization.lang(&quot;Priority&quot;);</span>
+    }
+
+    @Override
+    public String getMenuString() {
+<span class="nc" id="L76">        return Localization.lang(&quot;Priority&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

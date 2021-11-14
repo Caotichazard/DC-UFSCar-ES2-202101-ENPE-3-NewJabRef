@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MODSEntry.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.mods</a> &gt; <span class="el_source">MODSEntry.java</span></div><h1>MODSEntry.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.mods;
+
+import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import net.sf.jabref.logic.layout.LayoutFormatter;
+import net.sf.jabref.logic.layout.format.XMLChars;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
+/**
+ * @author Michael Wrighton
+ *
+ */
+class MODSEntry {
+
+<span class="nc" id="L51">    private String entryType = &quot;mods&quot;; // could also be relatedItem</span>
+    private String id;
+    private List&lt;PersonName&gt; authors;
+
+    // should really be handled with an enum
+<span class="nc" id="L56">    private String issuance = &quot;monographic&quot;;</span>
+    private PageNumbers pages;
+
+    private String publisher;
+    private String date;
+
+    private String title;
+
+    private String number;
+    private String volume;
+    private String genre;
+    private String place;
+    private final Set&lt;String&gt; handledExtensions;
+
+    private MODSEntry host;
+    private final Map&lt;String, String&gt; extensionFields;
+
+    private static final String BIBTEX = &quot;bibtex_&quot;;
+
+    private static final boolean CHARFORMAT = false;
+
+<span class="nc" id="L77">    private static final Log LOGGER = LogFactory.getLog(MODSEntry.class);</span>
+
+<span class="nc" id="L79">    private final LayoutFormatter chars = new XMLChars();</span>
+
+
+<span class="nc" id="L82">    private MODSEntry() {</span>
+<span class="nc" id="L83">        extensionFields = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L84">        handledExtensions = new HashSet&lt;&gt;();</span>
+
+<span class="nc" id="L86">    }</span>
+
+    public MODSEntry(BibEntry bibtex) {
+<span class="nc" id="L89">        this();</span>
+<span class="nc" id="L90">        handledExtensions.add(MODSEntry.BIBTEX + &quot;publisher&quot;);</span>
+<span class="nc" id="L91">        handledExtensions.add(MODSEntry.BIBTEX + &quot;title&quot;);</span>
+<span class="nc" id="L92">        handledExtensions.add(MODSEntry.BIBTEX + BibEntry.KEY_FIELD);</span>
+<span class="nc" id="L93">        handledExtensions.add(MODSEntry.BIBTEX + &quot;author&quot;);</span>
+<span class="nc" id="L94">        populateFromBibtex(bibtex);</span>
+<span class="nc" id="L95">    }</span>
+
+    private void populateFromBibtex(BibEntry bibtex) {
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (bibtex.hasField(&quot;title&quot;)) {</span>
+            if (CHARFORMAT) {
+                title = chars.format(bibtex.getField(&quot;title&quot;));
+            } else {
+<span class="nc" id="L102">                title = bibtex.getField(&quot;title&quot;);</span>
+            }
+        }
+
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (bibtex.hasField(&quot;publisher&quot;)) {</span>
+            if (CHARFORMAT) {
+                publisher = chars.format(bibtex.getField(&quot;publisher&quot;));
+            } else {
+<span class="nc" id="L110">                publisher = bibtex.getField(&quot;publisher&quot;);</span>
+            }
+        }
+
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (bibtex.hasField(BibEntry.KEY_FIELD)) {</span>
+<span class="nc" id="L115">            id = bibtex.getCiteKey();</span>
+        }
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        if (bibtex.hasField(&quot;place&quot;)) {</span>
+            if (CHARFORMAT) {
+                place = chars.format(bibtex.getField(&quot;place&quot;));
+            } else {
+<span class="nc" id="L121">                place = bibtex.getField(&quot;place&quot;);</span>
+            }
+        }
+
+<span class="nc" id="L125">        date = getDate(bibtex);</span>
+<span class="nc" id="L126">        genre = getMODSgenre(bibtex);</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (bibtex.hasField(&quot;author&quot;)) {</span>
+<span class="nc" id="L128">            authors = getAuthors(bibtex.getField(&quot;author&quot;));</span>
+        }
+<span class="nc bnc" id="L130" title="All 4 branches missed.">        if (&quot;article&quot;.equals(bibtex.getType()) || &quot;inproceedings&quot;.equals(bibtex.getType())) {</span>
+<span class="nc" id="L131">            host = new MODSEntry();</span>
+<span class="nc" id="L132">            host.entryType = &quot;relatedItem&quot;;</span>
+<span class="nc" id="L133">            host.title = bibtex.getField(&quot;booktitle&quot;);</span>
+<span class="nc" id="L134">            host.publisher = bibtex.getField(&quot;publisher&quot;);</span>
+<span class="nc" id="L135">            host.number = bibtex.getField(&quot;number&quot;);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            if (bibtex.hasField(&quot;volume&quot;)) {</span>
+<span class="nc" id="L137">                host.volume = bibtex.getField(&quot;volume&quot;);</span>
+            }
+<span class="nc" id="L139">            host.issuance = &quot;continuing&quot;;</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            if (bibtex.hasField(&quot;pages&quot;)) {</span>
+<span class="nc" id="L141">                host.pages = new PageNumbers(bibtex.getField(&quot;pages&quot;));</span>
+            }
+        }
+
+<span class="nc" id="L145">        populateExtensionFields(bibtex);</span>
+
+<span class="nc" id="L147">    }</span>
+
+    private void populateExtensionFields(BibEntry e) {
+
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        for (String field : e.getFieldNames()) {</span>
+<span class="nc" id="L152">            String value = e.getField(field);</span>
+<span class="nc" id="L153">            extensionFields.put(MODSEntry.BIBTEX + field, value);</span>
+        }
+<span class="nc" id="L155">    }</span>
+
+    private List&lt;PersonName&gt; getAuthors(String authors) {
+<span class="nc" id="L158">        List&lt;PersonName&gt; result = new LinkedList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L160" title="All 2 branches missed.">        if (authors.contains(&quot; and &quot;)) {</span>
+<span class="nc" id="L161">            String[] names = authors.split(&quot; and &quot;);</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">            for (String name : names) {</span>
+                if (CHARFORMAT) {
+                    result.add(new PersonName(chars.format(name)));
+                } else {
+<span class="nc" id="L166">                    result.add(new PersonName(name));</span>
+                }
+            }
+<span class="nc" id="L169">        } else {</span>
+            if (CHARFORMAT) {
+                result.add(new PersonName(chars.format(authors)));
+            } else {
+<span class="nc" id="L173">                result.add(new PersonName(authors));</span>
+            }
+        }
+<span class="nc" id="L176">        return result;</span>
+    }
+
+    /* construct a MODS date object */
+    private static String getDate(BibEntry bibtex) {
+<span class="nc" id="L181">        StringBuilder result = new StringBuilder();</span>
+<span class="nc" id="L182">        bibtex.getFieldOptional(&quot;year&quot;).ifPresent(result::append);</span>
+<span class="nc" id="L183">        bibtex.getFieldOptional(&quot;month&quot;).ifPresent(result.append('-')::append);</span>
+<span class="nc" id="L184">        return result.toString();</span>
+    }
+
+    // must be from http://www.loc.gov/marc/sourcecode/genre/genrelist.html
+    private static String getMODSgenre(BibEntry bibtex) {
+        /**
+         * &lt;pre&gt; String result; if (bibtexType.equals(&quot;Mastersthesis&quot;)) result =
+         * &quot;theses&quot;; else result = &quot;conference publication&quot;; // etc... &lt;/pre&gt;
+         */
+<span class="nc" id="L193">        return bibtex.getType();</span>
+    }
+
+    private Node getDOMrepresentation() {
+        Node result;
+        try {
+<span class="nc" id="L199">            DocumentBuilder d = DocumentBuilderFactory.newInstance().newDocumentBuilder();</span>
+
+<span class="nc" id="L201">            result = getDOMrepresentation(d.newDocument());</span>
+<span class="nc" id="L202">        } catch (Exception e) {</span>
+<span class="nc" id="L203">            throw new Error(e);</span>
+        }
+<span class="nc" id="L205">        return result;</span>
+    }
+
+    public Element getDOMrepresentation(Document d) {
+        try {
+<span class="nc" id="L210">            Element mods = d.createElement(entryType);</span>
+<span class="nc" id="L211">            mods.setAttribute(&quot;version&quot;, &quot;3.0&quot;);</span>
+            // mods.setAttribute(&quot;xmlns:xlink:&quot;, &quot;http://www.w3.org/1999/xlink&quot;);
+            // title
+<span class="nc bnc" id="L214" title="All 2 branches missed.">            if (title != null) {</span>
+<span class="nc" id="L215">                Element titleInfo = d.createElement(&quot;titleInfo&quot;);</span>
+<span class="nc" id="L216">                Element mainTitle = d.createElement(&quot;title&quot;);</span>
+<span class="nc" id="L217">                mainTitle.appendChild(d.createTextNode(StringUtil.stripNonValidXMLCharacters(title)));</span>
+<span class="nc" id="L218">                titleInfo.appendChild(mainTitle);</span>
+<span class="nc" id="L219">                mods.appendChild(titleInfo);</span>
+            }
+<span class="nc bnc" id="L221" title="All 2 branches missed.">            if (authors != null) {</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">                for (PersonName name : authors) {</span>
+<span class="nc" id="L223">                    Element modsName = d.createElement(&quot;name&quot;);</span>
+<span class="nc" id="L224">                    modsName.setAttribute(&quot;type&quot;, &quot;personal&quot;);</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">                    if (name.getSurname() != null) {</span>
+<span class="nc" id="L226">                        Element namePart = d.createElement(&quot;namePart&quot;);</span>
+<span class="nc" id="L227">                        namePart.setAttribute(&quot;type&quot;, &quot;family&quot;);</span>
+<span class="nc" id="L228">                        namePart.appendChild(</span>
+<span class="nc" id="L229">                                d.createTextNode(StringUtil.stripNonValidXMLCharacters(name.getSurname())));</span>
+<span class="nc" id="L230">                        modsName.appendChild(namePart);</span>
+                    }
+<span class="nc bnc" id="L232" title="All 2 branches missed.">                    if (name.getGivenNames() != null) {</span>
+<span class="nc" id="L233">                        Element namePart = d.createElement(&quot;namePart&quot;);</span>
+<span class="nc" id="L234">                        namePart.setAttribute(&quot;type&quot;, &quot;given&quot;);</span>
+<span class="nc" id="L235">                        namePart.appendChild(</span>
+<span class="nc" id="L236">                                d.createTextNode(StringUtil.stripNonValidXMLCharacters(name.getGivenNames())));</span>
+<span class="nc" id="L237">                        modsName.appendChild(namePart);</span>
+                    }
+<span class="nc" id="L239">                    Element role = d.createElement(&quot;role&quot;);</span>
+<span class="nc" id="L240">                    Element roleTerm = d.createElement(&quot;roleTerm&quot;);</span>
+<span class="nc" id="L241">                    roleTerm.setAttribute(&quot;type&quot;, &quot;text&quot;);</span>
+<span class="nc" id="L242">                    roleTerm.appendChild(d.createTextNode(&quot;author&quot;));</span>
+<span class="nc" id="L243">                    role.appendChild(roleTerm);</span>
+<span class="nc" id="L244">                    modsName.appendChild(role);</span>
+<span class="nc" id="L245">                    mods.appendChild(modsName);</span>
+                }
+            }
+            //publisher
+<span class="nc" id="L249">            Element originInfo = d.createElement(&quot;originInfo&quot;);</span>
+<span class="nc" id="L250">            mods.appendChild(originInfo);</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">            if (this.publisher != null) {</span>
+<span class="nc" id="L252">                Element publisher = d.createElement(&quot;publisher&quot;);</span>
+<span class="nc" id="L253">                publisher.appendChild(d.createTextNode(StringUtil.stripNonValidXMLCharacters(this.publisher)));</span>
+<span class="nc" id="L254">                originInfo.appendChild(publisher);</span>
+            }
+<span class="nc bnc" id="L256" title="All 2 branches missed.">            if (date != null) {</span>
+<span class="nc" id="L257">                Element dateIssued = d.createElement(&quot;dateIssued&quot;);</span>
+<span class="nc" id="L258">                dateIssued.appendChild(d.createTextNode(StringUtil.stripNonValidXMLCharacters(date)));</span>
+<span class="nc" id="L259">                originInfo.appendChild(dateIssued);</span>
+            }
+<span class="nc" id="L261">            Element issuance = d.createElement(&quot;issuance&quot;);</span>
+<span class="nc" id="L262">            issuance.appendChild(d.createTextNode(StringUtil.stripNonValidXMLCharacters(this.issuance)));</span>
+<span class="nc" id="L263">            originInfo.appendChild(issuance);</span>
+
+<span class="nc bnc" id="L265" title="All 2 branches missed.">            if (id != null) {</span>
+<span class="nc" id="L266">                Element idref = d.createElement(&quot;identifier&quot;);</span>
+<span class="nc" id="L267">                idref.appendChild(d.createTextNode(StringUtil.stripNonValidXMLCharacters(id)));</span>
+<span class="nc" id="L268">                mods.appendChild(idref);</span>
+<span class="nc" id="L269">                mods.setAttribute(&quot;ID&quot;, id);</span>
+
+            }
+<span class="nc" id="L272">            Element typeOfResource = d.createElement(&quot;typeOfResource&quot;);</span>
+<span class="nc" id="L273">            String type = &quot;text&quot;;</span>
+<span class="nc" id="L274">            typeOfResource.appendChild(d.createTextNode(StringUtil.stripNonValidXMLCharacters(type)));</span>
+<span class="nc" id="L275">            mods.appendChild(typeOfResource);</span>
+
+<span class="nc bnc" id="L277" title="All 2 branches missed.">            if (genre != null) {</span>
+<span class="nc" id="L278">                Element genreElement = d.createElement(&quot;genre&quot;);</span>
+<span class="nc" id="L279">                genreElement.setAttribute(&quot;authority&quot;, &quot;marc&quot;);</span>
+<span class="nc" id="L280">                genreElement.appendChild(d.createTextNode(StringUtil.stripNonValidXMLCharacters(genre)));</span>
+<span class="nc" id="L281">                mods.appendChild(genreElement);</span>
+            }
+
+<span class="nc bnc" id="L284" title="All 2 branches missed.">            if (host != null) {</span>
+<span class="nc" id="L285">                Element relatedItem = host.getDOMrepresentation(d);</span>
+<span class="nc" id="L286">                relatedItem.setAttribute(&quot;type&quot;, &quot;host&quot;);</span>
+<span class="nc" id="L287">                mods.appendChild(relatedItem);</span>
+            }
+<span class="nc bnc" id="L289" title="All 2 branches missed.">            if (pages != null) {</span>
+<span class="nc" id="L290">                mods.appendChild(pages.getDOMrepresentation(d));</span>
+            }
+
+            /* now generate extension fields for unhandled data */
+<span class="nc bnc" id="L294" title="All 2 branches missed.">            for (Map.Entry&lt;String, String&gt; theEntry : extensionFields.entrySet()) {</span>
+<span class="nc" id="L295">                Element extension = d.createElement(&quot;extension&quot;);</span>
+<span class="nc" id="L296">                String field = theEntry.getKey();</span>
+<span class="nc" id="L297">                String value = theEntry.getValue();</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">                if (handledExtensions.contains(field)) {</span>
+<span class="nc" id="L299">                    continue;</span>
+                }
+<span class="nc" id="L301">                Element theData = d.createElement(field);</span>
+<span class="nc" id="L302">                theData.appendChild(d.createTextNode(StringUtil.stripNonValidXMLCharacters(value)));</span>
+<span class="nc" id="L303">                extension.appendChild(theData);</span>
+<span class="nc" id="L304">                mods.appendChild(extension);</span>
+            }
+<span class="nc" id="L306">            return mods;</span>
+<span class="nc" id="L307">        } catch (Exception e) {</span>
+<span class="nc" id="L308">            LOGGER.warn(&quot;Exception caught...&quot;, e);</span>
+<span class="nc" id="L309">            throw new Error(e);</span>
+        }
+        // return result;
+    }
+
+    /*
+     * render as XML
+     *
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L320">        StringWriter sresult = new StringWriter();</span>
+        try {
+<span class="nc" id="L322">            DOMSource source = new DOMSource(getDOMrepresentation());</span>
+<span class="nc" id="L323">            StreamResult result = new StreamResult(sresult);</span>
+<span class="nc" id="L324">            Transformer trans = TransformerFactory.newInstance().newTransformer();</span>
+<span class="nc" id="L325">            trans.setOutputProperty(OutputKeys.INDENT, &quot;yes&quot;);</span>
+<span class="nc" id="L326">            trans.transform(source, result);</span>
+<span class="nc" id="L327">        } catch (Exception e) {</span>
+<span class="nc" id="L328">            throw new Error(e);</span>
+        }
+<span class="nc" id="L330">        return sresult.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

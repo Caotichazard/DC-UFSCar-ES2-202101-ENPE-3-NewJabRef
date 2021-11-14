@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CustomImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer</a> &gt; <span class="el_source">CustomImporter.java</span></div><h1>CustomImporter.java</h1><pre class="source lang-java linenums">/*
+ Copyright (C) 2005-2015 Andreas Rudert, Oscar Gustafsson extracted from CustomImportList
+
+ All programs in this directory and
+ subdirectories are published under the GNU General Public License as
+ described below.
+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or (at
+ your option) any later version.
+
+ This program is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ USA
+
+ Further information about the GNU GPL is available at:
+ http://www.gnu.org/copyleft/gpl.ja.html
+  Copyright (C) 2005-2014 JabRef contributors.
+
+*/
+
+package net.sf.jabref.importer;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.List;
+
+import net.sf.jabref.importer.fileformat.ImportFormat;
+
+/**
+ * Object with data for a custom importer.
+ *
+ * &lt;p&gt;Is also responsible for instantiating the class loader.&lt;/p&gt;
+ */
+public class CustomImporter implements Comparable&lt;CustomImporter&gt; {
+
+    private String name;
+    private String cliId;
+    private String className;
+    private String basePath;
+
+
+    public CustomImporter() {
+<span class="nc" id="L55">        super();</span>
+<span class="nc" id="L56">    }</span>
+
+    public CustomImporter(List&lt;String&gt; data) {
+<span class="nc" id="L59">        this(data.get(0), data.get(1), data.get(2), data.get(3));</span>
+<span class="nc" id="L60">    }</span>
+
+    public CustomImporter(String name, String cliId, String className, String basePath) {
+<span class="nc" id="L63">        super();</span>
+<span class="nc" id="L64">        this.name = name;</span>
+<span class="nc" id="L65">        this.cliId = cliId;</span>
+<span class="nc" id="L66">        this.className = className;</span>
+<span class="nc" id="L67">        this.basePath = basePath;</span>
+<span class="nc" id="L68">    }</span>
+
+    public String getName() {
+<span class="nc" id="L71">        return this.name;</span>
+    }
+
+    public void setName(String name) {
+<span class="nc" id="L75">        this.name = name;</span>
+<span class="nc" id="L76">    }</span>
+
+    public String getClidId() {
+<span class="nc" id="L79">        return this.cliId;</span>
+    }
+
+    public void setCliId(String cliId) {
+<span class="nc" id="L83">        this.cliId = cliId;</span>
+<span class="nc" id="L84">    }</span>
+
+    public String getClassName() {
+<span class="nc" id="L87">        return this.className;</span>
+    }
+
+    public void setClassName(String className) {
+<span class="nc" id="L91">        this.className = className;</span>
+<span class="nc" id="L92">    }</span>
+
+    public void setBasePath(String basePath) {
+<span class="nc" id="L95">        this.basePath = basePath;</span>
+<span class="nc" id="L96">    }</span>
+
+    public String getBasePath() {
+<span class="nc" id="L99">        return basePath;</span>
+    }
+
+    public File getFileFromBasePath() {
+<span class="nc" id="L103">        return new File(basePath);</span>
+    }
+
+    public URL getBasePathUrl() throws MalformedURLException {
+<span class="nc" id="L107">        return getFileFromBasePath().toURI().toURL();</span>
+    }
+
+    public List&lt;String&gt; getAsStringList() {
+<span class="nc" id="L111">        return Arrays.asList(name, cliId, className, basePath);</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L116" title="All 4 branches missed.">        return (o instanceof CustomImporter) &amp;&amp; this.getName().equals(((CustomImporter) o).getName());</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L121">        return name.hashCode();</span>
+    }
+
+    @Override
+    public int compareTo(CustomImporter o) {
+<span class="nc" id="L126">        return this.getName().compareTo(o.getName());</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L131">        return this.name;</span>
+    }
+
+    public ImportFormat getInstance() throws IOException, MalformedURLException, ClassNotFoundException,
+            InstantiationException, IllegalAccessException {
+<span class="nc" id="L136">        try (URLClassLoader cl = new URLClassLoader(new URL[] {getBasePathUrl()})) {</span>
+<span class="nc" id="L137">            Class&lt;?&gt; clazz = Class.forName(className, true, cl);</span>
+<span class="nc" id="L138">            ImportFormat importFormat = (ImportFormat) clazz.newInstance();</span>
+<span class="nc" id="L139">            importFormat.setIsCustomImporter(true);</span>
+<span class="nc" id="L140">            return importFormat;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

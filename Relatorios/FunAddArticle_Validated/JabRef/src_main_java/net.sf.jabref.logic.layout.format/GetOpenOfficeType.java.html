@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GetOpenOfficeType.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.layout.format</a> &gt; <span class="el_source">GetOpenOfficeType.java</span></div><h1>GetOpenOfficeType.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+///////////////////////////////////////////////////////////////////////////////
+//  Filename: $RCSfile$
+//  Purpose:  Atom representation.
+//  Language: Java
+//  Compiler: JDK 1.4
+//  Authors:  Joerg K. Wegner
+//  Version:  $Revision$
+//            $Date$
+//            $Author$
+//
+//  Copyright (c) Dept. Computer Architecture, University of Tuebingen, Germany
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation version 2 of the License.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+///////////////////////////////////////////////////////////////////////////////
+
+package net.sf.jabref.logic.layout.format;
+
+import net.sf.jabref.logic.layout.LayoutFormatter;
+
+/**
+ * Change type of record to match the one used by OpenOffice formatter.
+ *
+ * Based on the RemoveBrackets.java class (Revision 1.2) by mortenalver
+ * @author $author$
+ * @version $Revision$
+ */
+<span class="nc" id="L49">public class GetOpenOfficeType implements LayoutFormatter {</span>
+
+    @Override
+    public String format(String fieldText) {
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (&quot;Article&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L54">            return &quot;7&quot;;</span>
+        }
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (&quot;Book&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L57">            return &quot;1&quot;;</span>
+        }
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (&quot;Booklet&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L60">            return &quot;2&quot;;</span>
+        }
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (&quot;Inbook&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L63">            return &quot;5&quot;;</span>
+        }
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (&quot;Incollection&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L66">            return &quot;5&quot;;</span>
+        }
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (&quot;Inproceedings&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L69">            return &quot;6&quot;;</span>
+        }
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (&quot;Manual&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L72">            return &quot;8&quot;;</span>
+        }
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (&quot;Mastersthesis&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L75">            return &quot;9&quot;;</span>
+        }
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (&quot;Misc&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L78">            return &quot;10&quot;;</span>
+        }
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (&quot;Other&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L81">            return &quot;10&quot;;</span>
+        }
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (&quot;Phdthesis&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L84">            return &quot;9&quot;;</span>
+        }
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (&quot;Proceedings&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L87">            return &quot;3&quot;;</span>
+        }
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        if (&quot;Techreport&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L90">            return &quot;13&quot;;</span>
+        }
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (&quot;Unpublished&quot;.equalsIgnoreCase(fieldText)) {</span>
+<span class="nc" id="L93">            return &quot;14&quot;;</span>
+        }
+        // Default, Miscelaneous
+<span class="nc" id="L96">        return &quot;10&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

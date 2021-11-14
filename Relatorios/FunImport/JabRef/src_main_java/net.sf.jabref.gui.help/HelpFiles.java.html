@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>HelpFiles.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.help</a> &gt; <span class="el_source">HelpFiles.java</span></div><h1>HelpFiles.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.help;
+
+/**
+ * This enum globally defines all help pages with the name of the markdown file in the help repository at github
+ * @see &lt;a href=https://github.com/JabRef/help.jabref.org&gt;help.jabref.org@github&lt;/a&gt;
+ *
+ *
+ */
+<span class="fc" id="L24">public enum HelpFiles {</span>
+<span class="fc" id="L25">    COMMAND_LINE(</span>
+<span class="fc" id="L26">            &quot;&quot;),</span>
+
+<span class="fc" id="L28">    //Empty because it refers to the TOC/index</span>
+<span class="fc" id="L29">    CONTENTS(</span>
+<span class="fc" id="L30">            &quot;&quot;),</span>
+<span class="fc" id="L31">    ENTRY_EDITOR(</span>
+<span class="fc" id="L32">            &quot;EntryEditorHelp&quot;),</span>
+<span class="fc" id="L33">    STRING_EDITOR(</span>
+<span class="fc" id="L34">            &quot;StringEditorHelp&quot;),</span>
+<span class="fc" id="L35">    SEARCH(</span>
+<span class="fc" id="L36">            &quot;SearchHelp&quot;),</span>
+<span class="fc" id="L37">    GROUP(</span>
+<span class="fc" id="L38">            &quot;GroupsHelp&quot;),</span>
+<span class="fc" id="L39">    CONTENT_SELECTOR(</span>
+<span class="fc" id="L40">            &quot;ContentSelectorHelp&quot;),</span>
+<span class="fc" id="L41">    SPECIAL_FIELDS(</span>
+<span class="fc" id="L42">            &quot;specialFieldsHelp&quot;),</span>
+<span class="fc" id="L43">    LABEL_PATTERN(</span>
+<span class="fc" id="L44">            &quot;labelPatternHelp&quot;),</span>
+<span class="fc" id="L45">    OWNER(</span>
+<span class="fc" id="L46">            &quot;OwnerHelp&quot;),</span>
+<span class="fc" id="L47">    TIMESTAMP(</span>
+<span class="fc" id="L48">            &quot;TimeStampHelp&quot;),</span>
+<span class="fc" id="L49">    CUSTOM_EXPORTS(</span>
+<span class="fc" id="L50">            &quot;CustomExports&quot;),</span>
+<span class="fc" id="L51">    CUSTOM_EXPORTS_NAME_FORMATTER(</span>
+<span class="fc" id="L52">            &quot;CustomExports#NameFormatter&quot;),</span>
+<span class="fc" id="L53">    CUSTOM_IMPORTS(</span>
+<span class="fc" id="L54">            &quot;CustomImports&quot;),</span>
+<span class="fc" id="L55">    GENERAL_FIELDS(</span>
+<span class="fc" id="L56">            &quot;GeneralFields&quot;),</span>
+<span class="fc" id="L57">    IMPORT_INSPECTION(</span>
+<span class="fc" id="L58">            &quot;ImportInspectionDialog&quot;),</span>
+<span class="fc" id="L59">    REMOTE(</span>
+<span class="fc" id="L60">            &quot;RemoteHelp&quot;),</span>
+<span class="fc" id="L61">    JOURNAL_ABBREV(</span>
+<span class="fc" id="L62">            &quot;JournalAbbreviations&quot;),</span>
+<span class="fc" id="L63">    REGEX_SEARCH(</span>
+<span class="fc" id="L64">            &quot;ExternalFiles#RegularExpressionSearch&quot;),</span>
+<span class="fc" id="L65">    PREVIEW(</span>
+<span class="fc" id="L66">            &quot;PreviewHelp&quot;),</span>
+<span class="fc" id="L67">    AUTOSAVE(</span>
+<span class="fc" id="L68">            &quot;Autosave&quot;),</span>
+
+<span class="fc" id="L70">    //The help page covers both OO and LO.</span>
+<span class="fc" id="L71">    OPENOFFICE_LIBREOFFICE(</span>
+<span class="fc" id="L72">            &quot;OpenOfficeIntegration&quot;),</span>
+
+<span class="fc" id="L74">    FETCHER_ACM(</span>
+<span class="fc" id="L75">            &quot;ACMPortalHelp&quot;),</span>
+
+<span class="fc" id="L77">    FETCHER_ADS(</span>
+<span class="fc" id="L78">            &quot;ADSHelp&quot;),</span>
+
+<span class="fc" id="L80">    FETCHER_CITESEERX(</span>
+<span class="fc" id="L81">            &quot;CiteSeerHelp&quot;),</span>
+
+<span class="fc" id="L83">    FETCHER_DBLP(</span>
+<span class="fc" id="L84">            &quot;DBLPHelp&quot;),</span>
+
+<span class="fc" id="L86">    FETCHER_DIVA_TO_BIBTEX(</span>
+<span class="fc" id="L87">            &quot;DiVAtoBibTeXHelp&quot;),</span>
+
+<span class="fc" id="L89">    FETCHER_DOAJ(</span>
+<span class="fc" id="L90">            &quot;DOAJHelp&quot;),</span>
+
+<span class="fc" id="L92">    FETCHER_DOI_TO_BIBTEX(</span>
+<span class="fc" id="L93">            &quot;DOItoBibTeXHelp&quot;),</span>
+
+<span class="fc" id="L95">    FETCHER_GOOGLE_SCHOLAR(</span>
+<span class="fc" id="L96">            &quot;GoogleScholarHelp&quot;),</span>
+
+<span class="fc" id="L98">    FETCHER_GVK(</span>
+<span class="fc" id="L99">            &quot;GVKHelp&quot;),</span>
+
+<span class="fc" id="L101">    FETCHER_IEEEXPLORE(</span>
+<span class="fc" id="L102">            &quot;IEEEXploreHelp&quot;),</span>
+
+<span class="fc" id="L104">    FETCHER_INSPIRE(</span>
+<span class="fc" id="L105">            &quot;INSPIRE&quot;),</span>
+
+<span class="fc" id="L107">    FETCHER_ISBN_TO_BIBTEX(</span>
+<span class="fc" id="L108">            &quot;ISBNtoBibTeXHelp&quot;),</span>
+<span class="fc" id="L109">    FETCHER_MEDLINE(</span>
+<span class="fc" id="L110">            &quot;MedlineHelp&quot;),</span>
+
+<span class="fc" id="L112">    FETCHER_OAI2_ARXIV(</span>
+<span class="fc" id="L113">            &quot;arXivHelp&quot;),</span>
+
+<span class="fc" id="L115">    FETCHER_SPRINGER(</span>
+<span class="fc" id="L116">            &quot;SpringerHelp&quot;),</span>
+
+<span class="fc" id="L118">    FETCHER_SCIENCEDIRECT(</span>
+<span class="fc" id="L119">            &quot;&quot;),</span>
+
+<span class="fc" id="L121">    FETCHER_BIBSONOMY_SCRAPER(</span>
+<span class="fc" id="L122">            &quot;&quot;);</span>
+
+    /**
+     *
+     * @param pageName The filename of the help page
+     */
+<span class="fc" id="L128">    HelpFiles(String pageName) {</span>
+<span class="fc" id="L129">        this.pageName = pageName;</span>
+<span class="fc" id="L130">    }</span>
+
+
+    private final String pageName;
+
+
+    /**
+     * Get the filename of a help page
+     * @return The filename of the associated help page
+     */
+    public String getPageName() {
+<span class="nc" id="L141">        return pageName;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

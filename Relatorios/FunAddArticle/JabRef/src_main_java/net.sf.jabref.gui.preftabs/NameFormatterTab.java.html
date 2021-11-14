@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>NameFormatterTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">NameFormatterTab.java</span></div><h1>NameFormatterTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JToolBar;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.OSXCompatibleToolbar;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.layout.format.NameFormatter;
+
+import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+public class NameFormatterTab extends JPanel implements PrefsTab {
+
+    private final JabRefPreferences prefs;
+    private boolean tableChanged;
+
+    private final JTable table;
+
+<span class="nc" id="L56">    private int rowCount = -1;</span>
+
+<span class="nc" id="L58">    private final List&lt;TableRow&gt; tableRows = new ArrayList&lt;&gt;(10);</span>
+
+
+    static class TableRow {
+
+        private String name;
+
+        private String format;
+
+
+        public TableRow() {
+<span class="nc" id="L69">            this(&quot;&quot;);</span>
+<span class="nc" id="L70">        }</span>
+
+        public TableRow(String name) {
+<span class="nc" id="L73">            this(name, NameFormatter.DEFAULT_FORMAT);</span>
+<span class="nc" id="L74">        }</span>
+
+<span class="nc" id="L76">        public TableRow(String name, String format) {</span>
+<span class="nc" id="L77">            this.name = name;</span>
+<span class="nc" id="L78">            this.format = format;</span>
+<span class="nc" id="L79">        }</span>
+
+        public String getName() {
+<span class="nc" id="L82">            return name;</span>
+        }
+
+        public void setName(String name) {
+<span class="nc" id="L86">            this.name = name;</span>
+<span class="nc" id="L87">        }</span>
+
+        public String getFormat() {
+<span class="nc" id="L90">            return format;</span>
+        }
+
+        public void setFormat(String format) {
+<span class="nc" id="L94">            this.format = format;</span>
+<span class="nc" id="L95">        }</span>
+    }
+
+
+    /**
+     * Tab to create custom Name Formatters
+     *
+     */
+<span class="nc" id="L103">    public NameFormatterTab(JabRefPreferences prefs) {</span>
+<span class="nc" id="L104">        this.prefs = Objects.requireNonNull(prefs);</span>
+<span class="nc" id="L105">        setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L107">        TableModel tableModel = new AbstractTableModel() {</span>
+
+            @Override
+            public int getRowCount() {
+<span class="nc" id="L111">                return rowCount;</span>
+            }
+
+            @Override
+            public int getColumnCount() {
+<span class="nc" id="L116">                return 2;</span>
+            }
+
+            @Override
+            public Object getValueAt(int row, int column) {
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                if (row &gt;= tableRows.size()) {</span>
+<span class="nc" id="L122">                    return &quot;&quot;;</span>
+                }
+<span class="nc" id="L124">                TableRow tr = tableRows.get(row);</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">                if (tr == null) {</span>
+<span class="nc" id="L126">                    return &quot;&quot;;</span>
+                }
+                // Only two columns
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                if (column == 0) {</span>
+<span class="nc" id="L130">                    return tr.getName();</span>
+                } else {
+<span class="nc" id="L132">                    return tr.getFormat();</span>
+                }
+            }
+
+            @Override
+            public String getColumnName(int col) {
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                return col == 0 ? Localization.lang(&quot;Formatter Name&quot;) :</span>
+<span class="nc" id="L139">                    Localization.lang(&quot;Format String&quot;);</span>
+            }
+
+            @Override
+            public Class&lt;String&gt; getColumnClass(int column) {
+<span class="nc" id="L144">                return String.class;</span>
+            }
+
+            @Override
+            public boolean isCellEditable(int row, int col) {
+<span class="nc" id="L149">                return true;</span>
+            }
+
+            @Override
+            public void setValueAt(Object value, int row, int col) {
+<span class="nc" id="L154">                tableChanged = true;</span>
+
+                // Make sure the vector is long enough.
+<span class="nc bnc" id="L157" title="All 2 branches missed.">                while (row &gt;= tableRows.size()) {</span>
+<span class="nc" id="L158">                    tableRows.add(new TableRow());</span>
+                }
+
+<span class="nc" id="L161">                TableRow rowContent = tableRows.get(row);</span>
+
+<span class="nc bnc" id="L163" title="All 2 branches missed.">                if (col == 0) {</span>
+<span class="nc" id="L164">                    rowContent.setName(value.toString());</span>
+<span class="nc" id="L165">                } else {</span>
+<span class="nc" id="L166">                    rowContent.setFormat(value.toString());</span>
+                }
+<span class="nc" id="L168">            }</span>
+        };
+
+<span class="nc" id="L171">        table = new JTable(tableModel);</span>
+<span class="nc" id="L172">        TableColumnModel columnModel = table.getColumnModel();</span>
+<span class="nc" id="L173">        columnModel.getColumn(0).setPreferredWidth(140);</span>
+<span class="nc" id="L174">        columnModel.getColumn(1).setPreferredWidth(400);</span>
+
+<span class="nc" id="L176">        FormLayout layout = new FormLayout(&quot;1dlu, 8dlu, left:pref, 4dlu, fill:pref&quot;, &quot;&quot;);</span>
+
+<span class="nc" id="L178">        DefaultFormBuilder builder = new DefaultFormBuilder(layout);</span>
+
+<span class="nc" id="L180">        JPanel pan = new JPanel();</span>
+
+<span class="nc" id="L182">        JPanel tabPanel = new JPanel();</span>
+<span class="nc" id="L183">        tabPanel.setLayout(new BorderLayout());</span>
+<span class="nc" id="L184">        JScrollPane scrollPane = new JScrollPane(table, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L185">                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+<span class="nc" id="L186">        table.setPreferredScrollableViewportSize(new Dimension(250, 200));</span>
+<span class="nc" id="L187">        scrollPane.setMinimumSize(new Dimension(250, 300));</span>
+<span class="nc" id="L188">        scrollPane.setPreferredSize(new Dimension(600, 300));</span>
+<span class="nc" id="L189">        tabPanel.add(scrollPane, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L191">        JToolBar toolBar = new OSXCompatibleToolbar(SwingConstants.VERTICAL);</span>
+<span class="nc" id="L192">        toolBar.setFloatable(false);</span>
+<span class="nc" id="L193">        toolBar.setBorder(null);</span>
+<span class="nc" id="L194">        toolBar.add(new AddRowAction());</span>
+<span class="nc" id="L195">        toolBar.add(new DeleteRowAction());</span>
+<span class="nc" id="L196">        toolBar.add(new HelpAction(Localization.lang(&quot;Help on Name Formatting&quot;),</span>
+<span class="nc" id="L197">                HelpFiles.CUSTOM_EXPORTS_NAME_FORMATTER).getHelpButton());</span>
+
+<span class="nc" id="L199">        tabPanel.add(toolBar, BorderLayout.EAST);</span>
+
+<span class="nc" id="L201">        builder.appendSeparator(Localization.lang(&quot;Special Name Formatters&quot;));</span>
+<span class="nc" id="L202">        builder.nextLine();</span>
+<span class="nc" id="L203">        builder.append(pan);</span>
+<span class="nc" id="L204">        builder.append(tabPanel);</span>
+<span class="nc" id="L205">        builder.nextLine();</span>
+
+<span class="nc" id="L207">        pan = builder.getPanel();</span>
+<span class="nc" id="L208">        pan.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L209">        add(pan, BorderLayout.CENTER);</span>
+<span class="nc" id="L210">    }</span>
+
+    @Override
+    public void setValues() {
+<span class="nc" id="L214">        tableRows.clear();</span>
+<span class="nc" id="L215">        List&lt;String&gt; names = prefs.getStringList(NameFormatter.NAME_FORMATER_KEY);</span>
+<span class="nc" id="L216">        List&lt;String&gt; formats = prefs.getStringList(NameFormatter.NAME_FORMATTER_VALUE);</span>
+
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        for (int i = 0; i &lt; names.size(); i++) {</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            if (i &lt; formats.size()) {</span>
+<span class="nc" id="L220">                tableRows.add(new TableRow(names.get(i), formats.get(i)));</span>
+<span class="nc" id="L221">            } else {</span>
+<span class="nc" id="L222">                tableRows.add(new TableRow(names.get(i)));</span>
+            }
+        }
+<span class="nc" id="L225">        rowCount = tableRows.size() + 5;</span>
+<span class="nc" id="L226">    }</span>
+
+
+    class DeleteRowAction extends AbstractAction {
+
+<span class="nc" id="L231">        public DeleteRowAction() {</span>
+<span class="nc" id="L232">            super(&quot;Delete row&quot;, IconTheme.JabRefIcon.REMOVE_NOBOX.getIcon());</span>
+<span class="nc" id="L233">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Delete rows&quot;));</span>
+<span class="nc" id="L234">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L238">            tableChanged = true;</span>
+
+<span class="nc" id="L240">            int[] selectedRows = table.getSelectedRows();</span>
+
+<span class="nc" id="L242">            int numberDeleted = 0;</span>
+
+<span class="nc bnc" id="L244" title="All 2 branches missed.">            for (int i = selectedRows.length - 1; i &gt;= 0; i--) {</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">                if (selectedRows[i] &lt; tableRows.size()) {</span>
+<span class="nc" id="L246">                    tableRows.remove(selectedRows[i]);</span>
+<span class="nc" id="L247">                    numberDeleted++;</span>
+                }
+            }
+
+<span class="nc" id="L251">            rowCount -= numberDeleted;</span>
+
+<span class="nc bnc" id="L253" title="All 2 branches missed.">            if (selectedRows.length &gt; 1) {</span>
+<span class="nc" id="L254">                table.clearSelection();</span>
+            }
+
+<span class="nc" id="L257">            table.revalidate();</span>
+<span class="nc" id="L258">            table.repaint();</span>
+<span class="nc" id="L259">        }</span>
+    }
+
+    class AddRowAction extends AbstractAction {
+
+<span class="nc" id="L264">        public AddRowAction() {</span>
+<span class="nc" id="L265">            super(&quot;Add row&quot;, IconTheme.JabRefIcon.ADD_NOBOX.getIcon());</span>
+<span class="nc" id="L266">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Insert rows&quot;));</span>
+<span class="nc" id="L267">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L271">            int[] rows = table.getSelectedRows();</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">            if (rows.length == 0) {</span>
+                // No rows selected, so we just add one at the end.
+<span class="nc" id="L274">                rowCount++;</span>
+<span class="nc" id="L275">                table.revalidate();</span>
+<span class="nc" id="L276">                table.repaint();</span>
+<span class="nc" id="L277">                return;</span>
+            }
+<span class="nc bnc" id="L279" title="All 2 branches missed.">            for (int i = 0; i &lt; rows.length; i++) {</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">                if (((rows[i] + i) - 1) &lt; tableRows.size()) {</span>
+<span class="nc" id="L281">                    tableRows.add(Math.max(0, (rows[i] + i) - 1), new TableRow());</span>
+                }
+            }
+<span class="nc" id="L284">            rowCount += rows.length;</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">            if (rows.length &gt; 1) {</span>
+<span class="nc" id="L286">                table.clearSelection();</span>
+            }
+<span class="nc" id="L288">            table.revalidate();</span>
+<span class="nc" id="L289">            table.repaint();</span>
+<span class="nc" id="L290">            tableChanged = true;</span>
+<span class="nc" id="L291">        }</span>
+    }
+
+
+    /**
+     * Store changes to table preferences. This method is called when the user
+     * clicks Ok.
+     *
+     */
+    @Override
+    public void storeSettings() {
+
+<span class="nc bnc" id="L303" title="All 2 branches missed.">        if (table.isEditing()) {</span>
+<span class="nc" id="L304">            int col = table.getEditingColumn();</span>
+<span class="nc" id="L305">            int row = table.getEditingRow();</span>
+<span class="nc" id="L306">            table.getCellEditor(row, col).stopCellEditing();</span>
+        }
+
+        // Now we need to make sense of the contents the user has made to the
+        // table setup table.
+<span class="nc bnc" id="L311" title="All 2 branches missed.">        if (tableChanged) {</span>
+            // First we remove all rows with empty names.
+<span class="nc" id="L313">            int i = 0;</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">            while (i &lt; tableRows.size()) {</span>
+<span class="nc bnc" id="L315" title="All 2 branches missed.">                if (tableRows.get(i).getName().isEmpty()) {</span>
+<span class="nc" id="L316">                    tableRows.remove(i);</span>
+<span class="nc" id="L317">                } else {</span>
+<span class="nc" id="L318">                    i++;</span>
+                }
+            }
+            // Then we make lists
+
+<span class="nc" id="L323">            List&lt;String&gt; names = new ArrayList&lt;&gt;(tableRows.size());</span>
+<span class="nc" id="L324">            List&lt;String&gt; formats = new ArrayList&lt;&gt;(tableRows.size());</span>
+
+<span class="nc bnc" id="L326" title="All 2 branches missed.">            for (TableRow tr : tableRows) {</span>
+<span class="nc" id="L327">                names.add(tr.getName());</span>
+<span class="nc" id="L328">                formats.add(tr.getFormat());</span>
+            }
+
+            // Finally, we store the new preferences.
+<span class="nc" id="L332">            prefs.putStringList(NameFormatter.NAME_FORMATER_KEY, names);</span>
+<span class="nc" id="L333">            prefs.putStringList(NameFormatter.NAME_FORMATTER_VALUE, formats);</span>
+        }
+<span class="nc" id="L335">    }</span>
+
+    @Override
+    public boolean validateSettings() {
+<span class="nc" id="L339">        return true;</span>
+    }
+
+    @Override
+    public String getTabName() {
+<span class="nc" id="L344">        return Localization.lang(&quot;Name formatter&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

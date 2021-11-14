@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GVKFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">GVKFetcher.java</span></div><h1>GVKFetcher.java</h1><pre class="source lang-java linenums">/**
+ * License: GPLv2, but Jan Frederik Maas agreed to change license upon request
+ */
+package net.sf.jabref.importer.fetcher;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.JPanel;
+import javax.xml.parsers.ParserConfigurationException;
+
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.xml.sax.SAXException;
+
+/**
+ * Fetch or search from GVK http://gso.gbv.de/sru/DB=2.1/
+ */
+public class GVKFetcher implements EntryFetcher {
+
+<span class="fc" id="L37">    private static final Log LOGGER = LogFactory.getLog(GVKFetcher.class);</span>
+
+<span class="fc" id="L39">    private final Map&lt;String, String&gt; searchKeys = new HashMap&lt;&gt;();</span>
+
+
+<span class="fc" id="L42">    public GVKFetcher() {</span>
+<span class="fc" id="L43">        searchKeys.put(&quot;all&quot;, &quot;pica.all%3D&quot;);</span>
+<span class="fc" id="L44">        searchKeys.put(&quot;tit&quot;, &quot;pica.tit%3D&quot;);</span>
+<span class="fc" id="L45">        searchKeys.put(&quot;per&quot;, &quot;pica.per%3D&quot;);</span>
+<span class="fc" id="L46">        searchKeys.put(&quot;thm&quot;, &quot;pica.thm%3D&quot;);</span>
+<span class="fc" id="L47">        searchKeys.put(&quot;slw&quot;, &quot;pica.slw%3D&quot;);</span>
+<span class="fc" id="L48">        searchKeys.put(&quot;txt&quot;, &quot;pica.txt%3D&quot;);</span>
+<span class="fc" id="L49">        searchKeys.put(&quot;num&quot;, &quot;pica.num%3D&quot;);</span>
+<span class="fc" id="L50">        searchKeys.put(&quot;kon&quot;, &quot;pica.kon%3D&quot;);</span>
+<span class="fc" id="L51">        searchKeys.put(&quot;ppn&quot;, &quot;pica.ppn%3D&quot;);</span>
+<span class="fc" id="L52">        searchKeys.put(&quot;bkl&quot;, &quot;pica.bkl%3D&quot;);</span>
+<span class="fc" id="L53">        searchKeys.put(&quot;erj&quot;, &quot;pica.erj%3D&quot;);</span>
+<span class="fc" id="L54">    }</span>
+
+    /**
+     * Necessary for JabRef
+     */
+    @Override
+    public void stopFetching() {
+        // not supported
+<span class="nc" id="L62">    }</span>
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L66">        return HelpFiles.FETCHER_GVK;</span>
+    }
+
+    @Override
+    public JPanel getOptionsPanel() {
+<span class="nc" id="L71">        return null;</span>
+    }
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L76">        return &quot;GVK (Gemeinsamer Verbundkatalog)&quot;;</span>
+    }
+
+    @Override
+    public boolean processQuery(String query, ImportInspector dialog, OutputPrinter frame) {
+
+<span class="nc" id="L82">        query = query.trim();</span>
+
+<span class="nc" id="L84">        String[] qterms = query.split(&quot;\\s&quot;);</span>
+
+        // Null abfangen!
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if (qterms.length == 0) {</span>
+<span class="nc" id="L88">            return false;</span>
+        }
+
+        // Jeden einzelnen Suchbegriff URL-Encodieren
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        for (int x = 0; x &lt; qterms.length; x++) {</span>
+            try {
+<span class="nc" id="L94">                qterms[x] = URLEncoder.encode(qterms[x], StandardCharsets.UTF_8.name());</span>
+<span class="nc" id="L95">            } catch (UnsupportedEncodingException e) {</span>
+<span class="nc" id="L96">                LOGGER.error(&quot;Unsupported encoding&quot;, e);</span>
+            }
+        }
+
+        String gvkQuery;
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (searchKeys.containsKey(qterms[0])) {</span>
+<span class="nc" id="L102">            gvkQuery = processComplexQuery(qterms);</span>
+<span class="nc" id="L103">        } else {</span>
+<span class="nc" id="L104">            gvkQuery = &quot;pica.all%3D&quot;;</span>
+<span class="nc" id="L105">            gvkQuery = gvkQuery.concat(qterms[0]);</span>
+
+<span class="nc bnc" id="L107" title="All 2 branches missed.">            for (int x = 1; x &lt; qterms.length; x++) {</span>
+<span class="nc" id="L108">                gvkQuery = gvkQuery.concat(&quot;%20&quot;);</span>
+<span class="nc" id="L109">                gvkQuery = gvkQuery.concat(qterms[x]);</span>
+            }
+        }
+
+<span class="nc" id="L113">        List&lt;BibEntry&gt; bibs = fetchGVK(gvkQuery);</span>
+
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        for (BibEntry entry : bibs) {</span>
+<span class="nc" id="L116">            dialog.addEntry(entry);</span>
+        }
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (bibs.isEmpty()) {</span>
+<span class="nc" id="L120">            frame.showMessage(Localization.lang(&quot;No references found&quot;));</span>
+        }
+
+<span class="nc" id="L123">        return true;</span>
+    }
+
+    private String processComplexQuery(String[] s) {
+<span class="nc" id="L127">        String result = &quot;&quot;;</span>
+<span class="nc" id="L128">        boolean lastWasKey = false;</span>
+
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        for (int x = 0; x &lt; s.length; x++) {</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (searchKeys.containsKey(s[x])) {</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">                if (x == 0) {</span>
+<span class="nc" id="L133">                    result = searchKeys.get(s[x]);</span>
+<span class="nc" id="L134">                } else {</span>
+<span class="nc" id="L135">                    result = result.concat(&quot;%20and%20&quot; + searchKeys.get(s[x]));</span>
+                }
+<span class="nc" id="L137">                lastWasKey = true;</span>
+<span class="nc" id="L138">            } else {</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">                if (!lastWasKey) {</span>
+<span class="nc" id="L140">                    result = result.concat(&quot;%20&quot;);</span>
+                }
+<span class="nc" id="L142">                String encoded = s[x];</span>
+<span class="nc" id="L143">                encoded = encoded.replace(&quot;,&quot;, &quot;%2C&quot;).replace(&quot;?&quot;, &quot;%3F&quot;);</span>
+
+<span class="nc" id="L145">                result = result.concat(encoded);</span>
+<span class="nc" id="L146">                lastWasKey = false;</span>
+            }
+        }
+<span class="nc" id="L149">        return result;</span>
+    }
+
+    private List&lt;BibEntry&gt; fetchGVK(String query) {
+        List&lt;BibEntry&gt; result;
+
+<span class="nc" id="L155">        String urlPrefix = &quot;http://sru.gbv.de/gvk?version=1.1&amp;operation=searchRetrieve&amp;query=&quot;;</span>
+<span class="nc" id="L156">        String urlSuffix = &quot;&amp;maximumRecords=50&amp;recordSchema=picaxml&amp;sortKeys=Year%2C%2C1&quot;;</span>
+
+<span class="nc" id="L158">        String searchstring = urlPrefix + query + urlSuffix;</span>
+<span class="nc" id="L159">        LOGGER.debug(searchstring);</span>
+        try {
+<span class="nc" id="L161">            URI uri = new URI(searchstring);</span>
+<span class="nc" id="L162">            URL url = uri.toURL();</span>
+<span class="nc" id="L163">            try (InputStream is = url.openStream()) {</span>
+<span class="nc" id="L164">                result = (new GVKParser()).parseEntries(is);</span>
+            }
+<span class="nc" id="L166">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L167">            LOGGER.error(&quot;URI malformed error&quot;, e);</span>
+<span class="nc" id="L168">            return Collections.emptyList();</span>
+<span class="nc" id="L169">        } catch (IOException e) {</span>
+<span class="nc" id="L170">            LOGGER.error(&quot;GVK: An I/O exception occurred&quot;, e);</span>
+<span class="nc" id="L171">            return Collections.emptyList();</span>
+<span class="nc" id="L172">        } catch (ParserConfigurationException e) {</span>
+<span class="nc" id="L173">            LOGGER.error(&quot;GVK: An internal parser error occurred&quot;, e);</span>
+<span class="nc" id="L174">            return Collections.emptyList();</span>
+<span class="nc" id="L175">        } catch (SAXException e) {</span>
+<span class="nc" id="L176">            LOGGER.error(&quot;An internal parser error occurred&quot;, e);</span>
+<span class="nc" id="L177">            return Collections.emptyList();</span>
+        }
+
+<span class="nc" id="L180">        return result;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

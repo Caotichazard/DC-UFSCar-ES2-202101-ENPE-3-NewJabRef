@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractAutoCompleter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.autocompleter</a> &gt; <span class="el_source">AbstractAutoCompleter.java</span></div><h1>AbstractAutoCompleter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.autocompleter;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+/**
+ * Delivers possible completions for a given string.
+ *
+ * @author kahlert, cordes, olly98
+ * @see AutoCompleterFactory
+ */
+public abstract class AbstractAutoCompleter implements AutoCompleter&lt;String&gt; {
+
+    private static final int SHORTEST_WORD_TO_ADD = 4;
+    private final AutoCompletePreferences preferences;
+
+    /**
+     * Stores the strings as is.
+     */
+<span class="fc" id="L39">    private final TreeSet&lt;String&gt; indexCaseSensitive = new TreeSet&lt;&gt;();</span>
+
+    /**
+     * Stores strings in lowercase.
+     */
+<span class="fc" id="L44">    private final TreeSet&lt;String&gt; indexCaseInsensitive = new TreeSet&lt;&gt;();</span>
+
+    /**
+     * Stores for a lowercase string the possible expanded strings.
+     */
+<span class="fc" id="L49">    private final Map&lt;String, Set&lt;String&gt;&gt; possibleStringsForSearchString = new HashMap&lt;&gt;();</span>
+
+
+<span class="fc" id="L52">    public AbstractAutoCompleter(AutoCompletePreferences preferences) {</span>
+<span class="fc" id="L53">        this.preferences = Objects.requireNonNull(preferences);</span>
+<span class="fc" id="L54">    }</span>
+
+    /**
+     * {@inheritDoc}
+     * The completion is case sensitive if the string contains upper case letters.
+     * Otherwise the completion is case insensitive.
+     */
+    @Override
+    public List&lt;String&gt; complete(String toComplete) {
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if(toComplete == null) {</span>
+<span class="nc" id="L64">            return new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (isTooShortToComplete(toComplete)) {</span>
+<span class="nc" id="L67">            return new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L69">        String lowerCase = toComplete.toLowerCase();</span>
+
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (lowerCase.equals(toComplete)) {</span>
+            // user typed in lower case word -&gt; we do an case-insensitive search
+<span class="nc" id="L73">            String ender = AbstractAutoCompleter.incrementLastCharacter(lowerCase);</span>
+<span class="nc" id="L74">            SortedSet&lt;String&gt; subset = indexCaseInsensitive.subSet(lowerCase, ender);</span>
+
+            // As subset only contains lower case strings,
+            // we have to to determine possible strings for each hit
+<span class="nc" id="L78">            List&lt;String&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">            for (String s : subset) {</span>
+<span class="nc" id="L80">                result.addAll(possibleStringsForSearchString.get(s));</span>
+            }
+<span class="nc" id="L82">            return result;</span>
+        } else {
+            // user typed in a mix of upper case and lower case,
+            // we assume user wants to have exact search
+<span class="nc" id="L86">            String ender = AbstractAutoCompleter.incrementLastCharacter(toComplete);</span>
+<span class="nc" id="L87">            SortedSet&lt;String&gt; subset = indexCaseSensitive.subSet(toComplete, ender);</span>
+<span class="nc" id="L88">            return new ArrayList&lt;&gt;(subset);</span>
+        }
+    }
+
+    /**
+     * Increments the last character of a string.
+     *
+     * Example: incrementLastCharacter(&quot;abc&quot;) returns &quot;abd&quot;.
+     */
+    private static String incrementLastCharacter(String toIncrement) {
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (toIncrement.isEmpty()) {</span>
+<span class="nc" id="L99">            return &quot;&quot;;</span>
+        }
+
+<span class="nc" id="L102">        char lastChar = toIncrement.charAt(toIncrement.length() - 1);</span>
+<span class="nc" id="L103">        return toIncrement.substring(0, toIncrement.length() - 1) + Character.toString((char) (lastChar + 1));</span>
+    }
+
+    /**
+     * Returns whether the string is to short to be completed.
+     */
+    private boolean isTooShortToComplete(String toCheck) {
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        return toCheck.length() &lt; preferences.getShortestLengthToComplete();</span>
+    }
+
+    @Override
+    public void addItemToIndex(String word) {
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (word.length() &lt; getLengthOfShortestWordToAdd()) {</span>
+<span class="fc" id="L116">            return;</span>
+        }
+
+<span class="fc" id="L119">        indexCaseSensitive.add(word);</span>
+
+        // insensitive treatment
+        // first, add the lower cased word to search index
+        // second, add a mapping from the lower cased word to the real word
+<span class="fc" id="L124">        String lowerCase = word.toLowerCase();</span>
+<span class="fc" id="L125">        indexCaseInsensitive.add(lowerCase);</span>
+<span class="fc" id="L126">        Set&lt;String&gt; set = possibleStringsForSearchString.get(lowerCase);</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (set == null) {</span>
+<span class="fc" id="L128">            set = new TreeSet&lt;&gt;();</span>
+        }
+<span class="fc" id="L130">        set.add(word);</span>
+<span class="fc" id="L131">        possibleStringsForSearchString.put(lowerCase, set);</span>
+<span class="fc" id="L132">    }</span>
+
+    @Override
+    public String getPrefix() {
+<span class="nc" id="L136">        return &quot;&quot;;</span>
+    }
+
+    @Override
+    public String getAutoCompleteText(String item) {
+<span class="nc" id="L141">        return item;</span>
+    }
+
+    protected int getLengthOfShortestWordToAdd() {
+<span class="fc" id="L145">        return AbstractAutoCompleter.SHORTEST_WORD_TO_ADD;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

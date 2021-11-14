@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CopacImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">CopacImporter.java</span></div><h1>CopacImporter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer.fileformat;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.importer.ImportFormatReader;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Importer for COPAC format.
+ *
+ * Documentation can be found online at:
+ *
+ * http://copac.ac.uk/faq/#format
+ */
+<span class="fc" id="L36">public class CopacImporter extends ImportFormat {</span>
+
+<span class="fc" id="L38">    private static final Pattern COPAC_PATTERN = Pattern.compile(&quot;^\\s*TI- &quot;);</span>
+
+
+    /**
+     * Return the name of this import format.
+     */
+    @Override
+    public String getFormatName() {
+<span class="fc" id="L46">        return &quot;Copac&quot;;</span>
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see net.sf.jabref.imports.ImportFormat#getCLIId()
+     */
+    @Override
+    public String getCLIId() {
+<span class="nc" id="L56">        return &quot;cpc&quot;;</span>
+    }
+
+
+
+    /**
+     * Check whether the source is in the correct format for this importer.
+     */
+    @Override
+    public boolean isRecognizedFormat(InputStream stream) throws IOException {
+
+<span class="nc" id="L67">        BufferedReader in = new BufferedReader(ImportFormatReader.getReaderDefaultEncoding(stream));</span>
+
+        String str;
+
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        while ((str = in.readLine()) != null) {</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">            if (CopacImporter.COPAC_PATTERN.matcher(str).find()) {</span>
+<span class="nc" id="L73">                return true;</span>
+            }
+        }
+
+<span class="nc" id="L77">        return false;</span>
+    }
+
+    /**
+     * Parse the entries in the source, and return a List of BibEntry
+     * objects.
+     */
+    @Override
+    public List&lt;BibEntry&gt; importEntries(InputStream stream, OutputPrinter status) throws IOException {
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (stream == null) {</span>
+<span class="nc" id="L87">            throw new IOException(&quot;No stream given.&quot;);</span>
+        }
+
+<span class="nc" id="L90">        List&lt;String&gt; entries = new LinkedList&lt;&gt;();</span>
+<span class="nc" id="L91">        StringBuilder sb = new StringBuilder();</span>
+
+<span class="nc" id="L93">        try (BufferedReader in = new BufferedReader(ImportFormatReader.getReaderDefaultEncoding(stream))) {</span>
+            // Preprocess entries
+            String str;
+
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            while ((str = in.readLine()) != null) {</span>
+
+<span class="nc bnc" id="L99" title="All 2 branches missed.">                if (str.length() &lt; 4) {</span>
+<span class="nc" id="L100">                    continue;</span>
+                }
+
+<span class="nc" id="L103">                String code = str.substring(0, 4);</span>
+
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                if (&quot;    &quot;.equals(code)) {</span>
+<span class="nc" id="L106">                    sb.append(' ').append(str.trim());</span>
+<span class="nc" id="L107">                } else {</span>
+
+                    // begining of a new item
+<span class="nc bnc" id="L110" title="All 2 branches missed.">                    if (&quot;TI- &quot;.equals(str.substring(0, 4))) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                        if (sb.length() &gt; 0) {</span>
+<span class="nc" id="L112">                            entries.add(sb.toString());</span>
+                        }
+<span class="nc" id="L114">                        sb = new StringBuilder();</span>
+                    }
+<span class="nc" id="L116">                    sb.append('\n').append(str);</span>
+                }
+            }
+        }
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (sb.length() &gt; 0) {</span>
+<span class="nc" id="L122">            entries.add(sb.toString());</span>
+        }
+
+<span class="nc" id="L125">        List&lt;BibEntry&gt; results = new LinkedList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        for (String entry : entries) {</span>
+
+            // Copac does not contain enough information on the type of the
+            // document. A book is assumed.
+<span class="nc" id="L131">            BibEntry b = new BibEntry(DEFAULT_BIBTEXENTRY_ID, &quot;book&quot;);</span>
+
+<span class="nc" id="L133">            String[] lines = entry.split(&quot;\n&quot;);</span>
+
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            for (String line1 : lines) {</span>
+<span class="nc" id="L136">                String line = line1.trim();</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">                if (line.length() &lt; 4) {</span>
+<span class="nc" id="L138">                    continue;</span>
+                }
+<span class="nc" id="L140">                String code = line.substring(0, 4);</span>
+
+<span class="nc bnc" id="L142" title="All 2 branches missed.">                if (&quot;TI- &quot;.equals(code)) {</span>
+<span class="nc" id="L143">                    setOrAppend(b, &quot;title&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">                } else if (&quot;AU- &quot;.equals(code)) {</span>
+<span class="nc" id="L145">                    setOrAppend(b, &quot;author&quot;, line.substring(4).trim(), &quot; and &quot;);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">                } else if (&quot;PY- &quot;.equals(code)) {</span>
+<span class="nc" id="L147">                    setOrAppend(b, &quot;year&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">                } else if (&quot;PU- &quot;.equals(code)) {</span>
+<span class="nc" id="L149">                    setOrAppend(b, &quot;publisher&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">                } else if (&quot;SE- &quot;.equals(code)) {</span>
+<span class="nc" id="L151">                    setOrAppend(b, &quot;series&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">                } else if (&quot;IS- &quot;.equals(code)) {</span>
+<span class="nc" id="L153">                    setOrAppend(b, &quot;isbn&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                } else if (&quot;KW- &quot;.equals(code)) {</span>
+<span class="nc" id="L155">                    setOrAppend(b, &quot;keywords&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                } else if (&quot;NT- &quot;.equals(code)) {</span>
+<span class="nc" id="L157">                    setOrAppend(b, &quot;note&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                } else if (&quot;PD- &quot;.equals(code)) {</span>
+<span class="nc" id="L159">                    setOrAppend(b, &quot;physicaldimensions&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">                } else if (&quot;DT- &quot;.equals(code)) {</span>
+<span class="nc" id="L161">                    setOrAppend(b, &quot;documenttype&quot;, line.substring(4).trim(), &quot;, &quot;);</span>
+<span class="nc" id="L162">                } else {</span>
+<span class="nc" id="L163">                    setOrAppend(b, code.substring(0, 2), line.substring(4).trim(), &quot;, &quot;);</span>
+                }
+            }
+<span class="nc" id="L166">            results.add(b);</span>
+        }
+
+<span class="nc" id="L169">        return results;</span>
+    }
+
+    private static void setOrAppend(BibEntry b, String field, String value, String separator) {
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (b.hasField(field)) {</span>
+<span class="nc" id="L174">            b.setField(field, b.getField(field) + separator + value);</span>
+<span class="nc" id="L175">        } else {</span>
+<span class="nc" id="L176">            b.setField(field, value);</span>
+        }
+<span class="nc" id="L178">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

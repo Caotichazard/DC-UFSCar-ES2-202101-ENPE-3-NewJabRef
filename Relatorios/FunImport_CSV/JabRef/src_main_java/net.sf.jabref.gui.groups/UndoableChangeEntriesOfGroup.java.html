@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>UndoableChangeEntriesOfGroup.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.groups</a> &gt; <span class="el_source">UndoableChangeEntriesOfGroup.java</span></div><h1>UndoableChangeEntriesOfGroup.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.groups;
+
+import javax.swing.undo.AbstractUndoableEdit;
+
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.gui.undo.UndoableFieldChange;
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.logic.groups.EntriesGroupChange;
+import net.sf.jabref.logic.l10n.Localization;
+
+<span class="nc" id="L26">public class UndoableChangeEntriesOfGroup {</span>
+
+   public static AbstractUndoableEdit getUndoableEdit(GroupTreeNodeViewModel node, EntriesGroupChange change) {
+
+<span class="nc bnc" id="L30" title="All 2 branches missed.">       if(change.getOldEntries().size() != change.getNewEntries().size()) {</span>
+<span class="nc" id="L31">           return new UndoableChangeAssignment(node, change.getOldEntries(), change.getNewEntries());</span>
+       }
+
+<span class="nc" id="L34">       boolean hasEntryChanges = false;</span>
+<span class="nc" id="L35">       NamedCompound entryChangeCompound = new NamedCompound(Localization.lang(&quot;change entries of group&quot;));</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">       for(FieldChange fieldChange : change.getEntryChanges()) {</span>
+<span class="nc" id="L37">           hasEntryChanges = true;</span>
+<span class="nc" id="L38">           entryChangeCompound.addEdit(new UndoableFieldChange(fieldChange));</span>
+       }
+<span class="nc bnc" id="L40" title="All 2 branches missed.">       if (hasEntryChanges) {</span>
+<span class="nc" id="L41">           entryChangeCompound.end();</span>
+<span class="nc" id="L42">           return entryChangeCompound;</span>
+       }
+
+<span class="nc" id="L45">       return null;</span>
+   }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

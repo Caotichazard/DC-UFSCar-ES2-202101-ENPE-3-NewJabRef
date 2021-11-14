@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CitationManager.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.openoffice</a> &gt; <span class="el_source">CitationManager.java</span></div><h1>CitationManager.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.openoffice;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
+import java.util.Optional;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.openoffice.CitationEntry;
+
+import ca.odell.glazedlists.BasicEventList;
+import ca.odell.glazedlists.EventList;
+import ca.odell.glazedlists.gui.TableFormat;
+import ca.odell.glazedlists.swing.DefaultEventTableModel;
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+import com.sun.star.beans.IllegalTypeException;
+import com.sun.star.beans.NotRemoveableException;
+import com.sun.star.beans.PropertyExistException;
+import com.sun.star.beans.UnknownPropertyException;
+import com.sun.star.container.NoSuchElementException;
+import com.sun.star.container.XNameAccess;
+import com.sun.star.lang.IllegalArgumentException;
+import com.sun.star.lang.WrappedTargetException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Dialog for modifying existing citations.
+ */
+class CitationManager {
+
+    private final OOBibBase ooBase;
+    private final JDialog diag;
+    private final EventList&lt;CitationEntry&gt; list;
+    private final JTable table;
+    private final DefaultEventTableModel&lt;CitationEntry&gt; tableModel;
+
+<span class="nc" id="L72">    private static final Log LOGGER = LogFactory.getLog(CitationManager.class);</span>
+
+
+<span class="nc" id="L75">    public CitationManager(final JabRefFrame frame, OOBibBase ooBase)</span>
+            throws NoSuchElementException, WrappedTargetException, UnknownPropertyException {
+<span class="nc" id="L77">        diag = new JDialog(frame, Localization.lang(&quot;Manage citations&quot;), true);</span>
+<span class="nc" id="L78">        this.ooBase = ooBase;</span>
+
+<span class="nc" id="L80">        list = new BasicEventList&lt;&gt;();</span>
+<span class="nc" id="L81">        XNameAccess nameAccess = ooBase.getReferenceMarks();</span>
+<span class="nc" id="L82">        List&lt;String&gt; names = ooBase.getJabRefReferenceMarks(nameAccess);</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        for (String name : names) {</span>
+<span class="nc" id="L84">            list.add(new CitationEntry(name,</span>
+<span class="nc" id="L85">                    &quot;&lt;html&gt;...&quot; + ooBase.getCitationContext(nameAccess, name, 30, 30, true) + &quot;...&lt;/html&gt;&quot;,</span>
+<span class="nc" id="L86">                    ooBase.getCustomProperty(name)));</span>
+        }
+<span class="nc" id="L88">        tableModel = new DefaultEventTableModel&lt;&gt;(list, new CitationEntryFormat());</span>
+<span class="nc" id="L89">        table = new JTable(tableModel);</span>
+<span class="nc" id="L90">        diag.add(new JScrollPane(table), BorderLayout.CENTER);</span>
+
+<span class="nc" id="L92">        ButtonBarBuilder bb = new ButtonBarBuilder();</span>
+<span class="nc" id="L93">        bb.addGlue();</span>
+<span class="nc" id="L94">        JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+<span class="nc" id="L95">        bb.addButton(ok);</span>
+<span class="nc" id="L96">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L97">        bb.addButton(cancel);</span>
+<span class="nc" id="L98">        bb.addGlue();</span>
+<span class="nc" id="L99">        bb.getPanel().setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L100">        diag.add(bb.getPanel(), BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L102">        diag.pack();</span>
+<span class="nc" id="L103">        diag.setSize(700, 400);</span>
+
+<span class="nc" id="L105">        ok.addActionListener(e -&gt; {</span>
+            try {
+<span class="nc" id="L107">                storeSettings();</span>
+<span class="nc" id="L108">            } catch (UnknownPropertyException | NotRemoveableException | PropertyExistException | IllegalTypeException |</span>
+<span class="nc" id="L109">                    IllegalArgumentException ex) {</span>
+<span class="nc" id="L110">                LOGGER.warn(&quot;Problem modifying citation&quot;, ex);</span>
+<span class="nc" id="L111">                JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Problem modifying citation&quot;));</span>
+            }
+<span class="nc" id="L113">            diag.dispose();</span>
+<span class="nc" id="L114">        });</span>
+
+<span class="nc" id="L116">        Action cancelAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L120">                diag.dispose();</span>
+<span class="nc" id="L121">            }</span>
+        };
+<span class="nc" id="L123">        cancel.addActionListener(cancelAction);</span>
+
+<span class="nc" id="L125">        bb.getPanel().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put</span>
+<span class="nc" id="L126">                (Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L127">        bb.getPanel().getActionMap().put(&quot;close&quot;, cancelAction);</span>
+
+<span class="nc" id="L129">        table.getColumnModel().getColumn(0).setPreferredWidth(580);</span>
+<span class="nc" id="L130">        table.getColumnModel().getColumn(1).setPreferredWidth(110);</span>
+<span class="nc" id="L131">        table.setPreferredScrollableViewportSize(new Dimension(700, 500));</span>
+<span class="nc" id="L132">        table.addMouseListener(new TableClickListener());</span>
+<span class="nc" id="L133">    }</span>
+
+    private void storeSettings() throws UnknownPropertyException, NotRemoveableException, PropertyExistException,
+            IllegalTypeException, IllegalArgumentException {
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        for (CitationEntry entry : list) {</span>
+<span class="nc" id="L138">            Optional&lt;String&gt; pageInfo = entry.getPageInfo();</span>
+<span class="nc bnc" id="L139" title="All 4 branches missed.">            if (entry.pageInfoChanged() &amp;&amp; pageInfo.isPresent()) {</span>
+<span class="nc" id="L140">                ooBase.setCustomProperty(entry.getRefMarkName(), pageInfo.get());</span>
+            }
+        }
+<span class="nc" id="L143">    }</span>
+
+    public void showDialog() {
+<span class="nc" id="L146">        diag.setLocationRelativeTo(diag.getParent());</span>
+<span class="nc" id="L147">        diag.setVisible(true);</span>
+<span class="nc" id="L148">    }</span>
+
+
+
+    private static class CitationEntryFormat implements TableFormat&lt;CitationEntry&gt; {
+
+        @Override
+        public int getColumnCount() {
+<span class="nc" id="L156">            return 2;</span>
+        }
+
+        @Override
+        public String getColumnName(int i) {
+<span class="nc bnc" id="L161" title="All 2 branches missed.">            if (i == 0) {</span>
+<span class="nc" id="L162">                return Localization.lang(&quot;Citation&quot;);</span>
+            } else {
+<span class="nc" id="L164">                return Localization.lang(&quot;Extra information&quot;);</span>
+            }
+        }
+
+        @Override
+        public Object getColumnValue(CitationEntry citEntry, int i) {
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            if (i == 0) {</span>
+<span class="nc" id="L171">                return citEntry.getContext();</span>
+            } else {
+<span class="nc" id="L173">                return citEntry.getPageInfo().orElse(&quot;&quot;);</span>
+            }
+        }
+    }
+
+<span class="nc" id="L178">    private class TableClickListener extends MouseAdapter {</span>
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+<span class="nc bnc" id="L182" title="All 4 branches missed.">            if ((e.getButton() == MouseEvent.BUTTON1) &amp;&amp; (e.getClickCount() == 2)) {</span>
+<span class="nc" id="L183">                int row = table.rowAtPoint(e.getPoint());</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">                if (row &gt;= 0) {</span>
+<span class="nc" id="L185">                    SingleCitationDialog scd = new SingleCitationDialog(list.get(row));</span>
+<span class="nc" id="L186">                    scd.showDialog();</span>
+                }
+            }
+<span class="nc" id="L189">        }</span>
+    }
+
+    class SingleCitationDialog {
+
+        private final JDialog singleCiteDialog;
+<span class="nc" id="L195">        private final JTextField pageInfo = new JTextField(20);</span>
+<span class="nc" id="L196">        private final JButton okButton = new JButton(Localization.lang(&quot;OK&quot;));</span>
+<span class="nc" id="L197">        private final JButton cancelButton = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+        private final CitationEntry entry;
+
+
+<span class="nc" id="L201">        public SingleCitationDialog(CitationEntry citEntry) {</span>
+<span class="nc" id="L202">            this.entry = citEntry;</span>
+<span class="nc" id="L203">            pageInfo.setText(entry.getPageInfo().orElse(&quot;&quot;));</span>
+
+<span class="nc" id="L205">            singleCiteDialog = new JDialog(CitationManager.this.diag, Localization.lang(&quot;Citation&quot;), true);</span>
+
+<span class="nc" id="L207">            FormBuilder builder = FormBuilder.create()</span>
+<span class="nc" id="L208">                    .layout(new FormLayout(&quot;left:pref, 4dlu, fill:150dlu:grow&quot;, &quot;pref, 4dlu, pref&quot;));</span>
+<span class="nc" id="L209">            builder.add(entry.getContext()).xyw(1, 1, 3);</span>
+<span class="nc" id="L210">            builder.add(Localization.lang(&quot;Extra information (e.g. page number)&quot;)).xy(1, 3);</span>
+<span class="nc" id="L211">            builder.add(pageInfo).xy(3, 3);</span>
+<span class="nc" id="L212">            builder.padding(&quot;10dlu, 10dlu, 10dlu, 10dlu&quot;);</span>
+<span class="nc" id="L213">            singleCiteDialog.getContentPane().add(builder.getPanel(), BorderLayout.CENTER);</span>
+
+<span class="nc" id="L215">            ButtonBarBuilder bb = new ButtonBarBuilder();</span>
+<span class="nc" id="L216">            bb.addGlue();</span>
+<span class="nc" id="L217">            bb.addButton(okButton);</span>
+<span class="nc" id="L218">            bb.addButton(cancelButton);</span>
+<span class="nc" id="L219">            bb.addGlue();</span>
+<span class="nc" id="L220">            bb.padding(&quot;5dlu, 5dlu, 5dlu, 5dlu&quot;);</span>
+<span class="nc" id="L221">            singleCiteDialog.add(bb.getPanel(), BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L223">            okButton.addActionListener(e -&gt; {</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">                if (pageInfo.getText().trim().isEmpty()) {</span>
+<span class="nc" id="L225">                    entry.setPageInfo(null);</span>
+<span class="nc" id="L226">                } else {</span>
+<span class="nc" id="L227">                    entry.setPageInfo(pageInfo.getText().trim());</span>
+                }
+<span class="nc" id="L229">                tableModel.fireTableDataChanged();</span>
+<span class="nc" id="L230">                singleCiteDialog.dispose();</span>
+<span class="nc" id="L231">            });</span>
+
+<span class="nc" id="L233">            Action cancelAction = new AbstractAction() {</span>
+
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L237">                    singleCiteDialog.dispose();</span>
+<span class="nc" id="L238">                }</span>
+            };
+<span class="nc" id="L240">            cancelButton.addActionListener(cancelAction);</span>
+
+<span class="nc" id="L242">            builder.getPanel().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put</span>
+<span class="nc" id="L243">                    (Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L244">            builder.getPanel().getActionMap().put(&quot;close&quot;, cancelAction);</span>
+
+<span class="nc" id="L246">        }</span>
+
+        public void showDialog() {
+<span class="nc" id="L249">            singleCiteDialog.pack();</span>
+<span class="nc" id="L250">            singleCiteDialog.setLocationRelativeTo(singleCiteDialog.getParent());</span>
+<span class="nc" id="L251">            singleCiteDialog.setVisible(true);</span>
+<span class="nc" id="L252">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

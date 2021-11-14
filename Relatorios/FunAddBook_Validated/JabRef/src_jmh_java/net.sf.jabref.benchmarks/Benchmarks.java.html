@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>Benchmarks.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/jmh/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.benchmarks</a> &gt; <span class="el_source">Benchmarks.java</span></div><h1>Benchmarks.java</h1><pre class="source lang-java linenums">package net.sf.jabref.benchmarks;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Defaults;
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.MetaData;
+import net.sf.jabref.exporter.BibDatabaseWriter;
+import net.sf.jabref.exporter.SaveException;
+import net.sf.jabref.exporter.SavePreferences;
+import net.sf.jabref.importer.ParserResult;
+import net.sf.jabref.importer.fileformat.BibtexParser;
+import net.sf.jabref.logic.search.SearchQuery;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.database.BibDatabaseModeDetection;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.openjdk.jmh.Main;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.runner.RunnerException;
+
+@State(Scope.Thread)
+<span class="nc" id="L35">public class Benchmarks {</span>
+
+    String bibtexString;
+<span class="nc" id="L38">    BibDatabase database = new BibDatabase();</span>
+
+    @Setup
+    public void init() throws IOException, SaveException {
+<span class="nc" id="L42">        Globals.prefs = JabRefPreferences.getInstance();</span>
+
+<span class="nc" id="L44">        Random randomizer = new Random();</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">        for (int i = 0; i &lt; 1000; i++) {</span>
+<span class="nc" id="L46">            BibEntry entry = new BibEntry();</span>
+<span class="nc" id="L47">            entry.setCiteKey(&quot;id&quot; + i);</span>
+<span class="nc" id="L48">            entry.setField(&quot;title&quot;, &quot;This is my title &quot; + i);</span>
+<span class="nc" id="L49">            entry.setField(&quot;author&quot;, &quot;Firstname Lastname and FirstnameA LastnameA and FirstnameB LastnameB&quot; + i);</span>
+<span class="nc" id="L50">            entry.setField(&quot;journal&quot;, &quot;Journal Title &quot; + i);</span>
+<span class="nc" id="L51">            entry.setField(&quot;year&quot;, &quot;1&quot; + i);</span>
+<span class="nc" id="L52">            entry.setField(&quot;rnd&quot;, &quot;2&quot; + randomizer.nextInt());</span>
+<span class="nc" id="L53">            database.insertEntry(entry);</span>
+        }
+<span class="nc" id="L55">        BibDatabaseWriter databaseWriter = new BibDatabaseWriter();</span>
+<span class="nc" id="L56">        StringWriter stringWriter = new StringWriter();</span>
+
+<span class="nc" id="L58">        databaseWriter.writePartOfDatabase(stringWriter,</span>
+<span class="nc" id="L59">                new BibDatabaseContext(database, new MetaData(), new Defaults()), database.getEntries(),</span>
+<span class="nc" id="L60">                new SavePreferences());</span>
+<span class="nc" id="L61">        bibtexString = stringWriter.toString();</span>
+
+<span class="nc" id="L63">    }</span>
+
+    @Benchmark
+    public ParserResult parse() throws IOException {
+<span class="nc" id="L67">        StringReader bibtexStringReader = new StringReader(bibtexString);</span>
+<span class="nc" id="L68">        BibtexParser parser = new BibtexParser(bibtexStringReader);</span>
+<span class="nc" id="L69">        return parser.parse();</span>
+    }
+
+    @Benchmark
+    public String write() throws IOException {
+<span class="nc" id="L74">        StringWriter stringWriter = new StringWriter();</span>
+
+<span class="nc" id="L76">        BibDatabaseWriter databaseWriter = new BibDatabaseWriter();</span>
+<span class="nc" id="L77">        databaseWriter.writePartOfDatabase(stringWriter,</span>
+<span class="nc" id="L78">                new BibDatabaseContext(database, new MetaData(), new Defaults()), database.getEntries(),</span>
+<span class="nc" id="L79">                new SavePreferences());</span>
+<span class="nc" id="L80">        return stringWriter.toString();</span>
+    }
+
+    @Benchmark
+    public List&lt;BibEntry&gt; search() {
+        // FIXME: Reuse SearchWorker here
+<span class="nc" id="L86">        SearchQuery searchQuery = new SearchQuery(&quot;Journal Title 500&quot;, false, false);</span>
+<span class="nc" id="L87">        List&lt;BibEntry&gt; matchedEntries = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L88">        matchedEntries.addAll(database.getEntries().stream().filter(searchQuery::isMatch).collect(Collectors.toList()));</span>
+<span class="nc" id="L89">        return matchedEntries;</span>
+    }
+
+    @Benchmark
+    public BibDatabaseMode inferBibDatabaseMode() {
+<span class="nc" id="L94">        return BibDatabaseModeDetection.inferMode(database);</span>
+    }
+
+    public static void main(String[] args) throws IOException, RunnerException {
+<span class="nc" id="L98">        Main.main(args);</span>
+<span class="nc" id="L99">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

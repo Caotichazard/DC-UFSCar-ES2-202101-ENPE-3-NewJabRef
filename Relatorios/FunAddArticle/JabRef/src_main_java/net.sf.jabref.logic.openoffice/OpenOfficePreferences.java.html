@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>OpenOfficePreferences.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.openoffice</a> &gt; <span class="el_source">OpenOfficePreferences.java</span></div><h1>OpenOfficePreferences.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.logic.openoffice;
+
+import java.io.File;
+import java.util.List;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.logic.l10n.Localization;
+
+/**
+ * The OpenOffice connection preferences are:
+ * OO_PATH main directory for OO/LO installation, used to detect location on Win/OS X when using manual connect
+ * OO_EXECUTABLE_PATH path to soffice-file
+ * OO_JARS_PATH directory that contains juh.jar, jurt.jar, ridl.jar, unoil.jar
+ * OO_SYNC_WHEN_CITING true if the reference list is updated when adding a new citation
+ * OO_SHOW_PANEL true if the OO panel is shown on startup
+ * OO_USE_ALL_OPEN_DATABASES true if all databases should be used when citing
+ * OO_BIBLIOGRAPHY_STYLE_FILE path to the used style file
+ * OO_EXTERNAL_STYLE_FILES list with paths to external style files
+ *
+ */
+public class OpenOfficePreferences {
+
+    private final JabRefPreferences preferences;
+    public static final String DEFAULT_WINDOWS_PATH = &quot;C:\\Program Files\\OpenOffice.org 4&quot;;
+    public static final String WINDOWS_EXECUTABLE_SUBPATH = &quot;\\program\\&quot;;
+    public static final String WINDOWS_EXECUTABLE = &quot;soffice.exe&quot;;
+    public static final String WINDOWS_JARS_SUBPATH = &quot;\\program\\classes&quot;;
+    public static final String DEFAULT_OSX_PATH = &quot;/Applications/OpenOffice.org.app&quot;;
+    public static final String OSX_EXECUTABLE_SUBPATH = &quot;/Contents/MacOS/&quot;;
+    public static final String OSX_EXECUTABLE = &quot;soffice.bin&quot;;
+    public static final String OSX_JARS_SUBPATH = &quot;/Contents/Resources/java&quot;;
+    public static final String LINUX_EXECUTABLE = &quot;soffice&quot;;
+
+
+<span class="fc" id="L50">    public OpenOfficePreferences(JabRefPreferences preferences) {</span>
+<span class="fc" id="L51">        this.preferences = preferences;</span>
+<span class="fc" id="L52">    }</span>
+
+    public void updateConnectionParams(String ooPath, String execPath, String jarsPath) {
+<span class="nc" id="L55">        setOOPath(ooPath);</span>
+<span class="nc" id="L56">        setExecutablePath(execPath);</span>
+<span class="nc" id="L57">        setJarsPath(jarsPath);</span>
+<span class="nc" id="L58">    }</span>
+
+    public boolean checkAutoDetectedPaths() {
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (preferences.hasKey(JabRefPreferences.OO_JARS_PATH)</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                &amp;&amp; preferences.hasKey(JabRefPreferences.OO_EXECUTABLE_PATH)) {</span>
+<span class="nc bnc" id="L63" title="All 4 branches missed.">            return new File(getJarsPath(), &quot;jurt.jar&quot;).exists() &amp;&amp; new File(getExecutablePath()).exists();</span>
+        } else {
+<span class="nc" id="L65">            return false;</span>
+        }
+    }
+
+    public String clearConnectionSettings() {
+<span class="nc" id="L70">        preferences.clear(JabRefPreferences.OO_PATH);</span>
+<span class="nc" id="L71">        preferences.clear(JabRefPreferences.OO_EXECUTABLE_PATH);</span>
+<span class="nc" id="L72">        preferences.clear(JabRefPreferences.OO_JARS_PATH);</span>
+<span class="nc" id="L73">        return Localization.lang(&quot;Cleared connection settings.&quot;);</span>
+    }
+
+    public String getJarsPath() {
+<span class="nc" id="L77">        return preferences.get(JabRefPreferences.OO_JARS_PATH);</span>
+    }
+
+    public void setJarsPath(String path) {
+<span class="nc" id="L81">        preferences.put(JabRefPreferences.OO_JARS_PATH, path);</span>
+<span class="nc" id="L82">    }</span>
+
+    public String getExecutablePath() {
+<span class="nc" id="L85">        return preferences.get(JabRefPreferences.OO_EXECUTABLE_PATH);</span>
+    }
+
+    public void setExecutablePath(String path) {
+<span class="nc" id="L89">        preferences.put(JabRefPreferences.OO_EXECUTABLE_PATH, path);</span>
+<span class="nc" id="L90">    }</span>
+
+    public String getOOPath() {
+<span class="nc" id="L93">        return preferences.get(JabRefPreferences.OO_PATH);</span>
+    }
+
+    public void setOOPath(String path) {
+<span class="nc" id="L97">        preferences.put(JabRefPreferences.OO_PATH, path);</span>
+<span class="nc" id="L98">    }</span>
+
+    public boolean useAllDatabases() {
+<span class="nc" id="L101">        return preferences.getBoolean(JabRefPreferences.OO_USE_ALL_OPEN_BASES);</span>
+    }
+
+    public void setUseAllDatabases(boolean use) {
+<span class="nc" id="L105">        preferences.putBoolean(JabRefPreferences.OO_USE_ALL_OPEN_BASES, use);</span>
+<span class="nc" id="L106">    }</span>
+
+    public boolean syncWhenCiting() {
+<span class="nc" id="L109">        return preferences.getBoolean(JabRefPreferences.OO_SYNC_WHEN_CITING);</span>
+    }
+
+    public void setSyncWhenCiting(boolean sync) {
+<span class="nc" id="L113">        preferences.putBoolean(JabRefPreferences.OO_SYNC_WHEN_CITING, sync);</span>
+<span class="nc" id="L114">    }</span>
+
+    public boolean showPanel() {
+<span class="fc" id="L117">        return preferences.getBoolean(JabRefPreferences.OO_SHOW_PANEL);</span>
+    }
+
+    public void setShowPanel(boolean show) {
+<span class="nc" id="L121">        preferences.putBoolean(JabRefPreferences.OO_SHOW_PANEL, show);</span>
+<span class="nc" id="L122">    }</span>
+
+    public List&lt;String&gt; getExternalStyles() {
+<span class="fc" id="L125">        return preferences.getStringList(JabRefPreferences.OO_EXTERNAL_STYLE_FILES);</span>
+    }
+
+    public void setExternalStyles(List&lt;String&gt; filenames) {
+<span class="nc" id="L129">        preferences.putStringList(JabRefPreferences.OO_EXTERNAL_STYLE_FILES, filenames);</span>
+<span class="nc" id="L130">    }</span>
+
+    public String getCurrentStyle() {
+<span class="nc" id="L133">        return preferences.get(JabRefPreferences.OO_BIBLIOGRAPHY_STYLE_FILE);</span>
+    }
+
+    public void setCurrentStyle(String path) {
+<span class="nc" id="L137">        preferences.put(JabRefPreferences.OO_BIBLIOGRAPHY_STYLE_FILE, path);</span>
+<span class="nc" id="L138">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

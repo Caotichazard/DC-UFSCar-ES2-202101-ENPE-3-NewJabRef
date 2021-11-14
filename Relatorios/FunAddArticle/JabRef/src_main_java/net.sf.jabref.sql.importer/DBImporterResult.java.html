@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DBImporterResult.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.sql.importer</a> &gt; <span class="el_source">DBImporterResult.java</span></div><h1>DBImporterResult.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General public static License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General public static License for more details.
+
+    You should have received a copy of the GNU General public static License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+package net.sf.jabref.sql.importer;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.MetaData;
+import net.sf.jabref.model.database.BibDatabase;
+
+public class DBImporterResult {
+
+    private final BibDatabaseContext databaseContext;
+    private final String name;
+
+<span class="nc" id="L28">    public DBImporterResult(final BibDatabase database, final MetaData metaData, final String name) {</span>
+<span class="nc" id="L29">        this.databaseContext = new BibDatabaseContext(database, metaData);</span>
+<span class="nc" id="L30">        this.name = name;</span>
+<span class="nc" id="L31">    }</span>
+
+    public String getName() {
+<span class="nc" id="L34">        return name;</span>
+    }
+
+    public BibDatabaseContext getDatabaseContext() {
+<span class="nc" id="L38">        return databaseContext;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

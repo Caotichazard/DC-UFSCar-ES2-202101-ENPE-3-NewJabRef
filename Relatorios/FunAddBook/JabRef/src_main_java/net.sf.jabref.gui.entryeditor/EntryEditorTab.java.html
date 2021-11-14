@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryEditorTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.entryeditor</a> &gt; <span class="el_source">EntryEditorTab.java</span></div><h1>EntryEditorTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.entryeditor;
+
+import java.awt.AWTKeyStroke;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.KeyboardFocusManager;
+import java.awt.event.FocusListener;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.text.JTextComponent;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.bibtex.FieldProperties;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.autocompleter.AutoCompleteListener;
+import net.sf.jabref.gui.fieldeditors.FieldEditor;
+import net.sf.jabref.gui.fieldeditors.FileListEditor;
+import net.sf.jabref.gui.fieldeditors.TextArea;
+import net.sf.jabref.gui.fieldeditors.TextField;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.gui.util.FocusRequester;
+import net.sf.jabref.logic.autocompleter.AutoCompleter;
+import net.sf.jabref.model.entry.BibEntry;
+
+import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+/**
+ * A single tab displayed in the EntryEditor holding several FieldEditors.
+ */
+class EntryEditorTab {
+
+<span class="fc" id="L64">    private final JPanel panel = new JPanel();</span>
+
+<span class="fc" id="L66">    private final JScrollPane scrollPane = new JScrollPane(panel,</span>
+<span class="fc" id="L67">            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+
+    private final List&lt;String&gt; fields;
+
+    private final EntryEditor parent;
+
+<span class="fc" id="L73">    private final Map&lt;String, FieldEditor&gt; editors = new HashMap&lt;&gt;();</span>
+
+    private FieldEditor activeField;
+
+    // UGLY HACK to have a pointer to the fileListEditor to call autoSetLinks()
+    public FileListEditor fileListEditor;
+
+    private BibEntry entry;
+
+<span class="fc" id="L82">    private final FocusListener fieldListener = new EntryEditorTabFocusListener(this);</span>
+
+    private final String tabTitle;
+
+    private final JabRefFrame frame;
+
+    private final BasePanel basePanel;
+
+    private boolean updating;
+
+
+<span class="fc" id="L93">    public EntryEditorTab(JabRefFrame frame, BasePanel panel, List&lt;String&gt; fields, EntryEditor parent,</span>
+            boolean addKeyField, boolean compressed, String tabTitle) {
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">        if (fields == null) {</span>
+<span class="nc" id="L96">            this.fields = Collections.emptyList();</span>
+<span class="nc" id="L97">        } else {</span>
+<span class="fc" id="L98">            this.fields = fields;</span>
+        }
+
+<span class="fc" id="L101">        this.parent = parent;</span>
+<span class="fc" id="L102">        this.tabTitle = tabTitle;</span>
+<span class="fc" id="L103">        this.frame = frame;</span>
+<span class="fc" id="L104">        this.basePanel = panel;</span>
+
+<span class="fc" id="L106">        setupPanel(frame, panel, addKeyField, compressed, tabTitle);</span>
+
+        /*
+         * The following line makes sure focus cycles inside tab instead of
+         * being lost to other parts of the frame:
+         */
+<span class="fc" id="L112">        scrollPane.setFocusCycleRoot(true);</span>
+<span class="fc" id="L113">    }</span>
+
+    private void setupPanel(JabRefFrame frame, BasePanel bPanel, boolean addKeyField,
+                            boolean compressed, String title) {
+
+<span class="fc" id="L118">        setupKeyBindings(panel.getInputMap(JComponent.WHEN_FOCUSED), panel.getActionMap());</span>
+
+<span class="fc" id="L120">        panel.setName(title);</span>
+        // Use the title for the scrollPane, too.
+        // This enables the correct execution of EntryEditor.setVisiblePanel(String name).
+<span class="fc" id="L123">        scrollPane.setName(title);</span>
+
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        int fieldsPerRow = compressed ? 2 : 1;</span>
+
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        String colSpec = compressed ? &quot;fill:pref, 1dlu, fill:10dlu:grow, 1dlu, fill:pref, &quot;</span>
+<span class="fc" id="L128">                + &quot;8dlu, fill:pref, 1dlu, fill:10dlu:grow, 1dlu, fill:pref&quot;</span>
+<span class="fc" id="L129">                : &quot;fill:pref, 1dlu, fill:pref:grow, 1dlu, fill:pref&quot;;</span>
+<span class="fc" id="L130">        StringBuilder stringBuilder = new StringBuilder();</span>
+<span class="fc" id="L131">        int rows = (int) Math.ceil((double) fields.size() / fieldsPerRow);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        for (int i = 0; i &lt; rows; i++) {</span>
+<span class="fc" id="L133">            stringBuilder.append(&quot;fill:pref:grow, &quot;);</span>
+        }
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        if (addKeyField) {</span>
+<span class="fc" id="L136">            stringBuilder.append(&quot;4dlu, fill:pref&quot;);</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        } else if (stringBuilder.length() &gt;= 2) {</span>
+<span class="fc" id="L138">            stringBuilder.delete(stringBuilder.length() - 2, stringBuilder.length());</span>
+        }
+<span class="fc" id="L140">        String rowSpec = stringBuilder.toString();</span>
+
+<span class="fc" id="L142">        DefaultFormBuilder builder = new DefaultFormBuilder</span>
+<span class="fc" id="L143">                (new FormLayout(colSpec, rowSpec), panel);</span>
+
+        // BibTex edit fields are defined here
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        for (int i = 0; i &lt; fields.size(); i++) {</span>
+<span class="fc" id="L147">            String field = fields.get(i);</span>
+
+            FieldEditor fieldEditor;
+            int defaultHeight;
+<span class="fc" id="L151">            int wHeight = (int) (50.0 * InternalBibtexFields.getFieldWeight(field));</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">            if (InternalBibtexFields.getFieldExtras(field).contains(FieldProperties.FILE_EDITOR)) {</span>
+<span class="fc" id="L153">                fieldEditor = new FileListEditor(frame, bPanel.getBibDatabaseContext(), field, null, parent);</span>
+<span class="fc" id="L154">                fileListEditor = (FileListEditor) fieldEditor;</span>
+<span class="fc" id="L155">                defaultHeight = 0;</span>
+<span class="fc" id="L156">            } else {</span>
+<span class="fc" id="L157">                fieldEditor = new TextArea(field, null);</span>
+<span class="fc" id="L158">                bPanel.getSearchBar().getSearchQueryHighlightObservable().addSearchListener((TextArea) fieldEditor);</span>
+<span class="fc" id="L159">                defaultHeight = fieldEditor.getPane().getPreferredSize().height;</span>
+            }
+
+<span class="fc" id="L162">            Optional&lt;JComponent&gt; extra = parent.getExtra(fieldEditor);</span>
+
+            // Add autocompleter listener, if required for this field:
+<span class="fc" id="L165">            AutoCompleter&lt;String&gt; autoCompleter = bPanel.getAutoCompleters().get(field);</span>
+<span class="fc" id="L166">            AutoCompleteListener autoCompleteListener = null;</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">            if (autoCompleter != null) {</span>
+<span class="fc" id="L168">                autoCompleteListener = new AutoCompleteListener(autoCompleter);</span>
+            }
+<span class="fc" id="L170">            setupJTextComponent(fieldEditor.getTextComponent(), autoCompleteListener);</span>
+<span class="fc" id="L171">            fieldEditor.setAutoCompleteListener(autoCompleteListener);</span>
+
+            // Store the editor for later reference:
+<span class="fc" id="L174">            editors.put(field, fieldEditor);</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">            if (i == 0) {</span>
+<span class="fc" id="L176">                activeField = fieldEditor;</span>
+            }
+
+<span class="fc bfc" id="L179" title="All 2 branches covered.">            if (!compressed) {</span>
+<span class="fc" id="L180">                fieldEditor.getPane().setPreferredSize(new Dimension(100, Math.max(defaultHeight, wHeight)));</span>
+            }
+<span class="fc" id="L182">            builder.append(fieldEditor.getLabel());</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">            if (extra.isPresent()) {</span>
+<span class="fc" id="L184">                builder.append(fieldEditor.getPane());</span>
+<span class="fc" id="L185">                JPanel pan = new JPanel();</span>
+<span class="fc" id="L186">                pan.setLayout(new BorderLayout());</span>
+<span class="fc" id="L187">                pan.add(extra.get(), BorderLayout.NORTH);</span>
+<span class="fc" id="L188">                builder.append(pan);</span>
+<span class="fc" id="L189">            } else {</span>
+<span class="fc" id="L190">                builder.append(fieldEditor.getPane(), 3);</span>
+            }
+<span class="fc bfc" id="L192" title="All 2 branches covered.">            if (((i + 1) % fieldsPerRow) == 0) {</span>
+<span class="fc" id="L193">                builder.nextLine();</span>
+            }
+        }
+
+        // Add the edit field for Bibtex-key.
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        if (addKeyField) {</span>
+<span class="fc" id="L199">            final TextField textField = new TextField(BibEntry.KEY_FIELD, parent.getEntry().getCiteKey(), true);</span>
+<span class="fc" id="L200">            setupJTextComponent(textField, null);</span>
+
+<span class="fc" id="L202">            editors.put(BibEntry.KEY_FIELD, textField);</span>
+            /*
+             * If the key field is the only field, we should have only one
+             * editor, and this one should be set as active initially:
+             */
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">            if (editors.size() == 1) {</span>
+<span class="nc" id="L208">                activeField = textField;</span>
+            }
+<span class="fc" id="L210">            builder.nextLine();</span>
+<span class="fc" id="L211">            builder.append(textField.getLabel());</span>
+<span class="fc" id="L212">            builder.append(textField, 3);</span>
+        }
+<span class="fc" id="L214">    }</span>
+
+
+    private BibEntry getEntry() {
+<span class="nc" id="L218">        return entry;</span>
+    }
+
+    private boolean isFieldModified(FieldEditor fieldEditor) {
+<span class="nc" id="L222">        String text = fieldEditor.getText().trim();</span>
+
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        if (text.isEmpty()) {</span>
+<span class="nc" id="L225">            return getEntry().hasField(fieldEditor.getFieldName());</span>
+        } else {
+<span class="nc" id="L227">            String entryValue = getEntry().getField(fieldEditor.getFieldName());</span>
+<span class="nc bnc" id="L228" title="All 4 branches missed.">            return (entryValue == null) || !entryValue.equals(text);</span>
+        }
+    }
+
+    public void markIfModified(FieldEditor fieldEditor) {
+        // Only mark as changed if not already is and the field was indeed
+        // modified
+<span class="pc bpc" id="L235" title="4 of 6 branches missed.">        if (!updating &amp;&amp; !basePanel.isModified() &amp;&amp; isFieldModified(fieldEditor)) {</span>
+<span class="nc" id="L236">            markBaseChanged();</span>
+        }
+<span class="fc" id="L238">    }</span>
+
+    private void markBaseChanged() {
+<span class="nc" id="L241">        basePanel.markBaseChanged();</span>
+<span class="nc" id="L242">    }</span>
+
+    /**
+     * Only sets the activeField variable but does not focus it.
+     * &lt;p&gt;
+     * Call activate afterwards.
+     *
+     * @param fieldEditor
+     */
+    public void setActive(FieldEditor fieldEditor) {
+<span class="fc" id="L252">        activeField = fieldEditor;</span>
+<span class="fc" id="L253">    }</span>
+
+    public void setActive(String fieldName) {
+<span class="nc bnc" id="L256" title="All 2 branches missed.">        if (editors.containsKey(fieldName)) {</span>
+<span class="nc" id="L257">            activeField = editors.get(fieldName);</span>
+        }
+<span class="nc" id="L259">    }</span>
+
+    public FieldEditor getActive() {
+<span class="nc" id="L262">        return activeField;</span>
+    }
+
+    public List&lt;String&gt; getFields() {
+<span class="nc" id="L266">        return fields;</span>
+    }
+
+    public void activate() {
+<span class="pc bpc" id="L270" title="1 of 2 branches missed.">        if (activeField != null) {</span>
+            /**
+             * Corrected to fix [ 1594169 ] Entry editor: navigation between panels
+             */
+<span class="fc" id="L274">            new FocusRequester(activeField.getTextComponent());</span>
+        }
+<span class="fc" id="L276">    }</span>
+
+    /**
+     * Reset all fields from the data in the BibEntry.
+     */
+    public void updateAll() {
+<span class="nc" id="L282">        setEntry(getEntry());</span>
+<span class="nc" id="L283">    }</span>
+
+
+
+    public void setEntry(BibEntry entry) {
+        try {
+<span class="fc" id="L289">            updating = true;</span>
+<span class="fc bfc" id="L290" title="All 2 branches covered.">            for (FieldEditor editor : editors.values()) {</span>
+<span class="fc" id="L291">                String toSet = entry.getFieldOptional(editor.getFieldName()).orElse(&quot;&quot;);</span>
+<span class="fc bfc" id="L292" title="All 2 branches covered.">                if (!toSet.equals(editor.getText())) {</span>
+<span class="fc" id="L293">                    editor.setText(toSet);</span>
+                }
+            }
+<span class="fc" id="L296">            this.entry = entry;</span>
+<span class="fc" id="L297">        } finally {</span>
+<span class="fc" id="L298">            updating = false;</span>
+        }
+<span class="fc" id="L300">    }</span>
+
+    public boolean updateField(String field, String content) {
+<span class="fc bfc" id="L303" title="All 2 branches covered.">        if (!editors.containsKey(field)) {</span>
+<span class="fc" id="L304">            return false;</span>
+        }
+<span class="fc" id="L306">        FieldEditor fieldEditor = editors.get(field);</span>
+        // trying to preserve current edit position (fixes SF bug #1285)
+<span class="pc bpc" id="L308" title="1 of 2 branches missed.">        if(fieldEditor.getTextComponent() instanceof JTextComponent) {</span>
+<span class="fc" id="L309">            int initialCaretPosition = ((JTextComponent) fieldEditor).getCaretPosition();</span>
+<span class="fc" id="L310">            fieldEditor.setText(content);</span>
+<span class="fc" id="L311">            int textLength = fieldEditor.getText().length();</span>
+<span class="pc bpc" id="L312" title="1 of 2 branches missed.">            if(initialCaretPosition&lt;textLength) {</span>
+<span class="nc" id="L313">                ((JTextComponent) fieldEditor).setCaretPosition(initialCaretPosition);</span>
+<span class="nc" id="L314">            } else {</span>
+<span class="fc" id="L315">                ((JTextComponent) fieldEditor).setCaretPosition(textLength);</span>
+            }
+<span class="fc" id="L317">        } else {</span>
+<span class="nc" id="L318">            fieldEditor.setText(content);</span>
+        }
+<span class="fc" id="L320">        return true;</span>
+    }
+
+    public void validateAllFields() {
+<span class="fc bfc" id="L324" title="All 2 branches covered.">        for (Map.Entry&lt;String, FieldEditor&gt; stringFieldEditorEntry : editors.entrySet()) {</span>
+<span class="fc" id="L325">            FieldEditor ed = stringFieldEditorEntry.getValue();</span>
+<span class="fc" id="L326">            ed.updateFontColor();</span>
+<span class="fc" id="L327">            ed.setEnabled(true);</span>
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">            if (((Component) ed).hasFocus()) {</span>
+<span class="nc" id="L329">                ed.setActiveBackgroundColor();</span>
+<span class="nc" id="L330">            } else {</span>
+<span class="fc" id="L331">                ed.setValidBackgroundColor();</span>
+            }
+        }
+<span class="fc" id="L334">    }</span>
+
+    public void setEnabled(boolean enabled) {
+<span class="nc bnc" id="L337" title="All 2 branches missed.">        for (FieldEditor editor : editors.values()) {</span>
+<span class="nc" id="L338">            editor.setEnabled(enabled);</span>
+        }
+<span class="nc" id="L340">    }</span>
+
+    public Component getPane() {
+<span class="fc" id="L343">        return scrollPane;</span>
+    }
+
+    public EntryEditor getParent() {
+<span class="fc" id="L347">        return parent;</span>
+    }
+
+    public String getTabTitle() {
+<span class="nc" id="L351">        return tabTitle;</span>
+    }
+
+    private void setupKeyBindings(final InputMap inputMap, final ActionMap actionMap) {
+<span class="fc" id="L355">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_PREVIOUS_ENTRY), &quot;prev&quot;);</span>
+<span class="fc" id="L356">        actionMap.put(&quot;prev&quot;, parent.getPrevEntryAction());</span>
+<span class="fc" id="L357">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_NEXT_ENTRY), &quot;next&quot;);</span>
+<span class="fc" id="L358">        actionMap.put(&quot;next&quot;, parent.getNextEntryAction());</span>
+
+<span class="fc" id="L360">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_STORE_FIELD), &quot;store&quot;);</span>
+<span class="fc" id="L361">        actionMap.put(&quot;store&quot;, parent.getStoreFieldAction());</span>
+<span class="fc" id="L362">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_NEXT_PANEL), &quot;right&quot;);</span>
+<span class="fc" id="L363">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_NEXT_PANEL_2), &quot;right&quot;);</span>
+<span class="fc" id="L364">        actionMap.put(&quot;left&quot;, parent.getSwitchLeftAction());</span>
+<span class="fc" id="L365">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_PREVIOUS_PANEL), &quot;left&quot;);</span>
+<span class="fc" id="L366">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_PREVIOUS_PANEL_2), &quot;left&quot;);</span>
+<span class="fc" id="L367">        actionMap.put(&quot;right&quot;, parent.getSwitchRightAction());</span>
+<span class="fc" id="L368">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.HELP), &quot;help&quot;);</span>
+<span class="fc" id="L369">        actionMap.put(&quot;help&quot;, parent.getHelpAction());</span>
+<span class="fc" id="L370">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.SAVE_DATABASE), &quot;save&quot;);</span>
+<span class="fc" id="L371">        actionMap.put(&quot;save&quot;, parent.getSaveDatabaseAction());</span>
+<span class="fc" id="L372">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.NEXT_TAB), &quot;nexttab&quot;);</span>
+<span class="fc" id="L373">        actionMap.put(&quot;nexttab&quot;, this.frame.nextTab);</span>
+<span class="fc" id="L374">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.PREVIOUS_TAB), &quot;prevtab&quot;);</span>
+<span class="fc" id="L375">        actionMap.put(&quot;prevtab&quot;, this.frame.prevTab);</span>
+<span class="fc" id="L376">    }</span>
+
+    /**
+     * Set up key bindings and focus listener for the FieldEditor.
+     *
+     * @param component
+     */
+    private void setupJTextComponent(final JComponent component, final AutoCompleteListener autoCompleteListener) {
+
+        // Here we add focus listeners to the component. The funny code is because we need
+        // to guarantee that the AutoCompleteListener - if used - is called before fieldListener
+        // on a focus lost event. The AutoCompleteListener is responsible for removing any
+        // current suggestion when focus is lost, and this must be done before fieldListener
+        // stores the current edit. Swing doesn't guarantee the order of execution of event
+        // listeners, so we handle this by only adding the AutoCompleteListener and telling
+        // it to call fieldListener afterwards. If no AutoCompleteListener is used, we
+        // add the fieldListener normally.
+<span class="fc bfc" id="L393" title="All 2 branches covered.">        if (autoCompleteListener == null) {</span>
+<span class="fc" id="L394">            component.addFocusListener(fieldListener);</span>
+<span class="fc" id="L395">        } else {</span>
+<span class="fc" id="L396">            component.addKeyListener(autoCompleteListener);</span>
+<span class="fc" id="L397">            component.addFocusListener(autoCompleteListener);</span>
+<span class="fc" id="L398">            autoCompleteListener.setNextFocusListener(fieldListener);</span>
+        }
+
+<span class="fc" id="L401">        setupKeyBindings(component.getInputMap(JComponent.WHEN_FOCUSED), component.getActionMap());</span>
+
+<span class="fc" id="L403">        Set&lt;AWTKeyStroke&gt; keys = new HashSet&lt;&gt;(</span>
+<span class="fc" id="L404">                component.getFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS));</span>
+<span class="fc" id="L405">        keys.clear();</span>
+<span class="fc" id="L406">        keys.add(AWTKeyStroke.getAWTKeyStroke(&quot;pressed TAB&quot;));</span>
+<span class="fc" id="L407">        component.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS, keys);</span>
+<span class="fc" id="L408">        keys = new HashSet&lt;&gt;(component.getFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS));</span>
+<span class="fc" id="L409">        keys.clear();</span>
+<span class="fc" id="L410">        keys.add(KeyStroke.getKeyStroke(&quot;shift pressed TAB&quot;));</span>
+<span class="fc" id="L411">        component.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS, keys);</span>
+<span class="fc" id="L412">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>RemoveFromGroupAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.groups</a> &gt; <span class="el_source">RemoveFromGroupAction.java</span></div><h1>RemoveFromGroupAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.groups;
+
+import java.awt.event.ActionEvent;
+import java.util.Optional;
+
+import javax.swing.AbstractAction;
+
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.logic.groups.EntriesGroupChange;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.util.Util;
+
+public class RemoveFromGroupAction extends AbstractAction {
+
+    private GroupTreeNodeViewModel mNode;
+    private BasePanel mPanel;
+
+
+    public RemoveFromGroupAction(GroupTreeNodeViewModel node, BasePanel panel) {
+<span class="nc" id="L35">        super(node.getNode().getGroup().getName());</span>
+<span class="nc" id="L36">        mNode = node;</span>
+<span class="nc" id="L37">        mPanel = panel;</span>
+<span class="nc" id="L38">    }</span>
+
+    public RemoveFromGroupAction() {
+<span class="fc" id="L41">        super(Localization.lang(&quot;Remove entry selection from this group&quot;));</span>
+<span class="fc" id="L42">    }</span>
+
+    public void setNode(GroupTreeNodeViewModel node) {
+<span class="nc" id="L45">        mNode = node;</span>
+<span class="nc" id="L46">    }</span>
+
+    public void setBasePanel(BasePanel panel) {
+<span class="nc" id="L49">        mPanel = panel;</span>
+<span class="nc" id="L50">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent evt) {
+        // warn if assignment has undesired side effects (modifies a field != keywords)
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (!Util.warnAssignmentSideEffects(mNode.getNode().getGroup(), mPanel.frame())) {</span>
+<span class="nc" id="L56">            return; // user aborted operation</span>
+        }
+
+<span class="nc" id="L59">        Optional&lt;EntriesGroupChange&gt; undo = mNode.removeEntriesFromGroup(mPanel.getSelectedEntries());</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (! undo.isPresent()) {</span>
+<span class="nc" id="L61">            return; // no changed made</span>
+        }
+
+<span class="nc" id="L64">        mPanel.undoManager.addEdit(UndoableChangeEntriesOfGroup.getUndoableEdit(mNode, undo.get()));</span>
+<span class="nc" id="L65">        mPanel.markBaseChanged();</span>
+<span class="nc" id="L66">        mPanel.updateEntryEditorIfShowing();</span>
+<span class="nc" id="L67">        mPanel.getGroupSelector().valueChanged(null);</span>
+<span class="nc" id="L68">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

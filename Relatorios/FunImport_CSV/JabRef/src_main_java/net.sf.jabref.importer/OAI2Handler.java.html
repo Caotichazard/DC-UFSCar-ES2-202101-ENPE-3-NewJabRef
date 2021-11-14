@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>OAI2Handler.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer</a> &gt; <span class="el_source">OAI2Handler.java</span></div><h1>OAI2Handler.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer;
+
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+/**
+ * SAX-Handler to parse OAI2-xml files.
+ *
+ * @author Ulrich St&amp;auml;rk
+ * @author Christian Kopf
+ * @author Christopher Oezbek
+ */
+public class OAI2Handler extends DefaultHandler {
+
+    private final BibEntry entry;
+
+    private StringBuffer authors;
+
+    private String keyname;
+
+    private String forenames;
+
+    private StringBuffer characters;
+
+
+<span class="nc" id="L44">    public OAI2Handler(BibEntry be) {</span>
+<span class="nc" id="L45">        this.entry = be;</span>
+<span class="nc" id="L46">    }</span>
+
+    @Override
+    public void startDocument() throws SAXException {
+<span class="nc" id="L50">        authors = new StringBuffer();</span>
+<span class="nc" id="L51">    }</span>
+
+    @Override
+    public void characters(char[] ch, int start, int length) throws SAXException {
+<span class="nc" id="L55">        characters.append(ch, start, length);</span>
+<span class="nc" id="L56">    }</span>
+
+    @Override
+    public void startElement(String uri, String localName, String qualifiedName,
+            Attributes attributes) throws SAXException {
+
+<span class="nc" id="L62">        characters = new StringBuffer();</span>
+<span class="nc" id="L63">    }</span>
+
+    @Override
+    public void endElement(String uri, String localName, String qualifiedName) throws SAXException {
+
+<span class="nc" id="L68">        String content = characters.toString();</span>
+
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (&quot;error&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L71">            throw new RuntimeException(content);</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        } else if (&quot;id&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L73">            entry.setField(&quot;eprint&quot;, content);</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        } else if (&quot;keyname&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L75">            keyname = content;</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        } else if (&quot;forenames&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L77">            forenames = content;</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        } else if (&quot;journal-ref&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L79">            String journal = content.replaceFirst(&quot;[0-9].*&quot;, &quot;&quot;);</span>
+<span class="nc" id="L80">            entry.setField(&quot;journal&quot;, journal);</span>
+<span class="nc" id="L81">            String volume = content.replaceFirst(journal, &quot;&quot;);</span>
+<span class="nc" id="L82">            volume = volume.replaceFirst(&quot; .*&quot;, &quot;&quot;);</span>
+<span class="nc" id="L83">            entry.setField(&quot;volume&quot;, volume);</span>
+<span class="nc" id="L84">            String year = content.replaceFirst(&quot;.*?\\(&quot;, &quot;&quot;);</span>
+<span class="nc" id="L85">            year = year.replaceFirst(&quot;\\).*&quot;, &quot;&quot;);</span>
+<span class="nc" id="L86">            entry.setField(&quot;year&quot;, year);</span>
+<span class="nc" id="L87">            String pages = content.replaceFirst(journal, &quot;&quot;);</span>
+<span class="nc" id="L88">            pages = pages.replaceFirst(volume, &quot;&quot;);</span>
+<span class="nc" id="L89">            pages = pages.replaceFirst(&quot;\\(&quot; + year + &quot;\\)&quot;, &quot;&quot;);</span>
+<span class="nc" id="L90">            pages = pages.replace(&quot; &quot;, &quot;&quot;);</span>
+<span class="nc" id="L91">            entry.setField(&quot;pages&quot;, pages);</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        } else if (&quot;datestamp&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L93">            String year = entry.getField(&quot;year&quot;);</span>
+<span class="nc bnc" id="L94" title="All 4 branches missed.">            if ((year == null) || year.isEmpty()) {</span>
+<span class="nc" id="L95">                entry.setField(&quot;year&quot;, content.replaceFirst(&quot;-.*&quot;, &quot;&quot;));</span>
+            }
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        } else if (&quot;title&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L98">            entry.setField(&quot;title&quot;, content);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        } else if (&quot;abstract&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L100">            entry.setField(&quot;abstract&quot;, content);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        } else if (&quot;comments&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L102">            entry.setField(&quot;comments&quot;, content);</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">        } else if (&quot;report-no&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L104">            entry.setField(&quot;reportno&quot;, content);</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">        } else if(&quot;doi&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L106">          entry.setField(&quot;doi&quot;, content);</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        } else if (&quot;author&quot;.equals(qualifiedName)) {</span>
+<span class="nc" id="L108">            String author = forenames + &quot; &quot; + keyname;</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            if (authors.length() &gt; 0) {</span>
+<span class="nc" id="L110">                authors.append(&quot; and &quot;);</span>
+            }
+<span class="nc" id="L112">            authors.append(author);</span>
+        }
+<span class="nc" id="L114">    }</span>
+
+    @Override
+    public void endDocument() throws SAXException {
+<span class="nc" id="L118">        entry.setField(&quot;author&quot;, authors.toString());</span>
+<span class="nc" id="L119">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

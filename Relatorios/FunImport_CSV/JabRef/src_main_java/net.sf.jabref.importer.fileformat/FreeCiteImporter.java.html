@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FreeCiteImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">FreeCiteImporter.java</span></div><h1>FreeCiteImporter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012, 2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer.fileformat;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Scanner;
+
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefGUI;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.labelpattern.LabelPatternUtil;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.BibtexEntryTypes;
+import net.sf.jabref.model.entry.EntryType;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * This importer parses text format citations using the online API of FreeCite -
+ * Open Source Citation Parser http://freecite.library.brown.edu/
+ */
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">public class FreeCiteImporter extends ImportFormat {</span>
+
+<span class="fc" id="L55">    private static final Log LOGGER = LogFactory.getLog(FreeCiteImporter.class);</span>
+
+    @Override
+    public boolean isRecognizedFormat(InputStream in) throws IOException {
+        // TODO: We don't know how to recognize text files, therefore we return
+        // &quot;false&quot;
+<span class="fc" id="L61">        return false;</span>
+    }
+
+    @Override
+    public List&lt;BibEntry&gt; importEntries(InputStream in, OutputPrinter status)
+            throws IOException {
+<span class="nc" id="L67">        try (Scanner scan = new Scanner(in)) {</span>
+<span class="nc" id="L68">            String text = scan.useDelimiter(&quot;\\A&quot;).next();</span>
+<span class="nc" id="L69">            return importEntries(text, status);</span>
+        }
+    }
+
+    public List&lt;BibEntry&gt; importEntries(String text, OutputPrinter status) {
+        // URLencode the string for transmission
+<span class="nc" id="L75">        String urlencodedCitation = null;</span>
+        try {
+<span class="nc" id="L77">            urlencodedCitation = URLEncoder.encode(text, StandardCharsets.UTF_8.name());</span>
+<span class="nc" id="L78">        } catch (UnsupportedEncodingException e) {</span>
+<span class="nc" id="L79">            LOGGER.warn(&quot;Unsupported encoding&quot;, e);</span>
+        }
+
+        // Send the request
+        URL url;
+        URLConnection conn;
+        try {
+<span class="nc" id="L86">            url = new URL(&quot;http://freecite.library.brown.edu/citations/create&quot;);</span>
+<span class="nc" id="L87">            conn = url.openConnection();</span>
+<span class="nc" id="L88">        } catch (MalformedURLException e) {</span>
+<span class="nc" id="L89">            LOGGER.warn(&quot;Bad URL&quot;, e);</span>
+<span class="nc" id="L90">            return Collections.emptyList();</span>
+<span class="nc" id="L91">        } catch (IOException e) {</span>
+<span class="nc" id="L92">            LOGGER.warn(&quot;Could not download&quot;, e);</span>
+<span class="nc" id="L93">            return Collections.emptyList();</span>
+        }
+        try {
+<span class="nc" id="L96">            conn.setRequestProperty(&quot;accept&quot;, &quot;text/xml&quot;);</span>
+<span class="nc" id="L97">            conn.setDoOutput(true);</span>
+<span class="nc" id="L98">            OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());</span>
+
+<span class="nc" id="L100">            String data = &quot;citation=&quot; + urlencodedCitation;</span>
+            // write parameters
+<span class="nc" id="L102">            writer.write(data);</span>
+<span class="nc" id="L103">            writer.flush();</span>
+<span class="nc" id="L104">        } catch (IllegalStateException e) {</span>
+<span class="nc" id="L105">            LOGGER.warn(&quot;Already connected.&quot;, e);</span>
+<span class="nc" id="L106">        } catch (IOException e) {</span>
+<span class="nc" id="L107">            status.showMessage(Localization.lang(&quot;Unable to connect to FreeCite online service.&quot;));</span>
+<span class="nc" id="L108">            LOGGER.warn(&quot;Unable to connect to FreeCite online service.&quot;, e);</span>
+<span class="nc" id="L109">            return Collections.emptyList();</span>
+        }
+        // output is in conn.getInputStream();
+        // new InputStreamReader(conn.getInputStream())
+
+<span class="nc" id="L114">        List&lt;BibEntry&gt; res = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L116">        XMLInputFactory factory = XMLInputFactory.newInstance();</span>
+        try {
+<span class="nc" id="L118">            XMLStreamReader parser = factory.createXMLStreamReader(conn.getInputStream());</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            while (parser.hasNext()) {</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">                if ((parser.getEventType() == XMLStreamConstants.START_ELEMENT)</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                        &amp;&amp; &quot;citation&quot;.equals(parser.getLocalName())) {</span>
+<span class="nc" id="L122">                    parser.nextTag();</span>
+
+<span class="nc" id="L124">                    StringBuilder noteSB = new StringBuilder();</span>
+
+<span class="nc" id="L126">                    BibEntry e = new BibEntry();</span>
+                    // fallback type
+<span class="nc" id="L128">                    EntryType type = BibtexEntryTypes.INPROCEEDINGS;</span>
+
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                    while (!((parser.getEventType() == XMLStreamConstants.END_ELEMENT)</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">                            &amp;&amp; &quot;citation&quot;.equals(parser.getLocalName()))) {</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">                        if (parser.getEventType() == XMLStreamConstants.START_ELEMENT) {</span>
+<span class="nc" id="L133">                            String ln = parser.getLocalName();</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">                            if (&quot;authors&quot;.equals(ln)) {</span>
+<span class="nc" id="L135">                                StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L136">                                parser.nextTag();</span>
+
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                                while (parser.getEventType() == XMLStreamConstants.START_ELEMENT) {</span>
+                                    // author is directly nested below authors
+<span class="nc bnc" id="L140" title="All 4 branches missed.">                                    assert &quot;author&quot;.equals(parser.getLocalName());</span>
+
+<span class="nc" id="L142">                                    String author = parser.getElementText();</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">                                    if (sb.length() == 0) {</span>
+                                        // first author
+<span class="nc" id="L145">                                        sb.append(author);</span>
+<span class="nc" id="L146">                                    } else {</span>
+<span class="nc" id="L147">                                        sb.append(&quot; and &quot;);</span>
+<span class="nc" id="L148">                                        sb.append(author);</span>
+                                    }
+<span class="nc bnc" id="L150" title="All 4 branches missed.">                                    assert parser.getEventType() == XMLStreamConstants.END_ELEMENT;</span>
+<span class="nc bnc" id="L151" title="All 4 branches missed.">                                    assert &quot;author&quot;.equals(parser.getLocalName());</span>
+<span class="nc" id="L152">                                    parser.nextTag();</span>
+                                    // current tag is either begin:author or
+                                    // end:authors
+                                }
+<span class="nc" id="L156">                                e.setField(&quot;author&quot;, sb.toString());</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">                            } else if (&quot;journal&quot;.equals(ln)) {</span>
+                                // we guess that the entry is a journal
+                                // the alternative way is to parse
+                                // ctx:context-objects / ctx:context-object / ctx:referent / ctx:metadata-by-val / ctx:metadata / journal / rft:genre
+                                // the drawback is that ctx:context-objects is NOT nested in citation, but a separate element
+                                // we would have to change the whole parser to parse that format.
+<span class="nc" id="L163">                                type = BibtexEntryTypes.ARTICLE;</span>
+<span class="nc" id="L164">                                e.setField(ln, parser.getElementText());</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">                            } else if (&quot;tech&quot;.equals(ln)) {</span>
+<span class="nc" id="L166">                                type = BibtexEntryTypes.TECHREPORT;</span>
+                                // the content of the &quot;tech&quot; field seems to contain the number of the technical report
+<span class="nc" id="L168">                                e.setField(&quot;number&quot;, parser.getElementText());</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">                            } else if (&quot;doi&quot;.equals(ln)</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">                                    || &quot;institution&quot;.equals(ln)</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">                                    || &quot;location&quot;.equals(ln)</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                                    || &quot;number&quot;.equals(ln)</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">                                    || &quot;note&quot;.equals(ln)</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">                                    || &quot;title&quot;.equals(ln)</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">                                    || &quot;pages&quot;.equals(ln)</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">                                    || &quot;publisher&quot;.equals(ln)</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">                                    || &quot;volume&quot;.equals(ln)</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                                    || &quot;year&quot;.equals(ln)) {</span>
+<span class="nc" id="L179">                                e.setField(ln, parser.getElementText());</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">                            } else if (&quot;booktitle&quot;.equals(ln)) {</span>
+<span class="nc" id="L181">                                String booktitle = parser.getElementText();</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">                                if (booktitle.startsWith(&quot;In &quot;)) {</span>
+                                    // special treatment for parsing of
+                                    // &quot;In proceedings of...&quot; references
+<span class="nc" id="L185">                                    booktitle = booktitle.substring(3);</span>
+                                }
+<span class="nc" id="L187">                                e.setField(&quot;booktitle&quot;, booktitle);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">                            } else if (&quot;raw_string&quot;.equals(ln)) {</span>
+                                // raw input string is ignored
+                            } else {
+                                // all other tags are stored as note
+<span class="nc" id="L192">                                noteSB.append(ln);</span>
+<span class="nc" id="L193">                                noteSB.append(':');</span>
+<span class="nc" id="L194">                                noteSB.append(parser.getElementText());</span>
+<span class="nc" id="L195">                                noteSB.append(Globals.NEWLINE);</span>
+                            }
+                        }
+<span class="nc" id="L198">                        parser.next();</span>
+                    }
+
+<span class="nc bnc" id="L201" title="All 2 branches missed.">                    if (noteSB.length() &gt; 0) {</span>
+<span class="nc" id="L202">                        String note = e.getField(&quot;note&quot;);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">                        if (note == null) {</span>
+<span class="nc" id="L204">                            note = noteSB.toString();</span>
+<span class="nc" id="L205">                        } else {</span>
+                            // &quot;note&quot; could have been set during the parsing as FreeCite also returns &quot;note&quot;
+<span class="nc" id="L207">                            note = note.concat(Globals.NEWLINE).concat(noteSB.toString());</span>
+                        }
+<span class="nc" id="L209">                        e.setField(&quot;note&quot;, note);</span>
+                    }
+
+                    // type has been derived from &quot;genre&quot;
+                    // has to be done before label generation as label generation is dependent on entry type
+<span class="nc" id="L214">                    e.setType(type);</span>
+
+                    // autogenerate label (BibTeX key)
+<span class="nc" id="L217">                    LabelPatternUtil.makeLabel(JabRefGUI.getMainFrame().getCurrentBasePanel().getBibDatabaseContext().getMetaData(), JabRefGUI.getMainFrame().getCurrentBasePanel().getDatabase(), e);</span>
+
+<span class="nc" id="L219">                    res.add(e);</span>
+                }
+<span class="nc" id="L221">                parser.next();</span>
+            }
+<span class="nc" id="L223">            parser.close();</span>
+<span class="nc" id="L224">        } catch (IOException | XMLStreamException ex) {</span>
+<span class="nc" id="L225">            LOGGER.warn(&quot;Could not parse&quot;, ex);</span>
+<span class="nc" id="L226">            return Collections.emptyList();</span>
+        }
+
+<span class="nc" id="L229">        return res;</span>
+    }
+
+    @Override
+    public String getFormatName() {
+<span class="fc" id="L234">        return &quot;text citations&quot;;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

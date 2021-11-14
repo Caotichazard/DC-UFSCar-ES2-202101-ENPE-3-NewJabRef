@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ListAutoCompleteRenderer.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.autocompleter</a> &gt; <span class="el_source">ListAutoCompleteRenderer.java</span></div><h1>ListAutoCompleteRenderer.java</h1><pre class="source lang-java linenums">package net.sf.jabref.gui.autocompleter;
+
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.List;
+import java.util.Vector;
+
+import javax.swing.BorderFactory;
+import javax.swing.DefaultListModel;
+import javax.swing.JList;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
+
+/**
+ * Renders possible autocomplete items in form of a simple list.
+ *
+ * @param &lt;E&gt; the type of the items
+ */
+<span class="fc" id="L20">public class ListAutoCompleteRenderer&lt;E&gt; extends AutoCompleteRenderer&lt;E&gt; {</span>
+
+<span class="fc" id="L22">    private final DefaultListModel&lt;E&gt; model = new DefaultListModel&lt;&gt;();</span>
+<span class="fc" id="L23">    private final JList&lt;E&gt; list = new JList&lt;&gt;(model);</span>
+
+    /**
+     * Every selection change by the user is interpreted as accepting the new item as autocompletion. Thus we need this
+     * helper variable to prevent that also programmatically trigger an autocompletion.
+     */
+<span class="fc" id="L29">    private Boolean interpretSelectionChangeAsAccept = true;</span>
+
+
+    @Override
+    public void update(List&lt;E&gt; autoCompletions) {
+<span class="nc bnc" id="L34" title="All 2 branches missed.">        if (autoCompletions == null) {</span>
+<span class="nc" id="L35">            model.removeAllElements();</span>
+<span class="nc" id="L36">        } else {</span>
+<span class="nc" id="L37">            list.setListData(new Vector&lt;&gt;(autoCompletions));</span>
+<span class="nc" id="L38">            list.clearSelection();</span>
+        }
+<span class="nc" id="L40">    }</span>
+
+    @Override
+    public Component init(ActionListener newAcceptAction) {
+        // Init list
+<span class="fc" id="L45">        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="fc" id="L46">        list.setFocusable(false);</span>
+<span class="fc" id="L47">        list.setRequestFocusEnabled(false);</span>
+<span class="fc" id="L48">        list.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));</span>
+<span class="fc" id="L49">        list.addListSelectionListener(e -&gt; {</span>
+<span class="nc bnc" id="L50" title="All 4 branches missed.">            if (interpretSelectionChangeAsAccept &amp;&amp; (newAcceptAction != null)) {</span>
+<span class="nc" id="L51">                newAcceptAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, null));</span>
+            }
+<span class="nc" id="L53">        });</span>
+
+        // Init pane containing the list
+<span class="fc" id="L56">        JScrollPane scrollPane = new JScrollPane(list);</span>
+<span class="fc" id="L57">        scrollPane.setFocusable(false);</span>
+<span class="fc" id="L58">        scrollPane.setRequestFocusEnabled(false);</span>
+<span class="fc" id="L59">        scrollPane.setBorder(BorderFactory.createEmptyBorder());</span>
+<span class="fc" id="L60">        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);</span>
+<span class="fc" id="L61">        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);</span>
+
+<span class="fc" id="L63">        return scrollPane;</span>
+    }
+
+    @Override
+    public E getSelectedItem() {
+<span class="nc" id="L68">        return list.getSelectedValue();</span>
+    }
+
+    @Override
+    public void selectItem(int index) {
+<span class="nc" id="L73">        interpretSelectionChangeAsAccept = false;</span>
+        // Set new index if valid otherwise clean selection
+<span class="nc bnc" id="L75" title="All 4 branches missed.">        if ((index &gt;= 0) &amp;&amp; (index &lt; list.getModel().getSize())) {</span>
+<span class="nc" id="L76">            list.setSelectedIndex(index);</span>
+<span class="nc" id="L77">            list.ensureIndexIsVisible(index);</span>
+<span class="nc" id="L78">        } else {</span>
+<span class="nc" id="L79">            list.clearSelection();</span>
+        }
+<span class="nc" id="L81">        interpretSelectionChangeAsAccept = true;</span>
+<span class="nc" id="L82">    }</span>
+
+    @Override
+    public int getSelectedIndex() {
+<span class="nc" id="L86">        return list.getSelectedIndex();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

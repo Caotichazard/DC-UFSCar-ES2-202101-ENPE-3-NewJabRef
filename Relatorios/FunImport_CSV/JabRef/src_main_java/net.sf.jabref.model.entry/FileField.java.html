@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FileField.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.model.entry</a> &gt; <span class="el_source">FileField.java</span></div><h1>FileField.java</h1><pre class="source lang-java linenums">package net.sf.jabref.model.entry;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+<span class="nc" id="L9">public class FileField {</span>
+
+    public static List&lt;ParsedFileField&gt; parse(String value) {
+<span class="pc bpc" id="L12" title="2 of 4 branches missed.">        if ((value == null) || value.trim().isEmpty()) {</span>
+<span class="fc" id="L13">            return Collections.emptyList();</span>
+        }
+
+<span class="nc" id="L16">        List&lt;ParsedFileField&gt; files = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L17">        List&lt;String&gt; entry = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L18">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L19">        boolean inXmlChar = false;</span>
+<span class="nc" id="L20">        boolean escaped = false;</span>
+
+<span class="nc bnc" id="L22" title="All 2 branches missed.">        for (int i = 0; i &lt; value.length(); i++) {</span>
+<span class="nc" id="L23">            char c = value.charAt(i);</span>
+<span class="nc bnc" id="L24" title="All 4 branches missed.">            if (!escaped &amp;&amp; (c == '\\')) {</span>
+<span class="nc" id="L25">                escaped = true;</span>
+<span class="nc" id="L26">                continue;</span>
+            }
+            // Check if we are entering an XML special character construct such
+            // as &quot;&amp;#44;&quot;, because we need to know in order to ignore the semicolon.
+<span class="nc bnc" id="L30" title="All 6 branches missed.">            else if (!escaped &amp;&amp; (c == '&amp;') &amp;&amp; !inXmlChar) {</span>
+<span class="nc" id="L31">                sb.append(c);</span>
+<span class="nc bnc" id="L32" title="All 4 branches missed.">                if ((value.length() &gt; (i + 1)) &amp;&amp; (value.charAt(i + 1) == '#')) {</span>
+<span class="nc" id="L33">                    inXmlChar = true;</span>
+                }
+<span class="nc bnc" id="L35" title="All 6 branches missed.">            } else if (!escaped &amp;&amp; inXmlChar &amp;&amp; (c == ';')) {</span>
+                // Check if we are exiting an XML special character construct:
+<span class="nc" id="L37">                sb.append(c);</span>
+<span class="nc" id="L38">                inXmlChar = false;</span>
+<span class="nc bnc" id="L39" title="All 4 branches missed.">            } else if (!escaped &amp;&amp; (c == ':')) {</span>
+<span class="nc" id="L40">                entry.add(sb.toString());</span>
+<span class="nc" id="L41">                sb = new StringBuilder();</span>
+<span class="nc bnc" id="L42" title="All 6 branches missed.">            } else if (!escaped &amp;&amp; (c == ';') &amp;&amp; !inXmlChar) {</span>
+<span class="nc" id="L43">                entry.add(sb.toString());</span>
+<span class="nc" id="L44">                sb = new StringBuilder();</span>
+
+<span class="nc" id="L46">                files.add(convert(entry));</span>
+<span class="nc" id="L47">            } else {</span>
+<span class="nc" id="L48">                sb.append(c);</span>
+            }
+<span class="nc" id="L50">            escaped = false;</span>
+        }
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (sb.length() &gt; 0) {</span>
+<span class="nc" id="L53">            entry.add(sb.toString());</span>
+        }
+
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (!entry.isEmpty()) {</span>
+<span class="nc" id="L57">            files.add(convert(entry));</span>
+        }
+
+<span class="nc" id="L60">        return files;</span>
+    }
+
+    private static ParsedFileField convert(List&lt;String&gt; entry) {
+        // ensure list has at least 3 fields
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        while (entry.size() &lt; 3) {</span>
+<span class="nc" id="L66">            entry.add(&quot;&quot;);</span>
+        }
+<span class="nc" id="L68">        ParsedFileField field = new ParsedFileField(entry.get(0), entry.get(1), entry.get(2));</span>
+        // link is only mandatory field
+<span class="nc bnc" id="L70" title="All 6 branches missed.">        if(field.getDescription().isEmpty() &amp;&amp; field.getLink().isEmpty() &amp;&amp; !field.getFileType().isEmpty()) {</span>
+<span class="nc" id="L71">            field = new ParsedFileField(&quot;&quot;, field.getFileType(), &quot;&quot;);</span>
+<span class="nc bnc" id="L72" title="All 6 branches missed.">        } else if(!field.getDescription().isEmpty() &amp;&amp; field.getLink().isEmpty() &amp;&amp; field.getFileType().isEmpty()) {</span>
+<span class="nc" id="L73">            field = new ParsedFileField(&quot;&quot;, field.getDescription(), &quot;&quot;);</span>
+        }
+<span class="nc" id="L75">        entry.clear();</span>
+<span class="nc" id="L76">        return field;</span>
+    }
+
+    public static String getStringRepresentation(List&lt;ParsedFileField&gt; fields) {
+<span class="nc" id="L80">        String[][] array = new String[fields.size()][];</span>
+<span class="nc" id="L81">        int i = 0;</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        for (ParsedFileField entry : fields) {</span>
+<span class="nc" id="L83">            array[i] = new String[] {entry.getDescription(), entry.getLink(), entry.getFileType()};</span>
+<span class="nc" id="L84">            i++;</span>
+        }
+<span class="nc" id="L86">        return encodeStringArray(array);</span>
+    }
+
+    public static String getStringRepresentation(ParsedFileField field) {
+<span class="nc" id="L90">        return getStringRepresentation(Collections.singletonList(field));</span>
+    }
+
+    /**
+     * Encodes a two-dimensional String array into a single string, using ':' and
+     * ';' as separators. The characters ':' and ';' are escaped with '\'.
+     * @param values The String array.
+     * @return The encoded String.
+     */
+    public static String encodeStringArray(String[][] values) {
+<span class="nc" id="L100">        return Arrays.asList(values).stream().map(FileField::encodeStringArray).collect(Collectors.joining(&quot;;&quot;));</span>
+    }
+
+    /**
+     * Encodes a String array into a single string, using ':' as separator.
+     * The characters ':' and ';' are escaped with '\'.
+     * @param entry The String array.
+     * @return The encoded String.
+     */
+    private static String encodeStringArray(String[] entry) {
+<span class="nc" id="L110">        return Arrays.asList(entry).stream().map(FileField::quote).collect(Collectors.joining(&quot;:&quot;));</span>
+    }
+
+    public static String quote(String s) {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (s == null) {</span>
+<span class="nc" id="L115">            return null;</span>
+        }
+<span class="nc" id="L117">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        for (int i = 0; i &lt; s.length(); i++) {</span>
+<span class="nc" id="L119">            char c = s.charAt(i);</span>
+<span class="nc bnc" id="L120" title="All 6 branches missed.">            if ((c == ';') || (c == ':') || (c == '\\')) {</span>
+<span class="nc" id="L121">                sb.append('\\');</span>
+            }
+<span class="nc" id="L123">            sb.append(c);</span>
+        }
+<span class="nc" id="L125">        return sb.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

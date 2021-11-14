@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>TablePrefsTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">TablePrefsTab.java</span></div><h1>TablePrefsTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2012 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+class TablePrefsTab extends JPanel implements PrefsTab {
+
+    private final JabRefPreferences prefs;
+
+    private final JCheckBox autoResizeMode;
+    private final JCheckBox priDesc;
+    private final JCheckBox secDesc;
+    private final JCheckBox terDesc;
+    private final JCheckBox floatMarked;
+
+    private final JRadioButton namesAsIs;
+    private final JRadioButton namesFf;
+    private final JRadioButton namesFl;
+    private final JRadioButton namesNatbib;
+    private final JRadioButton abbrNames;
+    private final JRadioButton noAbbrNames;
+    private final JRadioButton lastNamesOnly;
+
+    private final JTextField priField;
+    private final JTextField secField;
+    private final JTextField terField;
+    private final JTextField numericFields;
+    private final JComboBox&lt;String&gt; priSort;
+    private final JComboBox&lt;String&gt; secSort;
+    private final JComboBox&lt;String&gt; terSort;
+
+
+    /**
+     * Customization of external program paths.
+     *
+     * @param prefs
+     *            a &lt;code&gt;JabRefPreferences&lt;/code&gt; value
+     */
+<span class="nc" id="L75">    public TablePrefsTab(JabRefPreferences prefs) {</span>
+<span class="nc" id="L76">        this.prefs = prefs;</span>
+<span class="nc" id="L77">        setLayout(new BorderLayout());</span>
+
+        /**
+         * Added Bibtexkey to combobox.
+         *
+         * [ 1540646 ] default sort order: bibtexkey
+         *
+         * http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1540646&amp;group_id=92314&amp;atid=600306
+         */
+<span class="nc" id="L86">        List&lt;String&gt; fieldNames = new ArrayList&lt;&gt;(InternalBibtexFields.getAllFieldNames());</span>
+<span class="nc" id="L87">        fieldNames.add(BibEntry.KEY_FIELD);</span>
+<span class="nc" id="L88">        Collections.sort(fieldNames);</span>
+<span class="nc" id="L89">        String[] allPlusKey = fieldNames.toArray(new String[fieldNames.size()]);</span>
+<span class="nc" id="L90">        priSort = new JComboBox&lt;&gt;(allPlusKey);</span>
+<span class="nc" id="L91">        secSort = new JComboBox&lt;&gt;(allPlusKey);</span>
+<span class="nc" id="L92">        terSort = new JComboBox&lt;&gt;(allPlusKey);</span>
+
+<span class="nc" id="L94">        autoResizeMode = new JCheckBox(Localization.lang(&quot;Fit table horizontally on screen&quot;));</span>
+
+<span class="nc" id="L96">        namesAsIs = new JRadioButton(Localization.lang(&quot;Show names unchanged&quot;));</span>
+<span class="nc" id="L97">        namesFf = new JRadioButton(Localization.lang(&quot;Show 'Firstname Lastname'&quot;));</span>
+<span class="nc" id="L98">        namesFl = new JRadioButton(Localization.lang(&quot;Show 'Lastname, Firstname'&quot;));</span>
+<span class="nc" id="L99">        namesNatbib = new JRadioButton(Localization.lang(&quot;Natbib style&quot;));</span>
+<span class="nc" id="L100">        noAbbrNames = new JRadioButton(Localization.lang(&quot;Do not abbreviate names&quot;));</span>
+<span class="nc" id="L101">        abbrNames = new JRadioButton(Localization.lang(&quot;Abbreviate names&quot;));</span>
+<span class="nc" id="L102">        lastNamesOnly = new JRadioButton(Localization.lang(&quot;Show last names only&quot;));</span>
+
+<span class="nc" id="L104">        floatMarked = new JCheckBox(Localization.lang(&quot;Float marked entries&quot;));</span>
+
+<span class="nc" id="L106">        priField = new JTextField(10);</span>
+<span class="nc" id="L107">        secField = new JTextField(10);</span>
+<span class="nc" id="L108">        terField = new JTextField(10);</span>
+
+<span class="nc" id="L110">        numericFields = new JTextField(30);</span>
+
+<span class="nc" id="L112">        priSort.insertItemAt(Localization.lang(&quot;&lt;select&gt;&quot;), 0);</span>
+<span class="nc" id="L113">        secSort.insertItemAt(Localization.lang(&quot;&lt;select&gt;&quot;), 0);</span>
+<span class="nc" id="L114">        terSort.insertItemAt(Localization.lang(&quot;&lt;select&gt;&quot;), 0);</span>
+
+<span class="nc" id="L116">        priSort.addActionListener(e -&gt; {</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">            if (priSort.getSelectedIndex() &gt; 0) {</span>
+<span class="nc" id="L118">                priField.setText(priSort.getSelectedItem().toString());</span>
+<span class="nc" id="L119">                priSort.setSelectedIndex(0);</span>
+            }
+<span class="nc" id="L121">        });</span>
+<span class="nc" id="L122">        secSort.addActionListener(e -&gt; {</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">            if (secSort.getSelectedIndex() &gt; 0) {</span>
+<span class="nc" id="L124">                secField.setText(secSort.getSelectedItem().toString());</span>
+<span class="nc" id="L125">                secSort.setSelectedIndex(0);</span>
+            }
+<span class="nc" id="L127">        });</span>
+<span class="nc" id="L128">        terSort.addActionListener(e -&gt; {</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">            if (terSort.getSelectedIndex() &gt; 0) {</span>
+<span class="nc" id="L130">                terField.setText(terSort.getSelectedItem().toString());</span>
+<span class="nc" id="L131">                terSort.setSelectedIndex(0);</span>
+            }
+<span class="nc" id="L133">        });</span>
+
+<span class="nc" id="L135">        ButtonGroup nameStyle = new ButtonGroup();</span>
+<span class="nc" id="L136">        nameStyle.add(namesAsIs);</span>
+<span class="nc" id="L137">        nameStyle.add(namesNatbib);</span>
+<span class="nc" id="L138">        nameStyle.add(namesFf);</span>
+<span class="nc" id="L139">        nameStyle.add(namesFl);</span>
+<span class="nc" id="L140">        ButtonGroup nameAbbrev = new ButtonGroup();</span>
+<span class="nc" id="L141">        nameAbbrev.add(lastNamesOnly);</span>
+<span class="nc" id="L142">        nameAbbrev.add(abbrNames);</span>
+<span class="nc" id="L143">        nameAbbrev.add(noAbbrNames);</span>
+<span class="nc" id="L144">        priDesc = new JCheckBox(Localization.lang(&quot;Descending&quot;));</span>
+<span class="nc" id="L145">        secDesc = new JCheckBox(Localization.lang(&quot;Descending&quot;));</span>
+<span class="nc" id="L146">        terDesc = new JCheckBox(Localization.lang(&quot;Descending&quot;));</span>
+
+<span class="nc" id="L148">        FormLayout layout = new FormLayout(</span>
+<span class="nc" id="L149">                &quot;1dlu, 8dlu, left:pref, 4dlu, fill:pref, 4dlu, fill:60dlu, 4dlu, fill:pref&quot;, &quot;&quot;);</span>
+<span class="nc" id="L150">        DefaultFormBuilder builder = new DefaultFormBuilder(layout);</span>
+        JLabel lab;
+<span class="nc" id="L152">        JPanel pan = new JPanel();</span>
+
+<span class="nc" id="L154">        builder.appendSeparator(Localization.lang(&quot;Format of author and editor names&quot;));</span>
+<span class="nc" id="L155">        DefaultFormBuilder nameBuilder = new DefaultFormBuilder(new FormLayout(</span>
+<span class="nc" id="L156">                &quot;left:pref, 8dlu, left:pref&quot;, &quot;&quot;));</span>
+
+<span class="nc" id="L158">        nameBuilder.append(namesAsIs);</span>
+<span class="nc" id="L159">        nameBuilder.append(noAbbrNames);</span>
+<span class="nc" id="L160">        nameBuilder.nextLine();</span>
+<span class="nc" id="L161">        nameBuilder.append(namesFf);</span>
+<span class="nc" id="L162">        nameBuilder.append(abbrNames);</span>
+<span class="nc" id="L163">        nameBuilder.nextLine();</span>
+<span class="nc" id="L164">        nameBuilder.append(namesFl);</span>
+<span class="nc" id="L165">        nameBuilder.append(lastNamesOnly);</span>
+<span class="nc" id="L166">        nameBuilder.nextLine();</span>
+<span class="nc" id="L167">        nameBuilder.append(namesNatbib);</span>
+<span class="nc" id="L168">        builder.append(pan);</span>
+<span class="nc" id="L169">        builder.append(nameBuilder.getPanel());</span>
+<span class="nc" id="L170">        builder.nextLine();</span>
+
+<span class="nc" id="L172">        builder.appendSeparator(Localization.lang(&quot;Default sort criteria&quot;));</span>
+        // Create a new panel with its own FormLayout for these items:
+<span class="nc" id="L174">        FormLayout layout2 = new FormLayout(</span>
+<span class="nc" id="L175">                &quot;left:pref, 8dlu, fill:pref, 4dlu, fill:60dlu, 4dlu, left:pref&quot;, &quot;&quot;);</span>
+<span class="nc" id="L176">        DefaultFormBuilder builder2 = new DefaultFormBuilder(layout2);</span>
+<span class="nc" id="L177">        lab = new JLabel(Localization.lang(&quot;Primary sort criterion&quot;));</span>
+<span class="nc" id="L178">        builder2.append(lab);</span>
+<span class="nc" id="L179">        builder2.append(priSort);</span>
+<span class="nc" id="L180">        builder2.append(priField);</span>
+<span class="nc" id="L181">        builder2.append(priDesc);</span>
+<span class="nc" id="L182">        builder2.nextLine();</span>
+<span class="nc" id="L183">        lab = new JLabel(Localization.lang(&quot;Secondary sort criterion&quot;));</span>
+<span class="nc" id="L184">        builder2.append(lab);</span>
+<span class="nc" id="L185">        builder2.append(secSort);</span>
+<span class="nc" id="L186">        builder2.append(secField);</span>
+<span class="nc" id="L187">        builder2.append(secDesc);</span>
+<span class="nc" id="L188">        builder2.nextLine();</span>
+<span class="nc" id="L189">        lab = new JLabel(Localization.lang(&quot;Tertiary sort criterion&quot;));</span>
+<span class="nc" id="L190">        builder2.append(lab);</span>
+<span class="nc" id="L191">        builder2.append(terSort);</span>
+<span class="nc" id="L192">        builder2.append(terField);</span>
+<span class="nc" id="L193">        builder2.append(terDesc);</span>
+<span class="nc" id="L194">        builder.nextLine();</span>
+<span class="nc" id="L195">        builder.append(pan);</span>
+<span class="nc" id="L196">        builder.append(builder2.getPanel());</span>
+<span class="nc" id="L197">        builder.nextLine();</span>
+<span class="nc" id="L198">        builder.append(pan);</span>
+<span class="nc" id="L199">        builder.append(floatMarked);</span>
+<span class="nc" id="L200">        builder.nextLine();</span>
+<span class="nc" id="L201">        builder.append(pan);</span>
+<span class="nc" id="L202">        builder2 = new DefaultFormBuilder(new FormLayout(&quot;left:pref, 8dlu, fill:pref&quot;, &quot;&quot;));</span>
+<span class="nc" id="L203">        builder2.append(Localization.lang(&quot;Sort the following fields as numeric fields&quot;) + ':');</span>
+<span class="nc" id="L204">        builder2.append(numericFields);</span>
+<span class="nc" id="L205">        builder.append(builder2.getPanel(), 5);</span>
+<span class="nc" id="L206">        builder.nextLine();</span>
+<span class="nc" id="L207">        builder.appendSeparator(Localization.lang(&quot;General&quot;));</span>
+<span class="nc" id="L208">        builder.append(pan);</span>
+<span class="nc" id="L209">        builder.append(autoResizeMode);</span>
+<span class="nc" id="L210">        builder.nextLine();</span>
+
+<span class="nc" id="L212">        pan = builder.getPanel();</span>
+<span class="nc" id="L213">        pan.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L214">        add(pan, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L216">        namesNatbib.addChangeListener(e -&gt; {</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">            abbrNames.setEnabled(!namesNatbib.isSelected());</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">            lastNamesOnly.setEnabled(!namesNatbib.isSelected());</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            noAbbrNames.setEnabled(!namesNatbib.isSelected());</span>
+<span class="nc" id="L220">        });</span>
+<span class="nc" id="L221">    }</span>
+
+    @Override
+    public void setValues() {
+<span class="nc" id="L225">        autoResizeMode</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        .setSelected(prefs.getInt(JabRefPreferences.AUTO_RESIZE_MODE) == JTable.AUTO_RESIZE_ALL_COLUMNS);</span>
+
+<span class="nc" id="L228">        priField.setText(prefs.get(JabRefPreferences.TABLE_PRIMARY_SORT_FIELD));</span>
+<span class="nc" id="L229">        secField.setText(prefs.get(JabRefPreferences.TABLE_SECONDARY_SORT_FIELD));</span>
+<span class="nc" id="L230">        terField.setText(prefs.get(JabRefPreferences.TABLE_TERTIARY_SORT_FIELD));</span>
+<span class="nc" id="L231">        priSort.setSelectedIndex(0);</span>
+<span class="nc" id="L232">        secSort.setSelectedIndex(0);</span>
+<span class="nc" id="L233">        terSort.setSelectedIndex(0);</span>
+
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        if (prefs.getBoolean(JabRefPreferences.NAMES_AS_IS)) {</span>
+<span class="nc" id="L236">            namesAsIs.setSelected(true);</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">        } else if (prefs.getBoolean(JabRefPreferences.NAMES_FIRST_LAST)) {</span>
+<span class="nc" id="L238">            namesFf.setSelected(true);</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        } else if (prefs.getBoolean(JabRefPreferences.NAMES_NATBIB)) {</span>
+<span class="nc" id="L240">            namesNatbib.setSelected(true);</span>
+<span class="nc" id="L241">        } else {</span>
+<span class="nc" id="L242">            namesFl.setSelected(true);</span>
+        }
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        if (prefs.getBoolean(JabRefPreferences.ABBR_AUTHOR_NAMES)) {</span>
+<span class="nc" id="L245">            abbrNames.setSelected(true);</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        } else if (prefs.getBoolean(JabRefPreferences.NAMES_LAST_ONLY)) {</span>
+<span class="nc" id="L247">            lastNamesOnly.setSelected(true);</span>
+<span class="nc" id="L248">        } else {</span>
+<span class="nc" id="L249">            noAbbrNames.setSelected(true);</span>
+        }
+<span class="nc" id="L251">        priDesc.setSelected(prefs.getBoolean(JabRefPreferences.TABLE_PRIMARY_SORT_DESCENDING));</span>
+<span class="nc" id="L252">        secDesc.setSelected(prefs.getBoolean(JabRefPreferences.TABLE_SECONDARY_SORT_DESCENDING));</span>
+<span class="nc" id="L253">        terDesc.setSelected(prefs.getBoolean(JabRefPreferences.TABLE_TERTIARY_SORT_DESCENDING));</span>
+
+<span class="nc" id="L255">        floatMarked.setSelected(prefs.getBoolean(JabRefPreferences.FLOAT_MARKED_ENTRIES));</span>
+
+<span class="nc bnc" id="L257" title="All 2 branches missed.">        abbrNames.setEnabled(!namesNatbib.isSelected());</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">        lastNamesOnly.setEnabled(!namesNatbib.isSelected());</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">        noAbbrNames.setEnabled(!namesNatbib.isSelected());</span>
+
+<span class="nc" id="L261">        String numF = prefs.get(JabRefPreferences.NUMERIC_FIELDS);</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">        if (numF == null) {</span>
+<span class="nc" id="L263">            numericFields.setText(&quot;&quot;);</span>
+<span class="nc" id="L264">        } else {</span>
+<span class="nc" id="L265">            numericFields.setText(numF);</span>
+        }
+
+<span class="nc" id="L268">    }</span>
+
+    /**
+     * Store changes to table preferences. This method is called when the user
+     * clicks Ok.
+     *
+     */
+    @Override
+    public void storeSettings() {
+
+<span class="nc" id="L278">        prefs.putBoolean(JabRefPreferences.NAMES_AS_IS, namesAsIs.isSelected());</span>
+<span class="nc" id="L279">        prefs.putBoolean(JabRefPreferences.NAMES_FIRST_LAST, namesFf.isSelected());</span>
+<span class="nc" id="L280">        prefs.putBoolean(JabRefPreferences.NAMES_NATBIB, namesNatbib.isSelected());</span>
+<span class="nc" id="L281">        prefs.putBoolean(JabRefPreferences.NAMES_LAST_ONLY, lastNamesOnly.isSelected());</span>
+<span class="nc" id="L282">        prefs.putBoolean(JabRefPreferences.ABBR_AUTHOR_NAMES, abbrNames.isSelected());</span>
+
+<span class="nc" id="L284">        prefs.putInt(JabRefPreferences.AUTO_RESIZE_MODE,</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">                autoResizeMode.isSelected() ? JTable.AUTO_RESIZE_ALL_COLUMNS : JTable.AUTO_RESIZE_OFF);</span>
+<span class="nc" id="L286">        prefs.putBoolean(JabRefPreferences.TABLE_PRIMARY_SORT_DESCENDING, priDesc.isSelected());</span>
+<span class="nc" id="L287">        prefs.putBoolean(JabRefPreferences.TABLE_SECONDARY_SORT_DESCENDING, secDesc.isSelected());</span>
+<span class="nc" id="L288">        prefs.putBoolean(JabRefPreferences.TABLE_TERTIARY_SORT_DESCENDING, terDesc.isSelected());</span>
+<span class="nc" id="L289">        prefs.put(JabRefPreferences.TABLE_PRIMARY_SORT_FIELD, priField.getText().toLowerCase().trim());</span>
+<span class="nc" id="L290">        prefs.put(JabRefPreferences.TABLE_SECONDARY_SORT_FIELD, secField.getText().toLowerCase().trim());</span>
+<span class="nc" id="L291">        prefs.put(JabRefPreferences.TABLE_TERTIARY_SORT_FIELD, terField.getText().toLowerCase().trim());</span>
+
+<span class="nc" id="L293">        prefs.putBoolean(JabRefPreferences.FLOAT_MARKED_ENTRIES, floatMarked.isSelected());</span>
+        // updatefont
+
+<span class="nc" id="L296">        String oldVal = prefs.get(JabRefPreferences.NUMERIC_FIELDS);</span>
+<span class="nc" id="L297">        String newVal = numericFields.getText().trim();</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">        if (newVal.isEmpty()) {</span>
+<span class="nc" id="L299">            newVal = null;</span>
+        }
+<span class="nc bnc" id="L301" title="All 2 branches missed.">        if (!Objects.equals(oldVal, newVal)) {</span>
+<span class="nc" id="L302">            prefs.put(JabRefPreferences.NUMERIC_FIELDS, newVal);</span>
+<span class="nc" id="L303">            InternalBibtexFields.setNumericFieldsFromPrefs();</span>
+        }
+
+<span class="nc" id="L306">    }</span>
+
+    @Override
+    public boolean validateSettings() {
+<span class="nc" id="L310">        return true;</span>
+    }
+
+    @Override
+    public String getTabName() {
+<span class="nc" id="L315">        return Localization.lang(&quot;Entry table&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

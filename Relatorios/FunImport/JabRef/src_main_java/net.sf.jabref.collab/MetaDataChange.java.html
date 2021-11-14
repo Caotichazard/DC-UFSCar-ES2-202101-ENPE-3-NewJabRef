@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MetaDataChange.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.collab</a> &gt; <span class="el_source">MetaDataChange.java</span></div><h1>MetaDataChange.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.collab;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.swing.JComponent;
+import javax.swing.JScrollPane;
+
+import net.sf.jabref.MetaData;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.database.BibDatabase;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ *
+ */
+class MetaDataChange extends Change {
+
+    private static final int ADD = 1;
+    private static final int REMOVE = 2;
+    private static final int MODIFY = 3;
+
+<span class="nc" id="L43">    private final InfoPane tp = new InfoPane();</span>
+<span class="nc" id="L44">    private final JScrollPane sp = new JScrollPane(tp);</span>
+    private final MetaData md;
+    private final MetaData mdSecondary;
+<span class="nc" id="L47">    private final List&lt;MetaDataChangeUnit&gt; changes = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L49">    private static final Log LOGGER = LogFactory.getLog(MetaDataChange.class);</span>
+
+
+    public MetaDataChange(MetaData md, MetaData mdSecondary) {
+<span class="nc" id="L53">        super(Localization.lang(&quot;Metadata change&quot;));</span>
+<span class="nc" id="L54">        this.md = md;</span>
+<span class="nc" id="L55">        this.mdSecondary = mdSecondary;</span>
+
+<span class="nc" id="L57">        tp.setText(&quot;&lt;html&gt;&quot; + Localization.lang(&quot;Metadata change&quot;) + &quot;&lt;/html&gt;&quot;);</span>
+<span class="nc" id="L58">    }</span>
+
+    public int getChangeCount() {
+<span class="nc" id="L61">        return changes.size();</span>
+    }
+
+    public void insertMetaDataAddition(String key, List&lt;String&gt; value) {
+<span class="nc" id="L65">        changes.add(new MetaDataChangeUnit(MetaDataChange.ADD, key, value));</span>
+<span class="nc" id="L66">    }</span>
+
+    public void insertMetaDataRemoval(String key) {
+<span class="nc" id="L69">        changes.add(new MetaDataChangeUnit(MetaDataChange.REMOVE, key, null));</span>
+<span class="nc" id="L70">    }</span>
+
+    public void insertMetaDataChange(String key, List&lt;String&gt; value) {
+<span class="nc" id="L73">        changes.add(new MetaDataChangeUnit(MetaDataChange.MODIFY, key, value));</span>
+<span class="nc" id="L74">    }</span>
+
+    @Override
+    public JComponent description() {
+<span class="nc" id="L78">        StringBuilder sb = new StringBuilder(</span>
+<span class="nc" id="L79">                &quot;&lt;html&gt;&quot; + Localization.lang(&quot;Changes have been made to the following metadata elements&quot;)</span>
+<span class="nc" id="L80">                        + &quot;:&lt;p&gt;&lt;br&gt;&amp;nbsp;&amp;nbsp;&quot;);</span>
+<span class="nc" id="L81">        sb.append(changes.stream().map(unit -&gt; unit.key).collect(Collectors.joining(&quot;&lt;br&gt;&amp;nbsp;&amp;nbsp;&quot;)));</span>
+<span class="nc" id="L82">        sb.append(&quot;&lt;/html&gt;&quot;);</span>
+<span class="nc" id="L83">        tp.setText(sb.toString());</span>
+<span class="nc" id="L84">        return sp;</span>
+    }
+
+    @Override
+    public boolean makeChange(BasePanel panel, BibDatabase secondary, NamedCompound undoEdit) {
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        for (MetaDataChangeUnit unit : changes) {</span>
+<span class="nc bnc" id="L90" title="All 4 branches missed.">            switch (unit.getType()) {</span>
+            case ADD:
+<span class="nc" id="L92">                md.putData(unit.getKey(), unit.getValue());</span>
+<span class="nc" id="L93">                mdSecondary.putData(unit.getKey(), unit.getValue());</span>
+<span class="nc" id="L94">                break;</span>
+            case REMOVE:
+<span class="nc" id="L96">                md.remove(unit.getKey());</span>
+<span class="nc" id="L97">                mdSecondary.remove(unit.getKey());</span>
+<span class="nc" id="L98">                break;</span>
+            case MODIFY:
+<span class="nc" id="L100">                md.putData(unit.getKey(), unit.getValue());</span>
+<span class="nc" id="L101">                mdSecondary.putData(unit.getKey(), unit.getValue());</span>
+<span class="nc" id="L102">                break;</span>
+            default:
+<span class="nc" id="L104">                LOGGER.error(&quot;Undefined meta data change unit type&quot;);</span>
+                break;
+            }
+        }
+<span class="nc" id="L108">        return true;</span>
+    }
+
+
+    static class MetaDataChangeUnit {
+
+        private final int type;
+        private final String key;
+        private final List&lt;String&gt; value;
+
+
+<span class="nc" id="L119">        public MetaDataChangeUnit(int type, String key, List&lt;String&gt; value) {</span>
+<span class="nc" id="L120">            this.type = type;</span>
+<span class="nc" id="L121">            this.key = key;</span>
+<span class="nc" id="L122">            this.value = value;</span>
+<span class="nc" id="L123">        }</span>
+
+        public int getType() {
+<span class="nc" id="L126">            return type;</span>
+        }
+
+        public String getKey() {
+<span class="nc" id="L130">            return key;</span>
+        }
+
+        public List&lt;String&gt; getValue() {
+<span class="nc" id="L134">            return value;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

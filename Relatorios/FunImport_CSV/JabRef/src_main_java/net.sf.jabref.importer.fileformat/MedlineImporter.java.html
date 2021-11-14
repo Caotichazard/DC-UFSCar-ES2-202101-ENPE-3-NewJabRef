@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MedlineImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">MedlineImporter.java</span></div><h1>MedlineImporter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer.fileformat;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import net.sf.jabref.importer.ImportFormatReader;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Importer for the Refer/Endnote format.
+ *
+ * check here for details on the format
+ * http://www.ecst.csuchico.edu/~jacobsd/bib/formats/endnote.html
+ */
+<span class="fc" id="L44">public class MedlineImporter extends ImportFormat {</span>
+
+<span class="fc" id="L46">    private static final Log LOGGER = LogFactory.getLog(MedlineImporter.class);</span>
+
+
+    @Override
+    public String getFormatName() {
+<span class="fc" id="L51">        return &quot;Medline&quot;;</span>
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see net.sf.jabref.imports.ImportFormat#getCLIId()
+     */
+    @Override
+    public String getCLIId() {
+<span class="nc" id="L61">        return &quot;medline&quot;;</span>
+    }
+
+    /**
+     * Check whether the source is in the correct format for this importer.
+     */
+    @Override
+    public boolean isRecognizedFormat(InputStream stream) throws IOException {
+
+<span class="fc" id="L70">        try (BufferedReader in = new BufferedReader(ImportFormatReader.getReaderDefaultEncoding(stream))) {</span>
+            String str;
+<span class="fc" id="L72">            int i = 0;</span>
+<span class="pc bpc" id="L73" title="1 of 4 branches missed.">            while (((str = in.readLine()) != null) &amp;&amp; (i &lt; 50)) {</span>
+
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">                if (str.toLowerCase().contains(&quot;&lt;pubmedarticle&gt;&quot;)) {</span>
+<span class="nc" id="L76">                    return true;</span>
+                }
+
+<span class="fc" id="L79">                i++;</span>
+            }
+        }
+<span class="fc" id="L82">        return false;</span>
+    }
+
+    /**
+     * Fetch and parse an medline item from eutils.ncbi.nlm.nih.gov.
+     *
+     * @param id One or several ids, separated by &quot;,&quot;
+     *
+     * @return Will return an empty list on error.
+     */
+    public static List&lt;BibEntry&gt; fetchMedline(String id, OutputPrinter status) {
+<span class="nc" id="L93">        String baseUrl = &quot;http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&amp;retmode=xml&amp;rettype=citation&amp;id=&quot; +</span>
+<span class="nc" id="L94">                id;</span>
+        try {
+<span class="nc" id="L96">            URL url = new URL(baseUrl);</span>
+<span class="nc" id="L97">            URLConnection data = url.openConnection();</span>
+<span class="nc" id="L98">            return new MedlineImporter().importEntries(data.getInputStream(), status);</span>
+<span class="nc" id="L99">        } catch (IOException e) {</span>
+<span class="nc" id="L100">            return new ArrayList&lt;&gt;();</span>
+        }
+    }
+
+    /**
+     * Parse the entries in the source, and return a List of BibEntry
+     * objects.
+     */
+    @Override
+    public List&lt;BibEntry&gt; importEntries(InputStream stream, OutputPrinter status) throws IOException {
+
+        // Obtain a factory object for creating SAX parsers
+<span class="nc" id="L112">        SAXParserFactory parserFactory = SAXParserFactory.newInstance();</span>
+
+        // Configure the factory object to specify attributes of the parsers it
+        // creates
+<span class="nc" id="L116">        parserFactory.setValidating(true);</span>
+<span class="nc" id="L117">        parserFactory.setNamespaceAware(true);</span>
+
+        // Now create a SAXParser object
+<span class="nc" id="L120">        List&lt;BibEntry&gt; bibItems = new ArrayList&lt;&gt;();</span>
+        try {
+<span class="nc" id="L122">            SAXParser parser = parserFactory.newSAXParser(); // May throw</span>
+            // exceptions
+<span class="nc" id="L124">            MedlineHandler handler = new MedlineHandler();</span>
+            // Start the parser. It reads the file and calls methods of the
+            // handler.
+<span class="nc" id="L127">            parser.parse(stream, handler);</span>
+
+            // Switch this to true if you want to make a local copy for testing.
+            if (false) {
+                stream.reset();
+                try (FileOutputStream out = new FileOutputStream(new File(&quot;/home/alver/ut.txt&quot;))) {
+                    int c;
+                    while ((c = stream.read()) != -1) {
+                        out.write((char) c);
+                    }
+                }
+            }
+
+            // When you're done, report the results stored by your handler
+            // object
+<span class="nc" id="L142">            bibItems.addAll(handler.getItems());</span>
+<span class="nc" id="L143">        } catch (javax.xml.parsers.ParserConfigurationException e1) {</span>
+<span class="nc" id="L144">            LOGGER.error(&quot;Error with XML parser configuration&quot;, e1);</span>
+<span class="nc" id="L145">            status.showMessage(e1.getLocalizedMessage());</span>
+<span class="nc" id="L146">        } catch (org.xml.sax.SAXException e2) {</span>
+<span class="nc" id="L147">            LOGGER.error(&quot;Error during XML parsing&quot;, e2);</span>
+<span class="nc" id="L148">            status.showMessage(e2.getLocalizedMessage());</span>
+<span class="nc" id="L149">        } catch (IOException e3) {</span>
+<span class="nc" id="L150">            LOGGER.error(&quot;Error during file import&quot;, e3);</span>
+<span class="nc" id="L151">            status.showMessage(e3.getLocalizedMessage());</span>
+        }
+
+<span class="nc" id="L154">        return bibItems;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

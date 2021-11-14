@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DBImportExportDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.sql</a> &gt; <span class="el_source">DBImportExportDialog.java</span></div><h1>DBImportExportDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along
+ with this program; if not, write to the Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+package net.sf.jabref.sql;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+
+import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
+import javax.swing.table.DefaultTableModel;
+
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+
+/**
+ * @author ifsteinm
+ */
+public class DBImportExportDialog implements MouseListener, KeyListener {
+
+    private final JDialog diag;
+    private final JTable table;
+
+    // IMPORT
+<span class="nc" id="L58">    public final List&lt;String&gt; listOfDBs = new ArrayList&lt;&gt;();</span>
+    public boolean moreThanOne;
+    // EXPORT
+<span class="nc" id="L61">    public String selectedDB = &quot;&quot;;</span>
+    public boolean hasDBSelected;
+    public boolean removeAction;
+<span class="nc" id="L64">    public int selectedInt = -1;</span>
+    private final DialogType dialogType;
+
+<span class="nc" id="L67">    public enum DialogType {</span>
+<span class="nc" id="L68">        IMPORTER, EXPORTER</span>
+    }
+
+
+<span class="nc" id="L72">    public DBImportExportDialog(JabRefFrame frame, Vector&lt;Vector&lt;String&gt;&gt; rows, DialogType dialogType) {</span>
+<span class="nc" id="L73">        this.dialogType = dialogType;</span>
+
+<span class="nc" id="L75">        Vector&lt;String&gt; columns = new Vector&lt;&gt;();</span>
+<span class="nc" id="L76">        columns.add(&quot;Databases&quot;);</span>
+<span class="nc" id="L77">        table = new JTable();</span>
+<span class="nc" id="L78">        DefaultTableModel model = new DefaultTableModel(rows, columns) {</span>
+            @Override
+            public boolean isCellEditable(int row, int column) {
+<span class="nc" id="L81">                return false;</span>
+            }
+        };
+
+<span class="nc" id="L85">        table.setModel(model);</span>
+
+        String dialogTitle;
+        String dialogTopMessage;
+        int tableSelectionModel;
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (isExporter()) {</span>
+<span class="nc" id="L91">            dialogTitle = Localization.lang(&quot;SQL Database Exporter&quot;);</span>
+<span class="nc" id="L92">            dialogTopMessage = Localization.lang(&quot;Select target SQL database:&quot;);</span>
+<span class="nc" id="L93">            tableSelectionModel = ListSelectionModel.SINGLE_SELECTION;</span>
+<span class="nc" id="L94">            table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put((KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)), &quot;exportAction&quot;);</span>
+<span class="nc" id="L95">            table.getActionMap().put(&quot;exportAction&quot;, new AbstractAction() {</span>
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L99">                    exportAction();</span>
+<span class="nc" id="L100">                }</span>
+            });
+<span class="nc" id="L102">        } else {</span>
+<span class="nc" id="L103">            dialogTitle = Localization.lang(&quot;SQL Database Importer&quot;);</span>
+<span class="nc" id="L104">            dialogTopMessage = Localization.lang(&quot;Please select which JabRef databases do you want to import:&quot;);</span>
+<span class="nc" id="L105">            tableSelectionModel = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION;</span>
+<span class="nc" id="L106">            table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put((KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)), &quot;importAction&quot;);</span>
+<span class="nc" id="L107">            table.getActionMap().put(&quot;importAction&quot;, new AbstractAction() {</span>
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L111">                    importAction();</span>
+<span class="nc" id="L112">                }</span>
+            });
+        }
+
+<span class="nc" id="L116">        diag = new JDialog(frame, dialogTitle, false);</span>
+<span class="nc" id="L117">        JPanel pan = new JPanel();</span>
+<span class="nc" id="L118">        pan.setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L120">        JLabel lab = new JLabel(dialogTopMessage);</span>
+<span class="nc" id="L121">        lab.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L122">        pan.add(lab, BorderLayout.NORTH);</span>
+
+<span class="nc" id="L124">        table.setSelectionMode(tableSelectionModel);</span>
+<span class="nc" id="L125">        table.setPreferredScrollableViewportSize(new Dimension(100, 100));</span>
+<span class="nc" id="L126">        table.setTableHeader(null);</span>
+<span class="nc" id="L127">        table.setRowSelectionInterval(0, 0);</span>
+
+<span class="nc" id="L129">        pan.add(new JScrollPane(table), BorderLayout.CENTER);</span>
+<span class="nc" id="L130">        diag.getContentPane().add(pan, BorderLayout.NORTH);</span>
+<span class="nc" id="L131">        pan = new JPanel();</span>
+<span class="nc" id="L132">        pan.setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L134">        diag.getContentPane().add(pan, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L136">        ButtonBarBuilder b = new ButtonBarBuilder();</span>
+<span class="nc" id="L137">        b.addGlue();</span>
+<span class="nc" id="L138">        JButton importButton = new JButton(Localization.lang(&quot;Import&quot;));</span>
+<span class="nc" id="L139">        JButton exportButton = new JButton(Localization.lang(&quot;Export&quot;));</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (isImporter()) {</span>
+<span class="nc" id="L141">            b.addButton(importButton);</span>
+<span class="nc" id="L142">        } else {</span>
+<span class="nc" id="L143">            b.addButton(exportButton);</span>
+        }
+
+<span class="nc" id="L146">        b.addRelatedGap();</span>
+<span class="nc" id="L147">        JButton cancelButton = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L148">        b.addButton(cancelButton);</span>
+<span class="nc" id="L149">        b.addRelatedGap();</span>
+<span class="nc" id="L150">        JButton removeButton = new JButton(Localization.lang(&quot;Remove selected&quot;));</span>
+<span class="nc" id="L151">        b.addButton(removeButton);</span>
+
+<span class="nc" id="L153">        b.addGlue();</span>
+<span class="nc" id="L154">        b.getPanel().setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L155">        diag.getContentPane().add(b.getPanel(), BorderLayout.SOUTH);</span>
+<span class="nc" id="L156">        diag.pack();</span>
+<span class="nc" id="L157">        diag.setLocationRelativeTo(frame);</span>
+<span class="nc" id="L158">        table.addMouseListener(this);</span>
+
+<span class="nc" id="L160">        importButton.addActionListener(e -&gt; importAction());</span>
+
+<span class="nc" id="L162">        exportButton.addActionListener(e -&gt; exportAction());</span>
+
+<span class="nc" id="L164">        cancelButton.addActionListener(e -&gt; {</span>
+<span class="nc" id="L165">            moreThanOne = false;</span>
+<span class="nc" id="L166">            hasDBSelected = false;</span>
+<span class="nc" id="L167">            diag.dispose();</span>
+<span class="nc" id="L168">        });</span>
+
+<span class="nc" id="L170">        removeButton.addActionListener(e -&gt; {</span>
+<span class="nc" id="L171">            moreThanOne = false;</span>
+<span class="nc" id="L172">            hasDBSelected = true;</span>
+<span class="nc" id="L173">            selectedInt = table.getSelectedRow();</span>
+<span class="nc" id="L174">            selectedDB = (String) table.getValueAt(selectedInt, 0);</span>
+<span class="nc" id="L175">            int areYouSure = JOptionPane.showConfirmDialog(diag,</span>
+<span class="nc" id="L176">                    Localization.lang(&quot;Are you sure you want to remove the already existent SQL DBs?&quot;));</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">            if (areYouSure == JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L178">                removeAction = true;</span>
+<span class="nc" id="L179">                diag.dispose();</span>
+            }
+<span class="nc" id="L181">        });</span>
+<span class="nc" id="L182">        diag.setModal(true);</span>
+<span class="nc" id="L183">        diag.setVisible(true);</span>
+<span class="nc" id="L184">    }</span>
+
+    private boolean isImporter() {
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        return this.dialogType == DialogType.IMPORTER;</span>
+    }
+
+    public boolean isExporter() {
+<span class="nc bnc" id="L191" title="All 2 branches missed.">        return this.dialogType == DialogType.EXPORTER;</span>
+    }
+
+    public JDialog getDiag() {
+<span class="nc" id="L195">        return this.diag;</span>
+    }
+
+    private void exportAction() {
+<span class="nc" id="L199">        selectedInt = table.getSelectedRow();</span>
+<span class="nc" id="L200">        selectedDB = (String) table.getValueAt(selectedInt, 0);</span>
+<span class="nc" id="L201">        hasDBSelected = true;</span>
+<span class="nc" id="L202">        diag.dispose();</span>
+<span class="nc" id="L203">    }</span>
+
+    private void importAction() {
+<span class="nc" id="L206">        int[] selInt = table.getSelectedRows();</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        for (int aSelectedInt : selInt) {</span>
+<span class="nc" id="L208">            listOfDBs.add((String) table.getValueAt(aSelectedInt, 0));</span>
+<span class="nc" id="L209">            moreThanOne = true;</span>
+        }
+<span class="nc" id="L211">        diag.dispose();</span>
+<span class="nc" id="L212">    }</span>
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+<span class="nc bnc" id="L216" title="All 4 branches missed.">        if ((e.getClickCount() == 2) &amp;&amp; isExporter()) {</span>
+<span class="nc" id="L217">            this.exportAction();</span>
+        }
+<span class="nc" id="L219">    }</span>
+
+    @Override
+    public void mouseEntered(MouseEvent arg0) {
+        // TODO Auto-generated method stub
+<span class="nc" id="L224">    }</span>
+
+    @Override
+    public void mouseExited(MouseEvent arg0) {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L230">    }</span>
+
+    @Override
+    public void mousePressed(MouseEvent arg0) {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L236">    }</span>
+
+    @Override
+    public void mouseReleased(MouseEvent arg0) {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L242">    }</span>
+
+    @Override
+    public void keyPressed(KeyEvent arg0) {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L248">    }</span>
+
+    @Override
+    public void keyReleased(KeyEvent arg0) {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L254">    }</span>
+
+    @Override
+    public void keyTyped(KeyEvent arg0) {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L260">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

@@ -1,0 +1,812 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>TableColumnsTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">TableColumnsTab.java</span></div><h1>TableColumnsTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JToolBar;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.bibtex.BibtexSingleField;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.external.ExternalFileType;
+import net.sf.jabref.external.ExternalFileTypes;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.OSXCompatibleToolbar;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.specialfields.SpecialFieldsUtils;
+
+import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.layout.CellConstraints;
+import com.jgoodies.forms.layout.FormLayout;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+class TableColumnsTab extends JPanel implements PrefsTab {
+
+<span class="nc" id="L70">    private static final Log LOGGER = LogFactory.getLog(TableColumnsTab.class);</span>
+
+    private final JabRefPreferences prefs;
+    private boolean tableChanged;
+    private final JTable colSetup;
+<span class="nc" id="L75">    private int rowCount = -1;</span>
+<span class="nc" id="L76">    private int ncWidth = -1;</span>
+<span class="nc" id="L77">    private final List&lt;TableRow&gt; tableRows = new ArrayList&lt;&gt;(10);</span>
+    private final JabRefFrame frame;
+
+    private final JCheckBox urlColumn;
+    private final JCheckBox fileColumn;
+    private final JCheckBox arxivColumn;
+
+    private final JCheckBox extraFileColumns;
+    private final JList&lt;String&gt; listOfFileColumns;
+
+    private final JRadioButton preferUrl;
+    private final JRadioButton preferDoi;
+
+    /*** begin: special fields ***/
+    private final JCheckBox specialFieldsEnabled;
+    private final JCheckBox rankingColumn;
+    private final JCheckBox qualityColumn;
+    private final JCheckBox priorityColumn;
+    private final JCheckBox relevanceColumn;
+    private final JCheckBox printedColumn;
+    private final JCheckBox readStatusColumn;
+    private final JRadioButton syncKeywords;
+    private final JRadioButton writeSpecialFields;
+    private boolean oldSpecialFieldsEnabled;
+    private boolean oldRankingColumn;
+    private boolean oldQualityColumn;
+    private boolean oldPriorityColumn;
+    private boolean oldRelevanceColumn;
+    private boolean oldPrintedColumn;
+    private boolean oldReadStatusColumn;
+    private boolean oldSyncKeyWords;
+    private boolean oldWriteSpecialFields;
+
+
+    /*** end: special fields ***/
+
+    static class TableRow {
+
+        private String name;
+        private int length;
+
+
+<span class="nc" id="L119">        public TableRow() {</span>
+<span class="nc" id="L120">            name = &quot;&quot;;</span>
+<span class="nc" id="L121">            length = BibtexSingleField.DEFAULT_FIELD_LENGTH;</span>
+<span class="nc" id="L122">        }</span>
+
+<span class="nc" id="L124">        public TableRow(String name) {</span>
+<span class="nc" id="L125">            this.name = name;</span>
+<span class="nc" id="L126">            length = BibtexSingleField.DEFAULT_FIELD_LENGTH;</span>
+<span class="nc" id="L127">        }</span>
+
+<span class="nc" id="L129">        public TableRow(String name, int length) {</span>
+<span class="nc" id="L130">            this.name = name;</span>
+<span class="nc" id="L131">            this.length = length;</span>
+<span class="nc" id="L132">        }</span>
+
+        public String getName() {
+<span class="nc" id="L135">            return name;</span>
+        }
+
+        public void setName(String name) {
+<span class="nc" id="L139">            this.name = name;</span>
+<span class="nc" id="L140">        }</span>
+
+        public int getLength() {
+<span class="nc" id="L143">            return length;</span>
+        }
+
+        public void setLength(int length) {
+<span class="nc" id="L147">            this.length = length;</span>
+<span class="nc" id="L148">        }</span>
+    }
+
+
+    /**
+     * Customization of external program paths.
+     *
+     * @param prefs a &lt;code&gt;JabRefPreferences&lt;/code&gt; value
+     */
+<span class="nc" id="L157">    public TableColumnsTab(JabRefPreferences prefs, JabRefFrame frame) {</span>
+<span class="nc" id="L158">        this.prefs = prefs;</span>
+<span class="nc" id="L159">        this.frame = frame;</span>
+<span class="nc" id="L160">        setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L162">        TableModel tm = new AbstractTableModel() {</span>
+
+            @Override
+            public int getRowCount() {
+<span class="nc" id="L166">                return rowCount;</span>
+            }
+
+            @Override
+            public int getColumnCount() {
+<span class="nc" id="L171">                return 2;</span>
+            }
+
+            @Override
+            public Object getValueAt(int row, int column) {
+<span class="nc" id="L176">                int internalRow = row;</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">                if (internalRow == 0) {</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                    return column == 0 ? InternalBibtexFields.NUMBER_COL : String.valueOf(ncWidth);</span>
+                }
+<span class="nc" id="L180">                internalRow--;</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">                if (internalRow &gt;= tableRows.size()) {</span>
+<span class="nc" id="L182">                    return &quot;&quot;;</span>
+                }
+<span class="nc" id="L184">                Object rowContent = tableRows.get(internalRow);</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">                if (rowContent == null) {</span>
+<span class="nc" id="L186">                    return &quot;&quot;;</span>
+                }
+<span class="nc" id="L188">                TableRow tr = (TableRow) rowContent;</span>
+                // Only two columns
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                if (column == 0) {</span>
+<span class="nc" id="L191">                    return tr.getName();</span>
+                } else {
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                    return tr.getLength() &gt; 0 ? Integer.toString(tr.getLength()) : &quot;&quot;;</span>
+                }
+            }
+
+            @Override
+            public String getColumnName(int col) {
+<span class="nc bnc" id="L199" title="All 2 branches missed.">                return col == 0 ? Localization.lang(&quot;Field name&quot;) :</span>
+<span class="nc" id="L200">                    Localization.lang(&quot;Column width&quot;);</span>
+            }
+
+            @Override
+            public Class&lt;?&gt; getColumnClass(int column) {
+<span class="nc bnc" id="L205" title="All 2 branches missed.">                if (column == 0) {</span>
+<span class="nc" id="L206">                    return String.class;</span>
+                }
+<span class="nc" id="L208">                return Integer.class;</span>
+            }
+
+            @Override
+            public boolean isCellEditable(int row, int col) {
+<span class="nc bnc" id="L213" title="All 4 branches missed.">                return !((row == 0) &amp;&amp; (col == 0));</span>
+            }
+
+            @Override
+            public void setValueAt(Object value, int row, int col) {
+<span class="nc" id="L218">                tableChanged = true;</span>
+                // Make sure the vector is long enough.
+<span class="nc bnc" id="L220" title="All 2 branches missed.">                while (row &gt;= tableRows.size()) {</span>
+<span class="nc" id="L221">                    tableRows.add(new TableRow(&quot;&quot;, -1));</span>
+                }
+
+<span class="nc bnc" id="L224" title="All 4 branches missed.">                if ((row == 0) &amp;&amp; (col == 1)) {</span>
+<span class="nc" id="L225">                    ncWidth = Integer.parseInt(value.toString());</span>
+<span class="nc" id="L226">                    return;</span>
+                }
+
+<span class="nc" id="L229">                TableRow rowContent = tableRows.get(row - 1);</span>
+
+<span class="nc bnc" id="L231" title="All 2 branches missed.">                if (col == 0) {</span>
+<span class="nc" id="L232">                    rowContent.setName(value.toString());</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">                    if (&quot;&quot;.equals(getValueAt(row, 1))) {</span>
+<span class="nc" id="L234">                        setValueAt(String.valueOf(BibtexSingleField.DEFAULT_FIELD_LENGTH), row, 1);</span>
+                    }
+<span class="nc" id="L236">                }</span>
+                else {
+<span class="nc bnc" id="L238" title="All 2 branches missed.">                    if (value == null) {</span>
+<span class="nc" id="L239">                        rowContent.setLength(-1);</span>
+<span class="nc" id="L240">                    } else {</span>
+<span class="nc" id="L241">                        rowContent.setLength(Integer.parseInt(value.toString()));</span>
+                    }
+                }
+<span class="nc" id="L244">            }</span>
+
+        };
+
+<span class="nc" id="L248">        colSetup = new JTable(tm);</span>
+<span class="nc" id="L249">        TableColumnModel cm = colSetup.getColumnModel();</span>
+<span class="nc" id="L250">        cm.getColumn(0).setPreferredWidth(140);</span>
+<span class="nc" id="L251">        cm.getColumn(1).setPreferredWidth(80);</span>
+
+<span class="nc" id="L253">        FormLayout layout = new FormLayout</span>
+<span class="nc" id="L254">                (&quot;1dlu, 8dlu, left:pref, 4dlu, fill:pref&quot;,&quot;&quot;);</span>
+<span class="nc" id="L255">        DefaultFormBuilder builder = new DefaultFormBuilder(layout);</span>
+<span class="nc" id="L256">        JPanel pan = new JPanel();</span>
+<span class="nc" id="L257">        JPanel tabPanel = new JPanel();</span>
+<span class="nc" id="L258">        tabPanel.setLayout(new BorderLayout());</span>
+<span class="nc" id="L259">        JScrollPane sp = new JScrollPane</span>
+<span class="nc" id="L260">                (colSetup, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L261">                        ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+<span class="nc" id="L262">        colSetup.setPreferredScrollableViewportSize(new Dimension(250, 200));</span>
+<span class="nc" id="L263">        sp.setMinimumSize(new Dimension(250, 300));</span>
+<span class="nc" id="L264">        tabPanel.add(sp, BorderLayout.CENTER);</span>
+<span class="nc" id="L265">        JToolBar toolBar = new OSXCompatibleToolbar(SwingConstants.VERTICAL);</span>
+<span class="nc" id="L266">        toolBar.setFloatable(false);</span>
+<span class="nc" id="L267">        AddRowAction addRow = new AddRowAction();</span>
+<span class="nc" id="L268">        DeleteRowAction deleteRow = new DeleteRowAction();</span>
+<span class="nc" id="L269">        MoveRowUpAction moveUp = new MoveRowUpAction();</span>
+<span class="nc" id="L270">        MoveRowDownAction moveDown = new MoveRowDownAction();</span>
+<span class="nc" id="L271">        toolBar.setBorder(null);</span>
+<span class="nc" id="L272">        toolBar.add(addRow);</span>
+<span class="nc" id="L273">        toolBar.add(deleteRow);</span>
+<span class="nc" id="L274">        toolBar.addSeparator();</span>
+<span class="nc" id="L275">        toolBar.add(moveUp);</span>
+<span class="nc" id="L276">        toolBar.add(moveDown);</span>
+<span class="nc" id="L277">        tabPanel.add(toolBar, BorderLayout.EAST);</span>
+
+<span class="nc" id="L279">        fileColumn = new JCheckBox(Localization.lang(&quot;Show file column&quot;));</span>
+<span class="nc" id="L280">        urlColumn = new JCheckBox(Localization.lang(&quot;Show URL/DOI column&quot;));</span>
+<span class="nc" id="L281">        preferUrl = new JRadioButton(Localization.lang(&quot;Show URL first&quot;));</span>
+<span class="nc" id="L282">        preferDoi = new JRadioButton(Localization.lang(&quot;Show DOI first&quot;));</span>
+<span class="nc" id="L283">        ButtonGroup preferUrlDoiGroup = new ButtonGroup();</span>
+<span class="nc" id="L284">        preferUrlDoiGroup.add(preferUrl);</span>
+<span class="nc" id="L285">        preferUrlDoiGroup.add(preferDoi);</span>
+
+<span class="nc" id="L287">        urlColumn.addChangeListener(arg0 -&gt; {</span>
+<span class="nc" id="L288">            preferUrl.setEnabled(urlColumn.isSelected());</span>
+<span class="nc" id="L289">            preferDoi.setEnabled(urlColumn.isSelected());</span>
+<span class="nc" id="L290">        });</span>
+<span class="nc" id="L291">        arxivColumn = new JCheckBox(Localization.lang(&quot;Show ArXiv column&quot;));</span>
+
+<span class="nc" id="L293">        Collection&lt;ExternalFileType&gt; fileTypes = ExternalFileTypes.getInstance().getExternalFileTypeSelection();</span>
+<span class="nc" id="L294">        String[] fileTypeNames = new String[fileTypes.size()];</span>
+<span class="nc" id="L295">        int i = 0;</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">        for (ExternalFileType fileType : fileTypes) {</span>
+<span class="nc" id="L297">            fileTypeNames[i++] = fileType.getName();</span>
+        }
+<span class="nc" id="L299">        listOfFileColumns = new JList&lt;&gt;(fileTypeNames);</span>
+<span class="nc" id="L300">        JScrollPane listOfFileColumnsScrollPane = new JScrollPane(listOfFileColumns);</span>
+<span class="nc" id="L301">        listOfFileColumns.setVisibleRowCount(3);</span>
+<span class="nc" id="L302">        extraFileColumns = new JCheckBox(Localization.lang(&quot;Show extra columns&quot;));</span>
+<span class="nc" id="L303">        extraFileColumns.addChangeListener(arg0 -&gt; listOfFileColumns.setEnabled(extraFileColumns.isSelected()));</span>
+
+        /*** begin: special table columns and special fields ***/
+
+<span class="nc" id="L307">        JButton helpButton = new HelpAction(Localization.lang(&quot;Help on special fields&quot;),</span>
+<span class="nc" id="L308">                HelpFiles.SPECIAL_FIELDS).getHelpButton();</span>
+
+<span class="nc" id="L310">        rankingColumn = new JCheckBox(Localization.lang(&quot;Show rank&quot;));</span>
+<span class="nc" id="L311">        qualityColumn = new JCheckBox(Localization.lang(&quot;Show quality&quot;));</span>
+<span class="nc" id="L312">        priorityColumn = new JCheckBox(Localization.lang(&quot;Show priority&quot;));</span>
+<span class="nc" id="L313">        relevanceColumn = new JCheckBox(Localization.lang(&quot;Show relevance&quot;));</span>
+<span class="nc" id="L314">        printedColumn = new JCheckBox(Localization.lang(&quot;Show printed status&quot;));</span>
+<span class="nc" id="L315">        readStatusColumn = new JCheckBox(Localization.lang(&quot;Show read status&quot;));</span>
+
+        // &quot;sync keywords&quot; and &quot;write special&quot; fields may be configured mutually exclusive only
+        // The implementation supports all combinations (TRUE+TRUE and FALSE+FALSE, even if the latter does not make sense)
+        // To avoid confusion, we opted to make the setting mutually exclusive
+<span class="nc" id="L320">        syncKeywords = new JRadioButton(Localization.lang(&quot;Synchronize with keywords&quot;));</span>
+<span class="nc" id="L321">        writeSpecialFields = new JRadioButton(Localization.lang(&quot;Write values of special fields as separate fields to BibTeX&quot;));</span>
+<span class="nc" id="L322">        ButtonGroup group = new ButtonGroup();</span>
+<span class="nc" id="L323">        group.add(syncKeywords);</span>
+<span class="nc" id="L324">        group.add(writeSpecialFields);</span>
+
+<span class="nc" id="L326">        specialFieldsEnabled = new JCheckBox(Localization.lang(&quot;Enable special fields&quot;));</span>
+<span class="nc" id="L327">        specialFieldsEnabled.addChangeListener(event -&gt; {</span>
+<span class="nc" id="L328">            boolean isEnabled = specialFieldsEnabled.isSelected();</span>
+<span class="nc" id="L329">            rankingColumn.setEnabled(isEnabled);</span>
+<span class="nc" id="L330">            qualityColumn.setEnabled(isEnabled);</span>
+<span class="nc" id="L331">            priorityColumn.setEnabled(isEnabled);</span>
+<span class="nc" id="L332">            relevanceColumn.setEnabled(isEnabled);</span>
+<span class="nc" id="L333">            printedColumn.setEnabled(isEnabled);</span>
+<span class="nc" id="L334">            readStatusColumn.setEnabled(isEnabled);</span>
+<span class="nc" id="L335">            syncKeywords.setEnabled(isEnabled);</span>
+<span class="nc" id="L336">            writeSpecialFields.setEnabled(isEnabled);</span>
+<span class="nc" id="L337">        });</span>
+
+<span class="nc" id="L339">        builder.appendSeparator(Localization.lang(&quot;Special table columns&quot;));</span>
+<span class="nc" id="L340">        builder.nextLine();</span>
+<span class="nc" id="L341">        builder.append(pan);</span>
+
+<span class="nc" id="L343">        DefaultFormBuilder specialTableColumnsBuilder = new DefaultFormBuilder(new FormLayout(</span>
+<span class="nc" id="L344">                &quot;8dlu, 8dlu, 8cm, 8dlu, 8dlu, left:pref:grow&quot;, &quot;pref, pref, pref, pref, pref, pref, pref, pref, pref, pref, pref, pref, pref&quot;));</span>
+<span class="nc" id="L345">        CellConstraints cc = new CellConstraints();</span>
+
+<span class="nc" id="L347">        specialTableColumnsBuilder.add(specialFieldsEnabled, cc.xyw(1, 1, 3));</span>
+<span class="nc" id="L348">        specialTableColumnsBuilder.add(rankingColumn, cc.xyw(2, 2, 2));</span>
+<span class="nc" id="L349">        specialTableColumnsBuilder.add(relevanceColumn, cc.xyw(2, 3, 2));</span>
+<span class="nc" id="L350">        specialTableColumnsBuilder.add(qualityColumn, cc.xyw(2, 4, 2));</span>
+<span class="nc" id="L351">        specialTableColumnsBuilder.add(priorityColumn, cc.xyw(2, 5, 2));</span>
+<span class="nc" id="L352">        specialTableColumnsBuilder.add(printedColumn, cc.xyw(2, 6, 2));</span>
+<span class="nc" id="L353">        specialTableColumnsBuilder.add(readStatusColumn, cc.xyw(2, 7, 2));</span>
+<span class="nc" id="L354">        specialTableColumnsBuilder.add(syncKeywords, cc.xyw(2, 10, 2));</span>
+<span class="nc" id="L355">        specialTableColumnsBuilder.add(writeSpecialFields, cc.xyw(2, 11, 2));</span>
+<span class="nc" id="L356">        specialTableColumnsBuilder.add(helpButton, cc.xyw(1, 12, 2));</span>
+
+<span class="nc" id="L358">        specialTableColumnsBuilder.add(fileColumn, cc.xyw(5, 1, 2));</span>
+<span class="nc" id="L359">        specialTableColumnsBuilder.add(urlColumn, cc.xyw(5, 2, 2));</span>
+<span class="nc" id="L360">        specialTableColumnsBuilder.add(preferUrl, cc.xy(6, 3));</span>
+<span class="nc" id="L361">        specialTableColumnsBuilder.add(preferDoi, cc.xy(6, 4));</span>
+<span class="nc" id="L362">        specialTableColumnsBuilder.add(arxivColumn, cc.xyw(5, 5, 2));</span>
+
+<span class="nc" id="L364">        specialTableColumnsBuilder.add(extraFileColumns, cc.xyw(5, 6, 2));</span>
+<span class="nc" id="L365">        specialTableColumnsBuilder.add(listOfFileColumnsScrollPane, cc.xywh(5, 7, 2, 6));</span>
+
+<span class="nc" id="L367">        builder.append(specialTableColumnsBuilder.getPanel());</span>
+<span class="nc" id="L368">        builder.nextLine();</span>
+
+        /*** end: special table columns and special fields ***/
+
+<span class="nc" id="L372">        builder.appendSeparator(Localization.lang(&quot;Entry table columns&quot;));</span>
+<span class="nc" id="L373">        builder.nextLine();</span>
+<span class="nc" id="L374">        builder.append(pan);</span>
+<span class="nc" id="L375">        builder.append(tabPanel);</span>
+<span class="nc" id="L376">        builder.nextLine();</span>
+<span class="nc" id="L377">        builder.append(pan);</span>
+<span class="nc" id="L378">        JButton buttonWidth = new JButton(new UpdateWidthsAction());</span>
+<span class="nc" id="L379">        JButton buttonOrder = new JButton(new UpdateOrderAction());</span>
+<span class="nc" id="L380">        builder.append(buttonWidth);</span>
+<span class="nc" id="L381">        builder.nextLine();</span>
+<span class="nc" id="L382">        builder.append(pan);</span>
+<span class="nc" id="L383">        builder.append(buttonOrder);</span>
+<span class="nc" id="L384">        builder.nextLine();</span>
+<span class="nc" id="L385">        builder.append(pan);</span>
+<span class="nc" id="L386">        builder.nextLine();</span>
+<span class="nc" id="L387">        pan = builder.getPanel();</span>
+<span class="nc" id="L388">        pan.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L389">        add(pan, BorderLayout.CENTER);</span>
+<span class="nc" id="L390">    }</span>
+
+    @Override
+    public void setValues() {
+<span class="nc" id="L394">        fileColumn.setSelected(prefs.getBoolean(JabRefPreferences.FILE_COLUMN));</span>
+<span class="nc" id="L395">        urlColumn.setSelected(prefs.getBoolean(JabRefPreferences.URL_COLUMN));</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">        preferUrl.setSelected(!prefs.getBoolean(JabRefPreferences.PREFER_URL_DOI));</span>
+<span class="nc" id="L397">        preferDoi.setSelected(prefs.getBoolean(JabRefPreferences.PREFER_URL_DOI));</span>
+<span class="nc" id="L398">        fileColumn.setSelected(prefs.getBoolean(JabRefPreferences.FILE_COLUMN));</span>
+<span class="nc" id="L399">        arxivColumn.setSelected(prefs.getBoolean(JabRefPreferences.ARXIV_COLUMN));</span>
+
+<span class="nc" id="L401">        extraFileColumns.setSelected(prefs.getBoolean(JabRefPreferences.EXTRA_FILE_COLUMNS));</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">        if (extraFileColumns.isSelected()) {</span>
+<span class="nc" id="L403">            List&lt;String&gt; desiredColumns = prefs.getStringList(JabRefPreferences.LIST_OF_FILE_COLUMNS);</span>
+<span class="nc" id="L404">            int listSize = listOfFileColumns.getModel().getSize();</span>
+<span class="nc" id="L405">            int[] indicesToSelect = new int[listSize];</span>
+<span class="nc bnc" id="L406" title="All 2 branches missed.">            for (int i = 0; i &lt; listSize; i++) {</span>
+<span class="nc" id="L407">                indicesToSelect[i] = listSize + 1;</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">                for (String desiredColumn : desiredColumns) {</span>
+<span class="nc bnc" id="L409" title="All 2 branches missed.">                    if (listOfFileColumns.getModel().getElementAt(i).equals(desiredColumn)) {</span>
+<span class="nc" id="L410">                        indicesToSelect[i] = i;</span>
+<span class="nc" id="L411">                        break;</span>
+                    }
+                }
+            }
+<span class="nc" id="L415">            listOfFileColumns.setSelectedIndices(indicesToSelect);</span>
+<span class="nc" id="L416">        }</span>
+        else {
+<span class="nc" id="L418">            listOfFileColumns.setSelectedIndices(new int[] {});</span>
+        }
+
+        /*** begin: special fields ***/
+
+<span class="nc" id="L423">        oldRankingColumn = prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RANKING);</span>
+<span class="nc" id="L424">        rankingColumn.setSelected(oldRankingColumn);</span>
+
+<span class="nc" id="L426">        oldQualityColumn = prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_QUALITY);</span>
+<span class="nc" id="L427">        qualityColumn.setSelected(oldQualityColumn);</span>
+
+<span class="nc" id="L429">        oldPriorityColumn = prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRIORITY);</span>
+<span class="nc" id="L430">        priorityColumn.setSelected(oldPriorityColumn);</span>
+
+<span class="nc" id="L432">        oldRelevanceColumn = prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RELEVANCE);</span>
+<span class="nc" id="L433">        relevanceColumn.setSelected(oldRelevanceColumn);</span>
+
+<span class="nc" id="L435">        oldPrintedColumn = prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRINTED);</span>
+<span class="nc" id="L436">        printedColumn.setSelected(oldPrintedColumn);</span>
+
+<span class="nc" id="L438">        oldReadStatusColumn = prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_READ);</span>
+<span class="nc" id="L439">        readStatusColumn.setSelected(oldReadStatusColumn);</span>
+
+<span class="nc" id="L441">        oldSyncKeyWords = prefs.getBoolean(SpecialFieldsUtils.PREF_AUTOSYNCSPECIALFIELDSTOKEYWORDS);</span>
+<span class="nc" id="L442">        syncKeywords.setSelected(oldSyncKeyWords);</span>
+
+<span class="nc" id="L444">        oldWriteSpecialFields = prefs.getBoolean(SpecialFieldsUtils.PREF_SERIALIZESPECIALFIELDS);</span>
+<span class="nc" id="L445">        writeSpecialFields.setSelected(oldWriteSpecialFields);</span>
+
+        // has to be called as last to correctly enable/disable the other settings
+<span class="nc" id="L448">        oldSpecialFieldsEnabled = prefs.getBoolean(SpecialFieldsUtils.PREF_SPECIALFIELDSENABLED);</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">        specialFieldsEnabled.setSelected(!oldSpecialFieldsEnabled);</span>
+<span class="nc" id="L450">        specialFieldsEnabled.setSelected(oldSpecialFieldsEnabled); // Call twice to make sure the ChangeListener is triggered</span>
+
+        /*** end: special fields ***/
+
+<span class="nc" id="L454">        tableRows.clear();</span>
+<span class="nc" id="L455">        List&lt;String&gt; names = prefs.getStringList(JabRefPreferences.COLUMN_NAMES);</span>
+<span class="nc" id="L456">        List&lt;String&gt; lengths = prefs.getStringList(JabRefPreferences.COLUMN_WIDTHS);</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">        for (int i = 0; i &lt; names.size(); i++) {</span>
+<span class="nc bnc" id="L458" title="All 2 branches missed.">            if (i &lt; lengths.size()) {</span>
+<span class="nc" id="L459">                tableRows.add(new TableRow(names.get(i), Integer.parseInt(lengths.get(i))));</span>
+<span class="nc" id="L460">            } else {</span>
+<span class="nc" id="L461">                tableRows.add(new TableRow(names.get(i)));</span>
+            }
+        }
+<span class="nc" id="L464">        rowCount = tableRows.size() + 5;</span>
+<span class="nc" id="L465">        ncWidth = prefs.getInt(JabRefPreferences.NUMBER_COL_WIDTH);</span>
+
+<span class="nc" id="L467">    }</span>
+
+
+    class DeleteRowAction extends AbstractAction {
+
+<span class="nc" id="L472">        public DeleteRowAction() {</span>
+<span class="nc" id="L473">            super(&quot;Delete row&quot;, IconTheme.JabRefIcon.REMOVE_NOBOX.getIcon());</span>
+<span class="nc" id="L474">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Delete rows&quot;));</span>
+<span class="nc" id="L475">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L479">            int[] rows = colSetup.getSelectedRows();</span>
+<span class="nc bnc" id="L480" title="All 2 branches missed.">            if (rows.length == 0) {</span>
+<span class="nc" id="L481">                return;</span>
+            }
+<span class="nc" id="L483">            int offs = 0;</span>
+<span class="nc bnc" id="L484" title="All 2 branches missed.">            for (int i = rows.length - 1; i &gt;= 0; i--) {</span>
+<span class="nc bnc" id="L485" title="All 4 branches missed.">                if ((rows[i] &lt;= tableRows.size()) &amp;&amp; (rows[i] != 0)) {</span>
+<span class="nc" id="L486">                    tableRows.remove(rows[i] - 1);</span>
+<span class="nc" id="L487">                    offs++;</span>
+                }
+            }
+<span class="nc" id="L490">            rowCount -= offs;</span>
+<span class="nc bnc" id="L491" title="All 2 branches missed.">            if (rows.length &gt; 1) {</span>
+<span class="nc" id="L492">                colSetup.clearSelection();</span>
+            }
+<span class="nc" id="L494">            colSetup.revalidate();</span>
+<span class="nc" id="L495">            colSetup.repaint();</span>
+<span class="nc" id="L496">            tableChanged = true;</span>
+<span class="nc" id="L497">        }</span>
+    }
+
+    class AddRowAction extends AbstractAction {
+
+<span class="nc" id="L502">        public AddRowAction() {</span>
+<span class="nc" id="L503">            super(&quot;Add row&quot;, IconTheme.JabRefIcon.ADD_NOBOX.getIcon());</span>
+<span class="nc" id="L504">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Insert rows&quot;));</span>
+<span class="nc" id="L505">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L509">            int[] rows = colSetup.getSelectedRows();</span>
+<span class="nc bnc" id="L510" title="All 2 branches missed.">            if (rows.length == 0) {</span>
+                // No rows selected, so we just add one at the end.
+<span class="nc" id="L512">                rowCount++;</span>
+<span class="nc" id="L513">                colSetup.revalidate();</span>
+<span class="nc" id="L514">                colSetup.repaint();</span>
+<span class="nc" id="L515">                return;</span>
+            }
+<span class="nc bnc" id="L517" title="All 2 branches missed.">            for (int i = 0; i &lt; rows.length; i++) {</span>
+<span class="nc bnc" id="L518" title="All 2 branches missed.">                if (((rows[i] + i) - 1) &lt; tableRows.size()) {</span>
+<span class="nc" id="L519">                    tableRows.add(Math.max(0, (rows[i] + i) - 1), new TableRow());</span>
+                }
+            }
+<span class="nc" id="L522">            rowCount += rows.length;</span>
+<span class="nc bnc" id="L523" title="All 2 branches missed.">            if (rows.length &gt; 1) {</span>
+<span class="nc" id="L524">                colSetup.clearSelection();</span>
+            }
+<span class="nc" id="L526">            colSetup.revalidate();</span>
+<span class="nc" id="L527">            colSetup.repaint();</span>
+<span class="nc" id="L528">            tableChanged = true;</span>
+<span class="nc" id="L529">        }</span>
+    }
+
+    abstract class AbstractMoveRowAction extends AbstractAction {
+
+<span class="nc" id="L534">        public AbstractMoveRowAction(String string, Icon image) {</span>
+<span class="nc" id="L535">            super(string, image);</span>
+<span class="nc" id="L536">        }</span>
+
+        public void swap(int i, int j) {
+<span class="nc bnc" id="L539" title="All 4 branches missed.">            if ((i &lt; 0) || (i &gt;= tableRows.size())) {</span>
+<span class="nc" id="L540">                return;</span>
+            }
+<span class="nc bnc" id="L542" title="All 4 branches missed.">            if ((j &lt; 0) || (j &gt;= tableRows.size())) {</span>
+<span class="nc" id="L543">                return;</span>
+            }
+<span class="nc" id="L545">            TableRow tmp = tableRows.get(i);</span>
+<span class="nc" id="L546">            tableRows.set(i, tableRows.get(j));</span>
+<span class="nc" id="L547">            tableRows.set(j, tmp);</span>
+<span class="nc" id="L548">        }</span>
+    }
+
+    class MoveRowUpAction extends AbstractMoveRowAction {
+
+<span class="nc" id="L553">        public MoveRowUpAction() {</span>
+<span class="nc" id="L554">            super(&quot;Up&quot;, IconTheme.JabRefIcon.UP.getIcon());</span>
+<span class="nc" id="L555">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Move up&quot;));</span>
+<span class="nc" id="L556">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L560">            int[] selected = colSetup.getSelectedRows();</span>
+<span class="nc" id="L561">            Arrays.sort(selected);</span>
+            // first element (#) not inside tableRows
+            // don't move if a selected element is at bounce
+<span class="nc bnc" id="L564" title="All 4 branches missed.">            if ((selected.length &gt; 0) &amp;&amp; (selected[0] &gt; 1)) {</span>
+<span class="nc" id="L565">                boolean[] newSelected = new boolean[colSetup.getRowCount()];</span>
+<span class="nc bnc" id="L566" title="All 2 branches missed.">                for (int i : selected) {</span>
+<span class="nc" id="L567">                    swap(i - 1, i - 2);</span>
+<span class="nc" id="L568">                    newSelected[i - 1] = true;</span>
+                }
+                // select all and remove unselected
+<span class="nc" id="L571">                colSetup.setRowSelectionInterval(0, colSetup.getRowCount() - 1);</span>
+<span class="nc bnc" id="L572" title="All 2 branches missed.">                for (int i = 0; i &lt; colSetup.getRowCount(); i++) {</span>
+<span class="nc bnc" id="L573" title="All 2 branches missed.">                    if (!newSelected[i]) {</span>
+<span class="nc" id="L574">                        colSetup.removeRowSelectionInterval(i, i);</span>
+                    }
+                }
+<span class="nc" id="L577">                colSetup.revalidate();</span>
+<span class="nc" id="L578">                colSetup.repaint();</span>
+<span class="nc" id="L579">                tableChanged = true;</span>
+            }
+<span class="nc" id="L581">        }</span>
+    }
+
+    class MoveRowDownAction extends AbstractMoveRowAction {
+
+<span class="nc" id="L586">        public MoveRowDownAction() {</span>
+<span class="nc" id="L587">            super(&quot;Down&quot;, IconTheme.JabRefIcon.DOWN.getIcon());</span>
+<span class="nc" id="L588">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Down&quot;));</span>
+<span class="nc" id="L589">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L593">            int[] selected = colSetup.getSelectedRows();</span>
+<span class="nc" id="L594">            Arrays.sort(selected);</span>
+<span class="nc" id="L595">            final int last = selected.length - 1;</span>
+<span class="nc" id="L596">            boolean[] newSelected = new boolean[colSetup.getRowCount()];</span>
+            // don't move if a selected element is at bounce
+<span class="nc bnc" id="L598" title="All 4 branches missed.">            if ((selected.length &gt; 0) &amp;&amp; (selected[last] &lt; tableRows.size())) {</span>
+<span class="nc bnc" id="L599" title="All 2 branches missed.">                for (int i = last; i &gt;= 0; i--) {</span>
+<span class="nc" id="L600">                    swap(selected[i] - 1, selected[i]);</span>
+<span class="nc" id="L601">                    newSelected[selected[i] + 1] = true;</span>
+                }
+                // select all and remove unselected
+<span class="nc" id="L604">                colSetup.setRowSelectionInterval(0, colSetup.getRowCount() - 1);</span>
+<span class="nc bnc" id="L605" title="All 2 branches missed.">                for (int i = 0; i &lt; colSetup.getRowCount(); i++) {</span>
+<span class="nc bnc" id="L606" title="All 2 branches missed.">                    if (!newSelected[i]) {</span>
+<span class="nc" id="L607">                        colSetup.removeRowSelectionInterval(i, i);</span>
+                    }
+                }
+<span class="nc" id="L610">                colSetup.revalidate();</span>
+<span class="nc" id="L611">                colSetup.repaint();</span>
+<span class="nc" id="L612">                tableChanged = true;</span>
+            }
+<span class="nc" id="L614">        }</span>
+    }
+
+    class UpdateOrderAction extends AbstractAction {
+
+<span class="nc" id="L619">        public UpdateOrderAction() {</span>
+<span class="nc" id="L620">            super(Localization.lang(&quot;Update to current column order&quot;));</span>
+<span class="nc" id="L621">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L625">            BasePanel panel = frame.getCurrentBasePanel();</span>
+<span class="nc bnc" id="L626" title="All 2 branches missed.">            if (panel == null) {</span>
+<span class="nc" id="L627">                return;</span>
+            }
+            // idea: sort elements according to value stored in hash, keep
+            // everything not inside hash/mainTable as it was
+<span class="nc" id="L631">            final HashMap&lt;String, Integer&gt; map = new HashMap&lt;&gt;();</span>
+
+            // first element (#) not inside tableRows
+<span class="nc bnc" id="L634" title="All 2 branches missed.">            for (int i = 1; i &lt; panel.mainTable.getColumnCount(); i++) {</span>
+<span class="nc" id="L635">                String name = panel.mainTable.getColumnName(i);</span>
+<span class="nc bnc" id="L636" title="All 4 branches missed.">                if ((name != null) &amp;&amp; !name.isEmpty()) {</span>
+<span class="nc" id="L637">                    map.put(name.toLowerCase(), i);</span>
+                }
+            }
+<span class="nc" id="L640">            Collections.sort(tableRows, (o1, o2) -&gt; {</span>
+<span class="nc" id="L641">                Integer n1 = map.get(o1.getName());</span>
+<span class="nc" id="L642">                Integer n2 = map.get(o2.getName());</span>
+<span class="nc bnc" id="L643" title="All 4 branches missed.">                if ((n1 == null) || (n2 == null)) {</span>
+<span class="nc" id="L644">                    return 0;</span>
+                }
+<span class="nc" id="L646">                return n1.compareTo(n2);</span>
+            });
+
+<span class="nc" id="L649">            colSetup.revalidate();</span>
+<span class="nc" id="L650">            colSetup.repaint();</span>
+<span class="nc" id="L651">            tableChanged = true;</span>
+<span class="nc" id="L652">        }</span>
+    }
+
+    class UpdateWidthsAction extends AbstractAction {
+
+<span class="nc" id="L657">        public UpdateWidthsAction() {</span>
+<span class="nc" id="L658">            super(Localization.lang(&quot;Update to current column widths&quot;));</span>
+<span class="nc" id="L659">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L663">            BasePanel panel = frame.getCurrentBasePanel();</span>
+<span class="nc bnc" id="L664" title="All 2 branches missed.">            if (panel == null) {</span>
+<span class="nc" id="L665">                return;</span>
+            }
+<span class="nc" id="L667">            TableColumnModel colMod = panel.mainTable.getColumnModel();</span>
+<span class="nc" id="L668">            colSetup.setValueAt(String.valueOf(colMod.getColumn(0).getWidth()), 0, 1);</span>
+<span class="nc bnc" id="L669" title="All 2 branches missed.">            for (int i = 1; i &lt; colMod.getColumnCount(); i++) {</span>
+                try {
+<span class="nc" id="L671">                    String name = panel.mainTable.getColumnName(i).toLowerCase();</span>
+<span class="nc" id="L672">                    int width = colMod.getColumn(i).getWidth();</span>
+<span class="nc bnc" id="L673" title="All 4 branches missed.">                    if ((i &lt;= tableRows.size()) &amp;&amp; ((String) colSetup.getValueAt(i, 0)).equalsIgnoreCase(name)) {</span>
+<span class="nc" id="L674">                        colSetup.setValueAt(String.valueOf(width), i, 1);</span>
+<span class="nc" id="L675">                    } else { // Doesn't match; search for a matching col in our table</span>
+<span class="nc bnc" id="L676" title="All 2 branches missed.">                        for (int j = 0; j &lt; colSetup.getRowCount(); j++) {</span>
+<span class="nc bnc" id="L677" title="All 4 branches missed.">                            if ((j &lt; tableRows.size()) &amp;&amp; ((String) colSetup.getValueAt(j, 0)).equalsIgnoreCase(name)) {</span>
+<span class="nc" id="L678">                                colSetup.setValueAt(String.valueOf(width), j, 1);</span>
+<span class="nc" id="L679">                                break;</span>
+                            }
+                        }
+                    }
+<span class="nc" id="L683">                } catch (Throwable ex) {</span>
+<span class="nc" id="L684">                    LOGGER.warn(&quot;Problem with table columns&quot;, ex);</span>
+                }
+<span class="nc" id="L686">                colSetup.revalidate();</span>
+<span class="nc" id="L687">                colSetup.repaint();</span>
+            }
+
+<span class="nc" id="L690">        }</span>
+    }
+
+
+    /**
+     * Store changes to table preferences. This method is called when
+     * the user clicks Ok.
+     *
+     */
+    @Override
+    public void storeSettings() {
+<span class="nc" id="L701">        prefs.putBoolean(JabRefPreferences.FILE_COLUMN, fileColumn.isSelected());</span>
+<span class="nc" id="L702">        prefs.putBoolean(JabRefPreferences.URL_COLUMN, urlColumn.isSelected());</span>
+<span class="nc" id="L703">        prefs.putBoolean(JabRefPreferences.PREFER_URL_DOI, preferDoi.isSelected());</span>
+<span class="nc" id="L704">        prefs.putBoolean(JabRefPreferences.ARXIV_COLUMN, arxivColumn.isSelected());</span>
+
+<span class="nc" id="L706">        prefs.putBoolean(JabRefPreferences.EXTRA_FILE_COLUMNS, extraFileColumns.isSelected());</span>
+<span class="nc bnc" id="L707" title="All 4 branches missed.">        if (extraFileColumns.isSelected() &amp;&amp; !listOfFileColumns.isSelectionEmpty()) {</span>
+<span class="nc" id="L708">            int numberSelected = listOfFileColumns.getSelectedIndices().length;</span>
+<span class="nc" id="L709">            List&lt;String&gt; selections = new ArrayList&lt;&gt;(numberSelected);</span>
+<span class="nc bnc" id="L710" title="All 2 branches missed.">            for (int i = 0; i &lt; numberSelected; i++) {</span>
+<span class="nc" id="L711">                selections.add(listOfFileColumns.getModel().getElementAt(listOfFileColumns.getSelectedIndices()[i]));</span>
+            }
+<span class="nc" id="L713">            prefs.putStringList(JabRefPreferences.LIST_OF_FILE_COLUMNS, selections);</span>
+<span class="nc" id="L714">        } else {</span>
+<span class="nc" id="L715">            prefs.putStringList(JabRefPreferences.LIST_OF_FILE_COLUMNS, new ArrayList&lt;&gt;());</span>
+        }
+
+        /*** begin: special fields ***/
+
+<span class="nc" id="L720">        boolean newSpecialFieldsEnabled = specialFieldsEnabled.isSelected();</span>
+<span class="nc" id="L721">        boolean newRankingColumn = rankingColumn.isSelected();</span>
+<span class="nc" id="L722">        boolean newQualityColumn = qualityColumn.isSelected();</span>
+<span class="nc" id="L723">        boolean newPriorityColumn = priorityColumn.isSelected();</span>
+<span class="nc" id="L724">        boolean newRelevanceColumn = relevanceColumn.isSelected();</span>
+<span class="nc" id="L725">        boolean newPrintedColumn = printedColumn.isSelected();</span>
+<span class="nc" id="L726">        boolean newReadStatusColumn = readStatusColumn.isSelected();</span>
+<span class="nc" id="L727">        boolean newSyncKeyWords = syncKeywords.isSelected();</span>
+<span class="nc" id="L728">        boolean newWriteSpecialFields = writeSpecialFields.isSelected();</span>
+
+        boolean restartRequired;
+<span class="nc bnc" id="L731" title="All 2 branches missed.">        restartRequired = (oldSpecialFieldsEnabled != newSpecialFieldsEnabled) ||</span>
+<span class="nc bnc" id="L732" title="All 2 branches missed.">                (oldRankingColumn != newRankingColumn) ||</span>
+<span class="nc bnc" id="L733" title="All 2 branches missed.">                (oldQualityColumn != newQualityColumn) ||</span>
+<span class="nc bnc" id="L734" title="All 2 branches missed.">                (oldPriorityColumn != newPriorityColumn) ||</span>
+<span class="nc bnc" id="L735" title="All 2 branches missed.">                (oldRelevanceColumn != newRelevanceColumn) ||</span>
+<span class="nc bnc" id="L736" title="All 2 branches missed.">                (oldPrintedColumn != newPrintedColumn) ||</span>
+<span class="nc bnc" id="L737" title="All 2 branches missed.">                (oldReadStatusColumn != newReadStatusColumn) ||</span>
+<span class="nc bnc" id="L738" title="All 2 branches missed.">                (oldSyncKeyWords != newSyncKeyWords) ||</span>
+<span class="nc bnc" id="L739" title="All 2 branches missed.">                (oldWriteSpecialFields != newWriteSpecialFields);</span>
+<span class="nc bnc" id="L740" title="All 2 branches missed.">        if (restartRequired) {</span>
+<span class="nc" id="L741">            JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L742">                    Localization.lang(&quot;You have changed settings for special fields.&quot;)</span>
+<span class="nc" id="L743">                    .concat(&quot; &quot;)</span>
+<span class="nc" id="L744">                    .concat(Localization.lang(&quot;You must restart JabRef for this to come into effect.&quot;)),</span>
+<span class="nc" id="L745">                    Localization.lang(&quot;Changed special field settings&quot;),</span>
+<span class="nc" id="L746">                    JOptionPane.WARNING_MESSAGE);</span>
+        }
+
+        // restart required implies that the settings have been changed
+        // the seetings need to be stored
+<span class="nc bnc" id="L751" title="All 2 branches missed.">        if (restartRequired) {</span>
+<span class="nc" id="L752">            prefs.putBoolean(SpecialFieldsUtils.PREF_SPECIALFIELDSENABLED, newSpecialFieldsEnabled);</span>
+<span class="nc" id="L753">            prefs.putBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RANKING, newRankingColumn);</span>
+<span class="nc" id="L754">            prefs.putBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRIORITY, newPriorityColumn);</span>
+<span class="nc" id="L755">            prefs.putBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_QUALITY, newQualityColumn);</span>
+<span class="nc" id="L756">            prefs.putBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RELEVANCE, newRelevanceColumn);</span>
+<span class="nc" id="L757">            prefs.putBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRINTED, newPrintedColumn);</span>
+<span class="nc" id="L758">            prefs.putBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_READ, newReadStatusColumn);</span>
+<span class="nc" id="L759">            prefs.putBoolean(SpecialFieldsUtils.PREF_AUTOSYNCSPECIALFIELDSTOKEYWORDS, newSyncKeyWords);</span>
+<span class="nc" id="L760">            prefs.putBoolean(SpecialFieldsUtils.PREF_SERIALIZESPECIALFIELDS, newWriteSpecialFields);</span>
+        }
+
+        /*** end: special fields ***/
+
+<span class="nc bnc" id="L765" title="All 2 branches missed.">        if (colSetup.isEditing()) {</span>
+<span class="nc" id="L766">            int col = colSetup.getEditingColumn();</span>
+<span class="nc" id="L767">            int row = colSetup.getEditingRow();</span>
+<span class="nc" id="L768">            colSetup.getCellEditor(row, col).stopCellEditing();</span>
+        }
+
+        // Now we need to make sense of the contents the user has made to the
+        // table setup table.
+<span class="nc bnc" id="L773" title="All 2 branches missed.">        if (tableChanged) {</span>
+            // First we remove all rows with empty names.
+<span class="nc" id="L775">            int i = 0;</span>
+<span class="nc bnc" id="L776" title="All 2 branches missed.">            while (i &lt; tableRows.size()) {</span>
+<span class="nc bnc" id="L777" title="All 2 branches missed.">                if (tableRows.get(i).getName().isEmpty()) {</span>
+<span class="nc" id="L778">                    tableRows.remove(i);</span>
+<span class="nc" id="L779">                } else {</span>
+<span class="nc" id="L780">                    i++;</span>
+                }
+            }
+            // Then we make arrays
+<span class="nc" id="L784">            List&lt;String&gt; names = new ArrayList&lt;&gt;(tableRows.size());</span>
+<span class="nc" id="L785">            List&lt;String&gt; widths = new ArrayList&lt;&gt;(tableRows.size());</span>
+<span class="nc" id="L786">            List&lt;Integer&gt; nWidths = new ArrayList&lt;&gt;(tableRows.size());</span>
+
+<span class="nc" id="L788">            prefs.putInt(JabRefPreferences.NUMBER_COL_WIDTH, ncWidth);</span>
+<span class="nc bnc" id="L789" title="All 2 branches missed.">            for (TableRow tr : tableRows) {</span>
+<span class="nc" id="L790">                names.add(tr.getName().toLowerCase());</span>
+<span class="nc" id="L791">                nWidths.add(tr.getLength());</span>
+<span class="nc" id="L792">                widths.add(String.valueOf(tr.getLength()));</span>
+            }
+
+            // Finally, we store the new preferences.
+<span class="nc" id="L796">            prefs.putStringList(JabRefPreferences.COLUMN_NAMES, names);</span>
+<span class="nc" id="L797">            prefs.putStringList(JabRefPreferences.COLUMN_WIDTHS, widths);</span>
+        }
+
+<span class="nc" id="L800">    }</span>
+
+    @Override
+    public boolean validateSettings() {
+<span class="nc" id="L804">        return true;</span>
+    }
+
+    @Override
+    public String getTabName() {
+<span class="nc" id="L809">        return Localization.lang(&quot;Entry table columns&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

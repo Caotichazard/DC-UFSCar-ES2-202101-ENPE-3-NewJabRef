@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>RegexBasedSearchRule.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.search.rules</a> &gt; <span class="el_source">RegexBasedSearchRule.java</span></div><h1>RegexBasedSearchRule.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.search.rules;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import net.sf.jabref.logic.layout.format.RemoveLatexCommands;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Search rule for regex-based search.
+ */
+public class RegexBasedSearchRule implements SearchRule {
+
+<span class="nc" id="L30">    private static final RemoveLatexCommands REMOVE_LATEX_COMMANDS = new RemoveLatexCommands();</span>
+
+    private final boolean caseSensitive;
+
+<span class="nc" id="L34">    public RegexBasedSearchRule(boolean caseSensitive) {</span>
+<span class="nc" id="L35">        this.caseSensitive = caseSensitive;</span>
+<span class="nc" id="L36">    }</span>
+
+    public boolean isCaseSensitive() {
+<span class="nc" id="L39">        return caseSensitive;</span>
+    }
+
+    @Override
+    public boolean validateSearchStrings(String query) {
+<span class="nc" id="L44">        String searchString = query;</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">        if (!caseSensitive) {</span>
+<span class="nc" id="L46">            searchString = searchString.toLowerCase();</span>
+        }
+
+        try {
+<span class="nc bnc" id="L50" title="All 2 branches missed.">            Pattern.compile(searchString, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L51">        } catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L52">            return false;</span>
+        }
+<span class="nc" id="L54">        return true;</span>
+    }
+
+    @Override
+    public boolean applyRule(String query, BibEntry bibEntry) {
+        Pattern pattern;
+
+        try {
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            pattern = Pattern.compile(query, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L63">        } catch (PatternSyntaxException ex) {</span>
+<span class="nc" id="L64">            return false;</span>
+        }
+
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        for (String field : bibEntry.getFieldNames()) {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if (bibEntry.hasField(field)) {</span>
+<span class="nc" id="L69">                String fieldContent = RegexBasedSearchRule.REMOVE_LATEX_COMMANDS.format(bibEntry.getField(field));</span>
+<span class="nc" id="L70">                String fieldContentNoBrackets = RegexBasedSearchRule.REMOVE_LATEX_COMMANDS.format(fieldContent);</span>
+<span class="nc" id="L71">                Matcher m = pattern.matcher(fieldContentNoBrackets);</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">                if (m.find()) {</span>
+<span class="nc" id="L73">                    return true;</span>
+                }
+            }
+
+        }
+<span class="nc" id="L78">        return false;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CustomExportDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">CustomExportDialog.java</span></div><h1>CustomExportDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.exporter;
+
+import java.awt.BorderLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.FileDialogs;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+
+/**
+ * Dialog for creating or modifying custom exports.
+ */
+class CustomExportDialog extends JDialog {
+
+<span class="nc" id="L52">    private final JTextField name = new JTextField(60);</span>
+<span class="nc" id="L53">    private final JTextField layoutFile = new JTextField(60);</span>
+<span class="nc" id="L54">    private final JTextField extension = new JTextField(60);</span>
+    private boolean okPressed;
+
+
+    public CustomExportDialog(final JabRefFrame parent, final String exporterName, final String layoutFileName,
+            final String extensionName) {
+<span class="nc" id="L60">        this(parent);</span>
+<span class="nc" id="L61">        name.setText(exporterName);</span>
+<span class="nc" id="L62">        layoutFile.setText(layoutFileName);</span>
+<span class="nc" id="L63">        extension.setText(extensionName);</span>
+<span class="nc" id="L64">    }</span>
+
+    public CustomExportDialog(final JabRefFrame parent) {
+<span class="nc" id="L67">        super(parent, Localization.lang(&quot;Edit custom export&quot;), true);</span>
+<span class="nc" id="L68">        ActionListener okListener = e -&gt; {</span>
+
+            // Check that there are no empty strings.
+<span class="nc bnc" id="L71" title="All 6 branches missed.">            if (layoutFile.getText().isEmpty() || name.getText().isEmpty() || extension.getText().isEmpty()</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">                    || !layoutFile.getText().endsWith(&quot;.layout&quot;)) {</span>
+                //JOptionPane.showMessageDialog
+                //    (parent, Globals.lang(&quot;You must provide a name, a search &quot;
+                //			  +&quot;string and a field name for this group.&quot;),
+                //			  Globals.lang(&quot;Create group&quot;),
+                //     JOptionPane.ERROR_MESSAGE);
+<span class="nc" id="L78">                return;</span>
+            }
+
+            // Handling of : and ; must also be done.
+
+<span class="nc" id="L83">            okPressed = true;</span>
+<span class="nc" id="L84">            dispose();</span>
+<span class="nc" id="L85">        };</span>
+<span class="nc" id="L86">        JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+<span class="nc" id="L87">        ok.addActionListener(okListener);</span>
+<span class="nc" id="L88">        name.addActionListener(okListener);</span>
+<span class="nc" id="L89">        layoutFile.addActionListener(okListener);</span>
+<span class="nc" id="L90">        extension.addActionListener(okListener);</span>
+
+<span class="nc" id="L92">        AbstractAction cancelAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L96">                dispose();</span>
+<span class="nc" id="L97">            }</span>
+        };
+
+<span class="nc" id="L100">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L101">        cancel.addActionListener(cancelAction);</span>
+
+<span class="nc" id="L103">        JButton browse = new JButton(Localization.lang(&quot;Browse&quot;));</span>
+<span class="nc" id="L104">        browse.addActionListener(e -&gt; {</span>
+<span class="nc" id="L105">                File directory = new File(Globals.prefs.get(JabRefPreferences.EXPORT_WORKING_DIRECTORY));</span>
+<span class="nc" id="L106">                String chosenStr = FileDialogs.getNewFile(parent, directory, &quot;.layout&quot;,</span>
+<span class="nc" id="L107">                        JFileChooser.OPEN_DIALOG, false);</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">                if (chosenStr == null) {</span>
+<span class="nc" id="L109">                    return;</span>
+                }
+<span class="nc" id="L111">                File chosen = new File(chosenStr);</span>
+
+                // Update working directory for layout files.
+<span class="nc" id="L114">                Globals.prefs.put(JabRefPreferences.EXPORT_WORKING_DIRECTORY, chosen.getParent());</span>
+
+<span class="nc" id="L116">                layoutFile.setText(chosen.getPath());</span>
+<span class="nc" id="L117">        });</span>
+
+        // Key bindings:
+<span class="nc" id="L120">        JPanel main = new JPanel();</span>
+<span class="nc" id="L121">        ActionMap am = main.getActionMap();</span>
+<span class="nc" id="L122">        InputMap im = main.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+<span class="nc" id="L123">        im.put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L124">        am.put(&quot;close&quot;, cancelAction);</span>
+
+        // Layout starts here.
+<span class="nc" id="L127">        GridBagLayout gbl = new GridBagLayout();</span>
+<span class="nc" id="L128">        main.setLayout(gbl);</span>
+<span class="nc" id="L129">        main.setBorder(BorderFactory.createTitledBorder</span>
+<span class="nc" id="L130">                (BorderFactory.createEtchedBorder(),</span>
+<span class="nc" id="L131">                        Localization.lang(&quot;Export properties&quot;)));</span>
+
+        // Main panel:
+<span class="nc" id="L134">        GridBagConstraints con = new GridBagConstraints();</span>
+<span class="nc" id="L135">        con.weightx = 0;</span>
+<span class="nc" id="L136">        con.gridwidth = 1;</span>
+<span class="nc" id="L137">        con.insets = new Insets(3, 5, 3, 5);</span>
+<span class="nc" id="L138">        con.anchor = GridBagConstraints.EAST;</span>
+<span class="nc" id="L139">        con.fill = GridBagConstraints.NONE;</span>
+<span class="nc" id="L140">        con.gridx = 0;</span>
+<span class="nc" id="L141">        con.gridy = 0;</span>
+<span class="nc" id="L142">        JLabel nl = new JLabel(Localization.lang(&quot;Export name&quot;) + ':');</span>
+<span class="nc" id="L143">        gbl.setConstraints(nl, con);</span>
+<span class="nc" id="L144">        main.add(nl);</span>
+<span class="nc" id="L145">        con.gridy = 1;</span>
+<span class="nc" id="L146">        JLabel nr = new JLabel(Localization.lang(&quot;Main layout file&quot;) + ':');</span>
+<span class="nc" id="L147">        gbl.setConstraints(nr, con);</span>
+<span class="nc" id="L148">        main.add(nr);</span>
+<span class="nc" id="L149">        con.gridy = 2;</span>
+<span class="nc" id="L150">        JLabel nf = new JLabel(Localization.lang(&quot;Extension&quot;) + ':');</span>
+<span class="nc" id="L151">        gbl.setConstraints(nf, con);</span>
+<span class="nc" id="L152">        main.add(nf);</span>
+
+<span class="nc" id="L154">        con.gridwidth = 2;</span>
+<span class="nc" id="L155">        con.weightx = 1;</span>
+<span class="nc" id="L156">        con.anchor = GridBagConstraints.WEST;</span>
+<span class="nc" id="L157">        con.fill = GridBagConstraints.HORIZONTAL;</span>
+<span class="nc" id="L158">        con.gridy = 0;</span>
+<span class="nc" id="L159">        con.gridx = 1;</span>
+<span class="nc" id="L160">        gbl.setConstraints(name, con);</span>
+<span class="nc" id="L161">        main.add(name);</span>
+<span class="nc" id="L162">        con.gridy = 1;</span>
+<span class="nc" id="L163">        con.gridwidth = 1;</span>
+<span class="nc" id="L164">        gbl.setConstraints(layoutFile, con);</span>
+<span class="nc" id="L165">        main.add(layoutFile);</span>
+<span class="nc" id="L166">        con.gridx = 2;</span>
+<span class="nc" id="L167">        con.weightx = 0;</span>
+<span class="nc" id="L168">        gbl.setConstraints(browse, con);</span>
+<span class="nc" id="L169">        main.add(browse);</span>
+<span class="nc" id="L170">        con.weightx = 1;</span>
+<span class="nc" id="L171">        con.gridwidth = 2;</span>
+<span class="nc" id="L172">        con.gridx = 1;</span>
+<span class="nc" id="L173">        con.gridy = 2;</span>
+<span class="nc" id="L174">        gbl.setConstraints(extension, con);</span>
+<span class="nc" id="L175">        main.add(extension);</span>
+
+<span class="nc" id="L177">        JPanel buttons = new JPanel();</span>
+<span class="nc" id="L178">        ButtonBarBuilder bb = new ButtonBarBuilder(buttons);</span>
+<span class="nc" id="L179">        buttons.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));</span>
+<span class="nc" id="L180">        bb.addGlue();</span>
+<span class="nc" id="L181">        bb.addButton(ok);</span>
+<span class="nc" id="L182">        bb.addButton(cancel);</span>
+<span class="nc" id="L183">        bb.addGlue();</span>
+
+<span class="nc" id="L185">        getContentPane().add(main, BorderLayout.CENTER);</span>
+<span class="nc" id="L186">        getContentPane().add(buttons, BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L188">        setSize(700, 200);</span>
+
+<span class="nc" id="L190">        setLocationRelativeTo(parent);</span>
+<span class="nc" id="L191">    }</span>
+
+    public boolean okPressed() {
+<span class="nc" id="L194">        return okPressed;</span>
+    }
+
+    public String layoutFile() {
+<span class="nc" id="L198">        return layoutFile.getText();</span>
+    }
+
+    public String name() {
+<span class="nc" id="L202">        return name.getText();</span>
+    }
+
+    public String extension() {
+<span class="nc" id="L206">        String ext = extension.getText();</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (ext.startsWith(&quot;.&quot;)) {</span>
+<span class="nc" id="L208">            return ext;</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">        } else if (ext.startsWith(&quot;*.&quot;)) {</span>
+<span class="nc" id="L210">            return ext.substring(1);</span>
+        } else {
+<span class="nc" id="L212">            return '.' + ext;</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

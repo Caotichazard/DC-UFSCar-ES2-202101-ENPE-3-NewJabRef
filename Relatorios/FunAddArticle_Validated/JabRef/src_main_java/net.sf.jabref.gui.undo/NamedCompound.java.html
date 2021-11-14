@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>NamedCompound.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.undo</a> &gt; <span class="el_source">NamedCompound.java</span></div><h1>NamedCompound.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.undo;
+
+import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoableEdit;
+
+import net.sf.jabref.logic.l10n.Localization;
+
+public class NamedCompound extends CompoundEdit {
+
+    private final String name;
+    private boolean hasEdits;
+
+
+    public NamedCompound(String name) {
+<span class="fc" id="L30">        super();</span>
+<span class="fc" id="L31">        this.name = name;</span>
+<span class="fc" id="L32">    }</span>
+
+    @Override
+    public boolean addEdit(UndoableEdit undoableEdit) {
+<span class="fc" id="L36">        hasEdits = true;</span>
+<span class="fc" id="L37">        return super.addEdit(undoableEdit);</span>
+    }
+
+    public boolean hasEdits() {
+<span class="nc" id="L41">        return hasEdits;</span>
+    }
+
+    @Override
+    public String getUndoPresentationName() {
+<span class="nc" id="L46">        return Localization.lang(&quot;Undo&quot;) + &quot;: &quot; + name;</span>
+    }
+
+    @Override
+    public String getRedoPresentationName() {
+<span class="nc" id="L51">        return Localization.lang(&quot;Redo&quot;) + &quot;: &quot; + name;</span>
+    }
+
+    /**
+     * Returns the name of this compound, without the Undo or Redo prefix.
+     */
+    public String getNameOnly() {
+<span class="nc" id="L58">        return name;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BibtexKeyPatternDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">BibtexKeyPatternDialog.java</span></div><h1>BibtexKeyPatternDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.WindowEvent;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+import javax.swing.WindowConstants;
+
+import net.sf.jabref.MetaData;
+import net.sf.jabref.gui.keyboard.KeyBinder;
+import net.sf.jabref.gui.labelpattern.LabelPatternPanel;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.labelpattern.AbstractLabelPattern;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+
+public class BibtexKeyPatternDialog extends JDialog {
+
+    private MetaData metaData;
+    private BasePanel panel;
+    private final LabelPatternPanel labelPatternPanel;
+
+
+    public BibtexKeyPatternDialog(JabRefFrame parent, BasePanel panel) {
+<span class="nc" id="L47">        super(parent, Localization.lang(&quot;BibTeX key patterns&quot;), true);</span>
+<span class="nc" id="L48">        this.labelPatternPanel = new LabelPatternPanel(panel);</span>
+<span class="nc" id="L49">        setPanel(panel);</span>
+<span class="nc" id="L50">        init();</span>
+<span class="nc" id="L51">    }</span>
+
+    /**
+     * Used for updating an existing Dialog
+     *
+     * @param panel the panel to read the data from
+     */
+    public void setPanel(BasePanel panel) {
+<span class="nc" id="L59">        this.panel = panel;</span>
+<span class="nc" id="L60">        this.metaData = panel.getBibDatabaseContext().getMetaData();</span>
+<span class="nc" id="L61">        AbstractLabelPattern keypatterns = metaData.getLabelPattern();</span>
+<span class="nc" id="L62">        labelPatternPanel.setValues(keypatterns);</span>
+<span class="nc" id="L63">    }</span>
+
+    private void init() {
+<span class="nc" id="L66">        getContentPane().setLayout(new BorderLayout());</span>
+<span class="nc" id="L67">        getContentPane().add(labelPatternPanel, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L69">        JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+<span class="nc" id="L70">        JButton cancel = new JButton(); // label of &quot;cancel&quot; is set later as the label is overwritten by assigning an action to the button</span>
+
+<span class="nc" id="L72">        JPanel lower = new JPanel();</span>
+<span class="nc" id="L73">        lower.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));</span>
+<span class="nc" id="L74">        ButtonBarBuilder bb = new ButtonBarBuilder(lower);</span>
+<span class="nc" id="L75">        bb.addGlue();</span>
+<span class="nc" id="L76">        bb.addButton(ok);</span>
+<span class="nc" id="L77">        bb.addButton(cancel);</span>
+<span class="nc" id="L78">        bb.addGlue();</span>
+
+<span class="nc" id="L80">        getContentPane().add(lower, BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L82">        this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);</span>
+<span class="nc" id="L83">        getContentPane().setPreferredSize(new Dimension(500, 600));</span>
+<span class="nc" id="L84">        pack();</span>
+
+<span class="nc" id="L86">        ok.addActionListener(e -&gt; {</span>
+<span class="nc" id="L87">            metaData.setLabelPattern(labelPatternPanel.getLabelPatternAsDatabaseLabelPattern());</span>
+<span class="nc" id="L88">            panel.markNonUndoableBaseChanged();</span>
+<span class="nc" id="L89">            dispose();</span>
+<span class="nc" id="L90">        });</span>
+
+<span class="nc" id="L92">        final JDialog dialog = this;</span>
+
+<span class="nc" id="L94">        Action cancelAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L98">                dialog.dispatchEvent(new WindowEvent(dialog, WindowEvent.WINDOW_CLOSING));</span>
+<span class="nc" id="L99">            }</span>
+        };
+<span class="nc" id="L101">        cancel.setAction(cancelAction);</span>
+<span class="nc" id="L102">        cancel.setText(Localization.lang(&quot;Cancel&quot;));</span>
+
+<span class="nc" id="L104">        KeyBinder.bindCloseDialogKeyToCancelAction(this.getRootPane(), cancelAction);</span>
+<span class="nc" id="L105">    }</span>
+
+    @Override
+    public void setVisible(boolean visible) {
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (visible) {</span>
+<span class="nc" id="L110">            super.setVisible(visible);</span>
+        }
+<span class="nc" id="L112">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

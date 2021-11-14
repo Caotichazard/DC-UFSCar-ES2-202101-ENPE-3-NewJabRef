@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>UrlDragDrop.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">UrlDragDrop.java</span></div><h1>UrlDragDrop.java</h1><pre class="source lang-java linenums">/*
+ Copyright (C) 2004 E. Putrycz
+
+ All programs in this directory and
+ subdirectories are published under the GNU General Public License as
+ described below.
+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or (at
+ your option) any later version.
+
+ This program is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ USA
+
+ Further information about the GNU GPL is available at:
+ http://www.gnu.org/copyleft/gpl.ja.html
+
+ */
+package net.sf.jabref.gui;
+
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTargetDragEvent;
+import java.awt.dnd.DropTargetDropEvent;
+import java.awt.dnd.DropTargetEvent;
+import java.awt.dnd.DropTargetListener;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.List;
+
+import javax.swing.JOptionPane;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.entryeditor.EntryEditor;
+import net.sf.jabref.gui.fieldeditors.FieldEditor;
+import net.sf.jabref.gui.net.MonitoredURLDownload;
+import net.sf.jabref.logic.l10n.Localization;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * @author Erik Putrycz erik.putrycz-at-nrc-cnrc.gc.ca
+ */
+
+public class UrlDragDrop implements DropTargetListener {
+
+<span class="nc" id="L59">    private static final Log LOGGER = LogFactory.getLog(UrlDragDrop.class);</span>
+
+    private final FieldEditor feditor;
+
+    private final EntryEditor editor;
+
+    private final JabRefFrame frame;
+
+
+<span class="nc" id="L68">    public UrlDragDrop(final EntryEditor editor, final JabRefFrame frame, final FieldEditor feditor) {</span>
+<span class="nc" id="L69">        this.editor = editor;</span>
+<span class="nc" id="L70">        this.feditor = feditor;</span>
+<span class="nc" id="L71">        this.frame = frame;</span>
+<span class="nc" id="L72">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#dragEnter(java.awt.dnd.DropTargetDragEvent)
+     */
+    @Override
+    public void dragEnter(DropTargetDragEvent dtde) {
+        // Do nothing
+<span class="nc" id="L82">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#dragOver(java.awt.dnd.DropTargetDragEvent)
+     */
+    @Override
+    public void dragOver(DropTargetDragEvent dtde) {
+        // Do nothing
+<span class="nc" id="L92">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#dropActionChanged(java.awt.dnd.DropTargetDragEvent)
+     */
+    @Override
+    public void dropActionChanged(DropTargetDragEvent dtde) {
+        // Do nothing
+<span class="nc" id="L102">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#dragExit(java.awt.dnd.DropTargetEvent)
+     */
+    @Override
+    public void dragExit(DropTargetEvent dte) {
+        // Do nothing
+<span class="nc" id="L112">    }</span>
+
+
+    private static class JOptionChoice {
+
+        private final String label;
+
+        private final int id;
+
+
+<span class="nc" id="L122">        public JOptionChoice(final String label, final int id) {</span>
+<span class="nc" id="L123">            this.label = label;</span>
+<span class="nc" id="L124">            this.id = id;</span>
+<span class="nc" id="L125">        }</span>
+
+        @Override
+        public String toString() {
+<span class="nc" id="L129">            return label;</span>
+        }
+
+        public int getId() {
+<span class="nc" id="L133">            return id;</span>
+        }
+
+    }
+
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#drop(java.awt.dnd.DropTargetDropEvent)
+     */
+
+    @Override
+    public void drop(DropTargetDropEvent dtde) {
+<span class="nc" id="L147">        Transferable tsf = dtde.getTransferable();</span>
+<span class="nc" id="L148">        dtde.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);</span>
+        //try with an URL
+<span class="nc" id="L150">        DataFlavor dtURL = null;</span>
+        try {
+<span class="nc" id="L152">            dtURL = new DataFlavor(&quot;application/x-java-url; class=java.net.URL&quot;);</span>
+<span class="nc" id="L153">        } catch (ClassNotFoundException e) {</span>
+<span class="nc" id="L154">            LOGGER.warn(&quot;Could not find DropTargetDropEvent class.&quot;, e);</span>
+        }
+        try {
+<span class="nc" id="L157">            URL url = (URL) tsf.getTransferData(dtURL);</span>
+<span class="nc" id="L158">            JOptionChoice res = (JOptionChoice) JOptionPane</span>
+<span class="nc" id="L159">                    .showInputDialog(editor, &quot;&quot;,</span>
+<span class="nc" id="L160">                            Localization.lang(&quot;Select action&quot;),</span>
+<span class="nc" id="L161">                            JOptionPane.QUESTION_MESSAGE, null,</span>
+<span class="nc" id="L162">                            new JOptionChoice[] {</span>
+<span class="nc" id="L163">                                    new JOptionChoice(</span>
+<span class="nc" id="L164">                                            Localization.lang(&quot;Insert URL&quot;), 0),</span>
+<span class="nc" id="L165">                                    new JOptionChoice(</span>
+<span class="nc" id="L166">                                            Localization.lang(&quot;Download file&quot;), 1)},</span>
+<span class="nc" id="L167">                            new JOptionChoice(Localization.lang(&quot;Insert URL&quot;), 0));</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">            if (res != null) {</span>
+<span class="nc bnc" id="L169" title="All 3 branches missed.">                switch (res.getId()) {</span>
+                //insert URL
+                case 0:
+<span class="nc" id="L172">                    feditor.setText(url.toString());</span>
+<span class="nc" id="L173">                    editor.updateField(feditor);</span>
+<span class="nc" id="L174">                    break;</span>
+                //download file
+                case 1:
+                    try {
+                        //auto filename:
+<span class="nc" id="L179">                        File file = new File(new File(Globals.prefs.get(&quot;pdfDirectory&quot;)),</span>
+<span class="nc" id="L180">                                editor.getEntry().getCiteKey() + &quot;.pdf&quot;);</span>
+<span class="nc" id="L181">                        frame.output(Localization.lang(&quot;Downloading...&quot;));</span>
+<span class="nc" id="L182">                        MonitoredURLDownload.buildMonitoredDownload(editor, url).downloadToFile(file);</span>
+<span class="nc" id="L183">                        frame.output(Localization.lang(&quot;Download completed&quot;));</span>
+<span class="nc" id="L184">                        feditor.setText(file.toURI().toURL().toString());</span>
+<span class="nc" id="L185">                        editor.updateField(feditor);</span>
+
+<span class="nc" id="L187">                    } catch (IOException ioex) {</span>
+<span class="nc" id="L188">                        LOGGER.error(&quot;Error while downloading file.&quot;, ioex);</span>
+<span class="nc" id="L189">                        JOptionPane.showMessageDialog(editor, Localization.lang(&quot;File download&quot;),</span>
+<span class="nc" id="L190">                                Localization.lang(&quot;Error while downloading file:&quot; + ioex.getMessage()),</span>
+<span class="nc" id="L191">                                JOptionPane.ERROR_MESSAGE);</span>
+                    }
+<span class="nc" id="L193">                    break;</span>
+                default:
+<span class="nc" id="L195">                    LOGGER.warn(&quot;Unknown selection (should not happen)&quot;);</span>
+                    break;
+                }
+            }
+<span class="nc" id="L199">            return;</span>
+<span class="nc" id="L200">        } catch (UnsupportedFlavorException nfe) {</span>
+            // not an URL then...
+<span class="nc" id="L202">            LOGGER.warn(&quot;Could not parse URL.&quot;, nfe);</span>
+<span class="nc" id="L203">        } catch (IOException ioex) {</span>
+<span class="nc" id="L204">            LOGGER.warn(&quot;Could not perform drag and drop.&quot;, ioex);</span>
+        }
+
+        try {
+            //try with a File List
+            @SuppressWarnings(&quot;unchecked&quot;)
+<span class="nc" id="L210">            List&lt;File&gt; filelist = (List&lt;File&gt;) tsf</span>
+<span class="nc" id="L211">                    .getTransferData(DataFlavor.javaFileListFlavor);</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">            if (filelist.size() &gt; 1) {</span>
+                JOptionPane
+<span class="nc" id="L214">                        .showMessageDialog(editor,</span>
+<span class="nc" id="L215">                                Localization.lang(&quot;Only one item is supported&quot;),</span>
+<span class="nc" id="L216">                                Localization.lang(&quot;Drag and Drop Error&quot;),</span>
+<span class="nc" id="L217">                                JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L218">                return;</span>
+            }
+<span class="nc" id="L220">            File fl = filelist.get(0);</span>
+<span class="nc" id="L221">            feditor.setText(fl.toURI().toURL().toString());</span>
+<span class="nc" id="L222">            editor.updateField(feditor);</span>
+
+<span class="nc" id="L224">        } catch (UnsupportedFlavorException nfe) {</span>
+<span class="nc" id="L225">            JOptionPane.showMessageDialog(editor,</span>
+<span class="nc" id="L226">                    Localization.lang(&quot;Operation not supported&quot;),</span>
+<span class="nc" id="L227">                    Localization.lang(&quot;Drag and Drop Error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L228">            LOGGER.warn(&quot;Could not perform drag and drop.&quot;, nfe);</span>
+<span class="nc" id="L229">        } catch (IOException ioex) {</span>
+<span class="nc" id="L230">            LOGGER.warn(&quot;Could not perform drag and drop.&quot;, ioex);</span>
+        }
+
+<span class="nc" id="L233">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

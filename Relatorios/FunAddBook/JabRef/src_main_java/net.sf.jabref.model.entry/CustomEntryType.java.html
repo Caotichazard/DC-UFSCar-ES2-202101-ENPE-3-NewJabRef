@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CustomEntryType.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.model.entry</a> &gt; <span class="el_source">CustomEntryType.java</span></div><h1>CustomEntryType.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.model.entry;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * This class is used to represent customized entry types.
+ */
+public class CustomEntryType implements EntryType {
+
+    public static final String ENTRYTYPE_FLAG = &quot;jabref-entrytype: &quot;;
+    private final String name;
+    private final List&lt;String&gt; required;
+    private final List&lt;String&gt; optional;
+    private final List&lt;String&gt; primaryOptional;
+
+<span class="nc" id="L36">    public CustomEntryType(String name, List&lt;String&gt; required, List&lt;String&gt; primaryOptional, List&lt;String&gt; secondaryOptional) {</span>
+<span class="nc" id="L37">        this.name = EntryUtil.capitalizeFirst(name);</span>
+<span class="nc" id="L38">        this.primaryOptional = primaryOptional;</span>
+<span class="nc" id="L39">        this.required = required;</span>
+<span class="nc" id="L40">        this.optional = Stream.concat(primaryOptional.stream(), secondaryOptional.stream()).collect(Collectors.toList());</span>
+<span class="nc" id="L41">    }</span>
+
+<span class="nc" id="L43">    public CustomEntryType(String name, List&lt;String&gt; required, List&lt;String&gt; optional) {</span>
+<span class="nc" id="L44">        this.name = EntryUtil.capitalizeFirst(name);</span>
+<span class="nc" id="L45">        this.required = required;</span>
+<span class="nc" id="L46">        this.optional = optional;</span>
+<span class="nc" id="L47">        this.primaryOptional = optional;</span>
+<span class="nc" id="L48">    }</span>
+
+    public CustomEntryType(String name, String required, String optional) {
+<span class="nc" id="L51">        this(name, Arrays.asList(required.split(&quot;;&quot;)), Arrays.asList(optional.split(&quot;;&quot;)));</span>
+<span class="nc" id="L52">    }</span>
+
+    @Override
+    public int compareTo(EntryType o) {
+<span class="nc" id="L56">        return getName().compareTo(o.getName());</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (o instanceof CustomEntryType) {</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            return this.compareTo((CustomEntryType) o) == 0;</span>
+        } else {
+<span class="nc" id="L64">            return false;</span>
+        }
+    }
+
+    @Override
+    public String getName() {
+<span class="nc" id="L70">        return name;</span>
+    }
+
+    @Override
+    public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L75">        return Collections.unmodifiableList(optional);</span>
+    }
+
+    @Override
+    public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L80">        return Collections.unmodifiableList(required);</span>
+    }
+
+    @Override
+    public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L85">        return Collections.unmodifiableList(primaryOptional);</span>
+    }
+
+    @Override
+    public List&lt;String&gt; getSecondaryOptionalFields() {
+<span class="nc" id="L90">        List&lt;String&gt; result = new ArrayList&lt;&gt;(optional);</span>
+<span class="nc" id="L91">        result.removeAll(primaryOptional);</span>
+<span class="nc" id="L92">        return Collections.unmodifiableList(result);</span>
+    }
+
+    /**
+     * Get a String describing the required field set for this entry type.
+     *
+     * @return Description of required field set for storage in preferences or bib file.
+     */
+    public String getRequiredFieldsString() {
+<span class="nc" id="L101">        return String.join(&quot;;&quot;, required);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L106">        return super.hashCode();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

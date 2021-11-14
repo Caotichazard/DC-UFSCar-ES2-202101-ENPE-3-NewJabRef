@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BibDatabaseWriter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">BibDatabaseWriter.java</span></div><h1>BibDatabaseWriter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along
+ with this program; if not, write to the Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.exporter;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Globals;
+import net.sf.jabref.MetaData;
+import net.sf.jabref.bibtex.BibEntryWriter;
+import net.sf.jabref.bibtex.comparator.BibtexStringComparator;
+import net.sf.jabref.bibtex.comparator.CrossRefEntryComparator;
+import net.sf.jabref.bibtex.comparator.FieldComparator;
+import net.sf.jabref.bibtex.comparator.FieldComparatorStack;
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.logic.config.SaveOrderConfig;
+import net.sf.jabref.logic.id.IdComparator;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.EntryTypes;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.BibtexString;
+import net.sf.jabref.model.entry.CustomEntryType;
+import net.sf.jabref.model.entry.EntryType;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+<span class="fc" id="L57">public class BibDatabaseWriter {</span>
+
+<span class="fc" id="L59">    private static final Pattern REFERENCE_PATTERN = Pattern.compile(&quot;(#[A-Za-z]+#)&quot;); // Used to detect string references in strings</span>
+<span class="fc" id="L60">    private static final Log LOGGER = LogFactory.getLog(BibDatabaseWriter.class);</span>
+    private static final String STRING_PREFIX = &quot;@String&quot;;
+    private static final String COMMENT_PREFIX = &quot;@Comment&quot;;
+<span class="fc" id="L63">    private static final String PREAMBLE_PREFIX = &quot;@Preamble&quot;;</span>
+    private BibEntry exceptionCause;
+    private boolean isFirstStringInType;
+
+    private static List&lt;Comparator&lt;BibEntry&gt;&gt; getSaveComparators(SavePreferences preferences, MetaData metaData) {
+
+<span class="fc" id="L69">        List&lt;Comparator&lt;BibEntry&gt;&gt; comparators = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L70">        Optional&lt;SaveOrderConfig&gt; saveOrder = getSaveOrder(preferences, metaData);</span>
+
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if (! saveOrder.isPresent()) {</span>
+            // Take care, using CrossRefEntry-Comparator, that referred entries occur after referring
+            // ones. Apart from crossref requirements, entries will be sorted based on their creation order,
+            // utilizing the fact that IDs used for entries are increasing, sortable numbers.
+<span class="fc" id="L76">            comparators.add(new CrossRefEntryComparator());</span>
+<span class="fc" id="L77">            comparators.add(new IdComparator());</span>
+<span class="fc" id="L78">        } else {</span>
+<span class="nc" id="L79">            comparators.add(new CrossRefEntryComparator());</span>
+
+<span class="nc" id="L81">            comparators.add(new FieldComparator(saveOrder.get().sortCriteria[0]));</span>
+<span class="nc" id="L82">            comparators.add(new FieldComparator(saveOrder.get().sortCriteria[1]));</span>
+<span class="nc" id="L83">            comparators.add(new FieldComparator(saveOrder.get().sortCriteria[2]));</span>
+
+<span class="nc" id="L85">            comparators.add(new FieldComparator(BibEntry.KEY_FIELD));</span>
+        }
+
+<span class="fc" id="L88">        return comparators;</span>
+    }
+
+    /*
+     * We have begun to use getSortedEntries() for both database save operations
+     * and non-database save operations.  In a non-database save operation
+     * (such as the exportDatabase call), we do not wish to use the
+     * global preference of saving in standard order.
+     */
+    public static List&lt;BibEntry&gt; getSortedEntries(BibDatabaseContext bibDatabaseContext, List&lt;BibEntry&gt; entriesToSort,
+            SavePreferences preferences) {
+<span class="fc" id="L99">        Objects.requireNonNull(bibDatabaseContext);</span>
+<span class="fc" id="L100">        Objects.requireNonNull(entriesToSort);</span>
+
+        //if no meta data are present, simply return in original order
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if (bibDatabaseContext.getMetaData() == null) {</span>
+<span class="nc" id="L104">            List&lt;BibEntry&gt; result = new LinkedList&lt;&gt;();</span>
+<span class="nc" id="L105">            result.addAll(entriesToSort);</span>
+<span class="nc" id="L106">            return result;</span>
+        }
+
+<span class="fc" id="L109">        List&lt;Comparator&lt;BibEntry&gt;&gt; comparators = BibDatabaseWriter.getSaveComparators(preferences,</span>
+<span class="fc" id="L110">                bibDatabaseContext.getMetaData());</span>
+<span class="fc" id="L111">        FieldComparatorStack&lt;BibEntry&gt; comparatorStack = new FieldComparatorStack&lt;&gt;(comparators);</span>
+
+<span class="fc" id="L113">        List&lt;BibEntry&gt; sorted = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L114">        sorted.addAll(entriesToSort);</span>
+
+<span class="fc" id="L116">        Collections.sort(sorted, comparatorStack);</span>
+
+<span class="fc" id="L118">        return sorted;</span>
+    }
+
+    private static Optional&lt;SaveOrderConfig&gt; getSaveOrder(SavePreferences preferences, MetaData metaData) {
+        /* three options:
+         * 1. original order
+         * 2. order specified in metaData
+         * 3. order specified in preferences
+         */
+
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        if(preferences.isSaveInOriginalOrder()) {</span>
+<span class="nc" id="L129">            return Optional.empty();</span>
+        }
+
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">        if(preferences.getTakeMetadataSaveOrderInAccount()) {</span>
+<span class="fc" id="L133">            return metaData.getSaveOrderConfig();</span>
+        }
+
+<span class="nc" id="L136">        return Optional.ofNullable(preferences.getSaveOrder());</span>
+    }
+
+    /**
+     * Saves the database to file. Two boolean values indicate whether only
+     * entries which are marked as search / group hit should be saved. This can be used to
+     * let the user save only the results of a search. False and false means all
+     * entries are saved.
+     */
+    public SaveSession saveDatabase(BibDatabaseContext bibDatabaseContext, SavePreferences preferences)
+            throws SaveException {
+<span class="fc" id="L147">        return savePartOfDatabase(bibDatabaseContext, bibDatabaseContext.getDatabase().getEntries(), preferences);</span>
+    }
+
+    public SaveSession savePartOfDatabase(BibDatabaseContext bibDatabaseContext, List&lt;BibEntry&gt; entries,
+            SavePreferences preferences) throws SaveException {
+
+        SaveSession session;
+        try {
+<span class="fc" id="L155">            session = new SaveSession(preferences.getEncoding(), preferences.getMakeBackup());</span>
+<span class="pc" id="L156">        } catch (IOException e) {</span>
+<span class="nc" id="L157">            throw new SaveException(e.getMessage(), e.getLocalizedMessage());</span>
+        }
+
+<span class="fc" id="L160">        exceptionCause = null;</span>
+        // Get our data stream. This stream writes only to a temporary file until committed.
+<span class="fc" id="L162">        try (VerifyingWriter writer = session.getWriter()) {</span>
+<span class="fc" id="L163">            List&lt;FieldChange&gt; saveActionChanges = writePartOfDatabase(writer, bibDatabaseContext, entries, preferences);</span>
+<span class="fc" id="L164">            session.addFieldChanges(saveActionChanges);</span>
+<span class="nc" id="L165">        } catch (IOException ex) {</span>
+<span class="nc" id="L166">            LOGGER.error(&quot;Could not write file&quot;, ex);</span>
+<span class="nc" id="L167">            session.cancel();</span>
+<span class="nc" id="L168">            throw new SaveException(ex.getMessage(), ex.getLocalizedMessage(), exceptionCause);</span>
+        }
+
+<span class="fc" id="L171">        return session;</span>
+
+    }
+
+    public List&lt;FieldChange&gt; writePartOfDatabase(Writer writer, BibDatabaseContext bibDatabaseContext,
+            List&lt;BibEntry&gt; entries, SavePreferences preferences) throws IOException {
+<span class="fc" id="L177">        Objects.requireNonNull(writer);</span>
+
+        // Map to collect entry type definitions that we must save along with entries using them.
+<span class="fc" id="L180">        Map&lt;String, EntryType&gt; typesToWrite = new TreeMap&lt;&gt;();</span>
+
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">        if (preferences.getSaveType() != SavePreferences.DatabaseSaveType.PLAIN_BIBTEX) {</span>
+            // Write signature.
+<span class="fc" id="L184">            writeBibFileHeader(writer, preferences.getEncoding());</span>
+        }
+
+        // Write preamble if there is one.
+<span class="fc" id="L188">        writePreamble(writer, bibDatabaseContext.getDatabase().getPreamble());</span>
+
+        // Write strings if there are any.
+<span class="fc" id="L191">        writeStrings(writer, bibDatabaseContext.getDatabase(), preferences.isReformatFile());</span>
+
+        // Write database entries.
+<span class="fc" id="L194">        List&lt;BibEntry&gt; sortedEntries = BibDatabaseWriter.getSortedEntries(bibDatabaseContext, entries, preferences);</span>
+<span class="fc" id="L195">        List&lt;FieldChange&gt; saveActionChanges = BibDatabaseWriter.applySaveActions(sortedEntries, bibDatabaseContext.getMetaData());</span>
+<span class="fc" id="L196">        BibEntryWriter bibtexEntryWriter = new BibEntryWriter(new LatexFieldFormatter(), true);</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">        for (BibEntry entry : sortedEntries) {</span>
+<span class="nc" id="L198">            exceptionCause = entry;</span>
+
+            // Check if we must write the type definition for this
+            // entry, as well. Our criterion is that all non-standard
+            // types (*not* all customized standard types) must be written.
+<span class="nc bnc" id="L203" title="All 2 branches missed.">            if (!EntryTypes.getStandardType(entry.getType(), bibDatabaseContext.getMode()).isPresent()) {</span>
+                // If user-defined entry type, then add it
+                // Otherwise (getType returns empty optional) it is a completely unknown entry type, so ignore it
+<span class="nc" id="L206">                EntryTypes.getType(entry.getType(), bibDatabaseContext.getMode()).ifPresent(</span>
+<span class="nc" id="L207">                        entryType -&gt; typesToWrite.put(entryType.getName(), entryType));</span>
+            }
+
+<span class="nc" id="L210">            bibtexEntryWriter.write(entry, writer, bibDatabaseContext.getMode(), preferences.isReformatFile());</span>
+
+        }
+
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">        if (preferences.getSaveType() != SavePreferences.DatabaseSaveType.PLAIN_BIBTEX) {</span>
+            // Write meta data.
+<span class="fc" id="L216">            writeMetaData(writer, bibDatabaseContext.getMetaData());</span>
+
+            // Write type definitions, if any:
+<span class="fc" id="L219">            writeTypeDefinitions(writer, typesToWrite);</span>
+        }
+
+        //finally write whatever remains of the file, but at least a concluding newline
+<span class="fc" id="L223">        writeEpilogue(writer, bibDatabaseContext.getDatabase());</span>
+
+<span class="fc" id="L225">        return saveActionChanges;</span>
+    }
+
+    /**
+     * Saves the database to file, including only the entries included in the
+     * supplied input array bes.
+     */
+    public SaveSession savePartOfDatabase(BibDatabaseContext bibDatabaseContext, SavePreferences preferences,
+            List&lt;BibEntry&gt; entries) throws SaveException {
+
+<span class="nc" id="L235">        return savePartOfDatabase(bibDatabaseContext, entries, preferences);</span>
+    }
+
+    private static List&lt;FieldChange&gt; applySaveActions(List&lt;BibEntry&gt; toChange, MetaData metaData) {
+<span class="fc" id="L239">        List&lt;FieldChange&gt; changes = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L241">        Optional&lt;FieldFormatterCleanups&gt; saveActions = metaData.getSaveActions();</span>
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">        if (saveActions.isPresent()) {</span>
+            // save actions defined -&gt; apply for every entry
+<span class="nc bnc" id="L244" title="All 2 branches missed.">            for (BibEntry entry : toChange) {</span>
+<span class="nc" id="L245">                changes.addAll(saveActions.get().applySaveActions(entry));</span>
+            }
+        }
+
+<span class="fc" id="L249">        return changes;</span>
+    }
+
+    /**
+     * Writes the file encoding information.
+     *
+     * @param encoding String the name of the encoding, which is part of the file header.
+     */
+    private void writeBibFileHeader(Writer out, Charset encoding) throws IOException {
+<span class="pc bpc" id="L258" title="1 of 2 branches missed.">        if(encoding == null) {</span>
+<span class="nc" id="L259">            return;</span>
+        }
+
+<span class="fc" id="L262">        out.write(&quot;% &quot;);</span>
+<span class="fc" id="L263">        out.write(Globals.ENCODING_PREFIX + encoding);</span>
+<span class="fc" id="L264">        out.write(Globals.NEWLINE);</span>
+<span class="fc" id="L265">    }</span>
+
+    private void writeEpilogue(Writer writer, BibDatabase database) throws IOException {
+<span class="pc bpc" id="L268" title="2 of 4 branches missed.">        if ((database.getEpilog() != null) &amp;&amp; !(database.getEpilog().isEmpty())) {</span>
+<span class="nc" id="L269">            writer.write(Globals.NEWLINE);</span>
+<span class="nc" id="L270">            writer.write(database.getEpilog());</span>
+<span class="nc" id="L271">            writer.write(Globals.NEWLINE);</span>
+        }
+<span class="fc" id="L273">    }</span>
+
+    /**
+     * Writes all data to the specified writer, using each object's toString() method.
+     */
+    private void writeMetaData(Writer out, MetaData metaData) throws IOException {
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">        if (metaData == null) {</span>
+<span class="nc" id="L280">            return;</span>
+        }
+
+<span class="fc" id="L283">        Map&lt;String, String&gt; serializedMetaData = metaData.serialize();</span>
+
+<span class="fc bfc" id="L285" title="All 2 branches covered.">        for(Map.Entry&lt;String, String&gt; metaItem : serializedMetaData.entrySet()) {</span>
+
+<span class="fc" id="L287">            StringBuilder stringBuilder = new StringBuilder();</span>
+<span class="fc" id="L288">            stringBuilder.append(Globals.NEWLINE);</span>
+<span class="fc" id="L289">            stringBuilder.append(COMMENT_PREFIX + &quot;{&quot;).append(MetaData.META_FLAG).append(metaItem.getKey()).append(&quot;:&quot;);</span>
+<span class="fc" id="L290">            stringBuilder.append(metaItem.getValue());</span>
+<span class="fc" id="L291">            stringBuilder.append(&quot;}&quot;);</span>
+<span class="fc" id="L292">            stringBuilder.append(Globals.NEWLINE);</span>
+
+<span class="fc" id="L294">            out.write(stringBuilder.toString());</span>
+        }
+<span class="fc" id="L296">    }</span>
+
+    private void writePreamble(Writer fw, String preamble) throws IOException {
+<span class="pc bpc" id="L299" title="1 of 2 branches missed.">        if (preamble != null) {</span>
+<span class="nc" id="L300">            fw.write(Globals.NEWLINE);</span>
+<span class="nc" id="L301">            fw.write(PREAMBLE_PREFIX + &quot;{&quot;);</span>
+<span class="nc" id="L302">            fw.write(preamble);</span>
+<span class="nc" id="L303">            fw.write('}' + Globals.NEWLINE);</span>
+        }
+<span class="fc" id="L305">    }</span>
+
+    private void writeString(Writer fw, BibtexString bs, Map&lt;String, BibtexString&gt; remaining, int maxKeyLength,
+            Boolean reformatFile)
+            throws IOException {
+        // First remove this from the &quot;remaining&quot; list so it can't cause problem with circular refs:
+<span class="nc" id="L311">        remaining.remove(bs.getName());</span>
+
+        //if the string has not been modified, write it back as it was
+<span class="nc bnc" id="L314" title="All 4 branches missed.">        if (!reformatFile &amp;&amp; !bs.hasChanged()) {</span>
+<span class="nc" id="L315">            fw.write(bs.getParsedSerialization());</span>
+<span class="nc" id="L316">            return;</span>
+        }
+
+<span class="nc bnc" id="L319" title="All 2 branches missed.">        if(isFirstStringInType) {</span>
+<span class="nc" id="L320">            fw.write(Globals.NEWLINE);</span>
+        }
+
+        // Then we go through the string looking for references to other strings. If we find references
+        // to strings that we will write, but still haven't, we write those before proceeding. This ensures
+        // that the string order will be acceptable for BibTeX.
+<span class="nc" id="L326">        String content = bs.getContent();</span>
+        Matcher m;
+<span class="nc bnc" id="L328" title="All 2 branches missed.">        while ((m = BibDatabaseWriter.REFERENCE_PATTERN.matcher(content)).find()) {</span>
+<span class="nc" id="L329">            String foundLabel = m.group(1);</span>
+<span class="nc" id="L330">            int restIndex = content.indexOf(foundLabel) + foundLabel.length();</span>
+<span class="nc" id="L331">            content = content.substring(restIndex);</span>
+<span class="nc" id="L332">            Object referred = remaining.get(foundLabel.substring(1, foundLabel.length() - 1));</span>
+            // If the label we found exists as a key in the &quot;remaining&quot; Map, we go on and write it now:
+<span class="nc bnc" id="L334" title="All 2 branches missed.">            if (referred != null) {</span>
+<span class="nc" id="L335">                writeString(fw, (BibtexString) referred, remaining, maxKeyLength, reformatFile);</span>
+            }
+        }
+
+<span class="nc" id="L339">        fw.write(STRING_PREFIX + &quot;{&quot; + bs.getName() + StringUtil.repeatSpaces(maxKeyLength - bs.getName().length()) + &quot; = &quot;);</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        if (bs.getContent().isEmpty()) {</span>
+<span class="nc" id="L341">            fw.write(&quot;{}&quot;);</span>
+<span class="nc" id="L342">        } else {</span>
+            try {
+<span class="nc" id="L344">                String formatted = new LatexFieldFormatter().format(bs.getContent(), LatexFieldFormatter.BIBTEX_STRING);</span>
+<span class="nc" id="L345">                fw.write(formatted);</span>
+<span class="nc" id="L346">            } catch (IllegalArgumentException ex) {</span>
+<span class="nc" id="L347">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L348">                        &quot;The # character is not allowed in BibTeX strings unless escaped as in '\\#'.\n&quot;</span>
+                                + &quot;Before saving, please edit any strings containing the # character.&quot;);
+            }
+        }
+
+<span class="nc" id="L353">        fw.write(&quot;}&quot; + Globals.NEWLINE);</span>
+<span class="nc" id="L354">    }</span>
+
+    /**
+     * Write all strings in alphabetical order, modified to produce a safe (for
+     * BibTeX) order of the strings if they reference each other.
+     *
+     * @param fw       The Writer to send the output to.
+     * @param database The database whose strings we should write.
+     * @param reformatFile
+     * @throws IOException If anything goes wrong in writing.
+     */
+    private void writeStrings(Writer fw, BibDatabase database, Boolean reformatFile) throws IOException {
+<span class="fc" id="L366">        List&lt;BibtexString&gt; strings = database.getStringKeySet().stream().map(database::getString).collect(</span>
+<span class="fc" id="L367">                Collectors.toList());</span>
+<span class="fc" id="L368">        strings.sort(new BibtexStringComparator(true));</span>
+        // First, make a Map of all entries:
+<span class="fc" id="L370">        Map&lt;String, BibtexString&gt; remaining = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L371">        int maxKeyLength = 0;</span>
+<span class="pc bpc" id="L372" title="1 of 2 branches missed.">        for (BibtexString string : strings) {</span>
+<span class="nc" id="L373">            remaining.put(string.getName(), string);</span>
+<span class="nc" id="L374">            maxKeyLength = Math.max(maxKeyLength, string.getName().length());</span>
+        }
+
+<span class="fc bfc" id="L377" title="All 2 branches covered.">        for (BibtexString.Type t : BibtexString.Type.values()) {</span>
+<span class="fc" id="L378">            isFirstStringInType = true;</span>
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">            for (BibtexString bs : strings) {</span>
+<span class="nc bnc" id="L380" title="All 4 branches missed.">                if (remaining.containsKey(bs.getName()) &amp;&amp; (bs.getType() == t)) {</span>
+<span class="nc" id="L381">                    writeString(fw, bs, remaining, maxKeyLength, reformatFile);</span>
+<span class="nc" id="L382">                    isFirstStringInType = false;</span>
+                }
+            }
+        }
+<span class="fc" id="L386">    }</span>
+
+    private void writeTypeDefinitions(Writer writer, Map&lt;String, EntryType&gt; types) throws IOException {
+<span class="pc bpc" id="L389" title="1 of 2 branches missed.">        for (EntryType type : types.values()) {</span>
+<span class="nc bnc" id="L390" title="All 2 branches missed.">            if (type instanceof CustomEntryType) {</span>
+<span class="nc" id="L391">                CustomEntryType customType = (CustomEntryType) type;</span>
+<span class="nc" id="L392">                writer.write(Globals.NEWLINE);</span>
+<span class="nc" id="L393">                writer.write(COMMENT_PREFIX + &quot;{&quot;);</span>
+<span class="nc" id="L394">                writer.write(CustomEntryType.ENTRYTYPE_FLAG);</span>
+<span class="nc" id="L395">                writer.write(customType.getName());</span>
+<span class="nc" id="L396">                writer.write(&quot;: req[&quot;);</span>
+<span class="nc" id="L397">                writer.write(customType.getRequiredFieldsString());</span>
+<span class="nc" id="L398">                writer.write(&quot;] opt[&quot;);</span>
+<span class="nc" id="L399">                writer.write(String.join(&quot;;&quot;, customType.getOptionalFields()));</span>
+<span class="nc" id="L400">                writer.write(&quot;]}&quot;);</span>
+<span class="nc" id="L401">                writer.write(Globals.NEWLINE);</span>
+            }
+        }
+<span class="fc" id="L404">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

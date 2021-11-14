@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FileBasedLock.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.util.io</a> &gt; <span class="el_source">FileBasedLock.java</span></div><h1>FileBasedLock.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.util.io;
+
+import java.io.File;
+
+import net.sf.jabref.exporter.SaveSession;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+<span class="nc" id="L10">public class FileBasedLock {</span>
+
+<span class="fc" id="L12">    private static final Log LOGGER = LogFactory.getLog(FileBasedLock.class);</span>
+
+
+    /**
+     * This method checks whether there is a lock file for the given file. If
+     * there is, it waits for 500 ms. This is repeated until the lock is gone
+     * or we have waited the maximum number of times.
+     *
+     * @param file The file to check the lock for.
+     * @param maxWaitCount The maximum number of times to wait.
+     * @return true if the lock file is gone, false if it is still there.
+     */
+    public static boolean waitForFileLock(File file, int maxWaitCount) {
+        // Check if the file is locked by another JabRef user:
+<span class="fc" id="L26">        int lockCheckCount = 0;</span>
+<span class="pc bpc" id="L27" title="1 of 2 branches missed.">        while (hasLockFile(file)) {</span>
+
+<span class="nc bnc" id="L29" title="All 2 branches missed.">            if (lockCheckCount++ == maxWaitCount) {</span>
+<span class="nc" id="L30">                return false;</span>
+            }
+            try {
+<span class="nc" id="L33">                Thread.sleep(500);</span>
+<span class="nc" id="L34">            } catch (InterruptedException ignored) {</span>
+                // Ignored
+            }
+        }
+<span class="fc" id="L38">        return true;</span>
+    }
+
+    /**
+     * Check whether a lock file exists for this file.
+     * @param file The file to check.
+     * @return true if a lock file exists, false otherwise.
+     */
+    public static boolean hasLockFile(File file) {
+<span class="fc" id="L47">        File lock = new File(file.getPath() + SaveSession.LOCKFILE_SUFFIX);</span>
+<span class="fc" id="L48">        return lock.exists();</span>
+    }
+
+    /**
+     * Find the lock file's last modified time, if it has a lock file.
+     * @param file The file to check.
+     * @return the last modified time if lock file exists, -1 otherwise.
+     */
+    public static long getLockFileTimeStamp(File file) {
+<span class="nc" id="L57">        File lock = new File(file.getPath() + SaveSession.LOCKFILE_SUFFIX);</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        return lock.exists() ? lock.lastModified() : -1;</span>
+    }
+
+    /**
+     * Check if a lock file exists, and delete it if it does.
+     * @return true if the lock file existed, false otherwise.
+     */
+    public static boolean deleteLockFile(File file) {
+<span class="nc" id="L66">        File lock = new File(file.getPath() + SaveSession.LOCKFILE_SUFFIX);</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (!lock.exists()) {</span>
+<span class="nc" id="L68">            return false;</span>
+        }
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (!lock.delete()) {</span>
+<span class="nc" id="L71">            LOGGER.warn(&quot;Cannot delete lock file&quot;);</span>
+        }
+<span class="nc" id="L73">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

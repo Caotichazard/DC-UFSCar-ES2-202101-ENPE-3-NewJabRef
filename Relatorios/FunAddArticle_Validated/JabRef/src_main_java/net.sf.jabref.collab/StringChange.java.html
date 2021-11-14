@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>StringChange.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.collab</a> &gt; <span class="el_source">StringChange.java</span></div><h1>StringChange.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.collab;
+
+import javax.swing.JComponent;
+import javax.swing.JScrollPane;
+
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.gui.undo.UndoableInsertString;
+import net.sf.jabref.gui.undo.UndoableStringChange;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.database.KeyCollisionException;
+import net.sf.jabref.model.entry.BibtexString;
+import net.sf.jabref.model.entry.IdGenerator;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+class StringChange extends Change {
+
+    private final BibtexString string;
+    private final String mem;
+    private final String disk;
+    private final String label;
+
+<span class="nc" id="L41">    private final InfoPane tp = new InfoPane();</span>
+<span class="nc" id="L42">    private final JScrollPane sp = new JScrollPane(tp);</span>
+    private final BibtexString tmpString;
+
+<span class="nc" id="L45">    private static final Log LOGGER = LogFactory.getLog(StringChange.class);</span>
+
+
+    public StringChange(BibtexString string, BibtexString tmpString, String label, String mem, String disk) {
+<span class="nc" id="L49">        super(Localization.lang(&quot;Modified string&quot;) + &quot;: '&quot; + label + '\'');</span>
+<span class="nc" id="L50">        this.tmpString = tmpString;</span>
+<span class="nc" id="L51">        this.string = string;</span>
+<span class="nc" id="L52">        this.label = label;</span>
+<span class="nc" id="L53">        this.mem = mem;</span>
+<span class="nc" id="L54">        this.disk = disk;</span>
+
+<span class="nc" id="L56">        StringBuilder sb = new StringBuilder(46);</span>
+<span class="nc" id="L57">        sb.append(&quot;&lt;HTML&gt;&lt;H2&gt;&quot;).append(Localization.lang(&quot;Modified string&quot;)).append(&quot;&lt;/H2&gt;&lt;H3&gt;&quot;)</span>
+<span class="nc" id="L58">                .append(Localization.lang(&quot;Label&quot;)).append(&quot;:&lt;/H3&gt;&quot;).append(label).append(&quot;&lt;H3&gt;&quot;)</span>
+<span class="nc" id="L59">                .append(Localization.lang(&quot;New content&quot;)).append(&quot;:&lt;/H3&gt;&quot;).append(disk);</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (string == null) {</span>
+<span class="nc" id="L61">            sb.append(&quot;&lt;P&gt;&lt;I&gt;&quot;);</span>
+<span class="nc" id="L62">            sb.append(Localization.lang(&quot;Cannot merge this change&quot;)).append(&quot;: &quot;);</span>
+<span class="nc" id="L63">            sb.append(Localization.lang(&quot;The string has been removed locally&quot;)).append(&quot;&lt;/I&gt;&quot;);</span>
+<span class="nc" id="L64">        } else {</span>
+<span class="nc" id="L65">            sb.append(&quot;&lt;H3&gt;&quot;);</span>
+<span class="nc" id="L66">            sb.append(Localization.lang(&quot;Current content&quot;)).append(&quot;:&lt;/H3&gt;&quot;);</span>
+<span class="nc" id="L67">            sb.append(string.getContent());</span>
+        }
+<span class="nc" id="L69">        sb.append(&quot;&lt;/HTML&gt;&quot;);</span>
+<span class="nc" id="L70">        tp.setText(sb.toString());</span>
+<span class="nc" id="L71">    }</span>
+
+    @Override
+    public boolean makeChange(BasePanel panel, BibDatabase secondary, NamedCompound undoEdit) {
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (string == null) {</span>
+            // The string was removed or renamed locally. We guess that it was removed.
+<span class="nc" id="L77">            String newId = IdGenerator.next();</span>
+<span class="nc" id="L78">            BibtexString bs = new BibtexString(newId, label, disk);</span>
+            try {
+<span class="nc" id="L80">                panel.getDatabase().addString(bs);</span>
+<span class="nc" id="L81">                undoEdit.addEdit(new UndoableInsertString(panel, panel.getDatabase(), bs));</span>
+<span class="nc" id="L82">            } catch (KeyCollisionException ex) {</span>
+<span class="nc" id="L83">                LOGGER.info(&quot;Error: could not add string '&quot; + bs.getName() + &quot;': &quot; + ex.getMessage(), ex);</span>
+            }
+<span class="nc" id="L85">        } else {</span>
+<span class="nc" id="L86">            string.setContent(disk);</span>
+<span class="nc" id="L87">            undoEdit.addEdit(new UndoableStringChange(panel, string, false, mem, disk));</span>
+        }
+
+        // Update tmp database:
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (tmpString == null) {</span>
+<span class="nc" id="L92">            BibtexString bs = new BibtexString(IdGenerator.next(), label, disk);</span>
+<span class="nc" id="L93">            secondary.addString(bs);</span>
+<span class="nc" id="L94">        } else {</span>
+<span class="nc" id="L95">            tmpString.setContent(disk);</span>
+        }
+
+<span class="nc" id="L98">        return true;</span>
+    }
+
+    @Override
+    public JComponent description() {
+<span class="nc" id="L103">        return sp;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

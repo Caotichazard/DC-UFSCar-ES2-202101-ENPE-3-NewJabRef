@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>RelativePathsCleanup.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.cleanup</a> &gt; <span class="el_source">RelativePathsCleanup.java</span></div><h1>RelativePathsCleanup.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.cleanup;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.logic.TypedBibEntry;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.ParsedFileField;
+
+public class RelativePathsCleanup implements CleanupJob {
+
+    private final BibDatabaseContext databaseContext;
+
+<span class="nc" id="L34">    public RelativePathsCleanup(BibDatabaseContext databaseContext) {</span>
+<span class="nc" id="L35">        this.databaseContext = Objects.requireNonNull(databaseContext);</span>
+<span class="nc" id="L36">    }</span>
+
+    @Override
+    public List&lt;FieldChange&gt; cleanup(BibEntry entry) {
+<span class="nc" id="L40">        TypedBibEntry typedEntry = new TypedBibEntry(entry, databaseContext);</span>
+<span class="nc" id="L41">        List&lt;ParsedFileField&gt; fileList = typedEntry.getFiles();</span>
+<span class="nc" id="L42">        List&lt;ParsedFileField&gt; newFileList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L43">        boolean changed = false;</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        for (ParsedFileField fileEntry : fileList) {</span>
+<span class="nc" id="L45">            String oldFileName = fileEntry.getLink();</span>
+<span class="nc" id="L46">            String newFileName = FileUtil.shortenFileName(new File(oldFileName), databaseContext.getFileDirectory())</span>
+<span class="nc" id="L47">                    .toString();</span>
+
+<span class="nc" id="L49">            ParsedFileField newFileEntry = fileEntry;</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">            if (!oldFileName.equals(newFileName)) {</span>
+<span class="nc" id="L51">                newFileEntry = new ParsedFileField(fileEntry.getDescription(), newFileName, fileEntry.getFileType());</span>
+<span class="nc" id="L52">                changed = true;</span>
+            }
+<span class="nc" id="L54">            newFileList.add(newFileEntry);</span>
+        }
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (changed) {</span>
+<span class="nc" id="L57">            Optional&lt;FieldChange&gt; change = typedEntry.setFiles(newFileList);</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            if(change.isPresent()) {</span>
+<span class="nc" id="L59">                return Collections.singletonList(change.get());</span>
+            } else {
+<span class="nc" id="L61">                return Collections.emptyList();</span>
+            }
+        }
+<span class="nc" id="L64">        return new ArrayList&lt;&gt;();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

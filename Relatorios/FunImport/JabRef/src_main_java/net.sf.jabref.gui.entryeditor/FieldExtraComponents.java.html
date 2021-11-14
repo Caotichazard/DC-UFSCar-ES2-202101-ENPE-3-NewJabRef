@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FieldExtraComponents.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.entryeditor</a> &gt; <span class="el_source">FieldExtraComponents.java</span></div><h1>FieldExtraComponents.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.entryeditor;
+
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.JTextComponent;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.bibtex.FieldProperties;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.FieldContentSelector;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.date.DatePickerButton;
+import net.sf.jabref.gui.desktop.JabRefDesktop;
+import net.sf.jabref.gui.entryeditor.EntryEditor.StoreFieldAction;
+import net.sf.jabref.gui.fieldeditors.FieldEditor;
+import net.sf.jabref.gui.mergeentries.MergeEntryDOIDialog;
+import net.sf.jabref.gui.undo.UndoableFieldChange;
+import net.sf.jabref.importer.fetcher.CrossRef;
+import net.sf.jabref.logic.journals.JournalAbbreviationRepository;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.net.URLUtil;
+import net.sf.jabref.logic.util.DOI;
+import net.sf.jabref.logic.util.date.EasyDateFormat;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.MonthUtil;
+
+<span class="nc" id="L61">public class FieldExtraComponents {</span>
+
+<span class="nc" id="L63">    private static final String ABBREVIATION_TOOLTIP_TEXT = &quot;&lt;HTML&gt;&quot;</span>
+<span class="nc" id="L64">            + Localization.lang(&quot;Switches between full and abbreviated journal name if the journal name is known.&quot;)</span>
+<span class="nc" id="L65">            + &quot;&lt;BR&gt;&quot; + Localization.lang(&quot;To set up, go to&quot;) + &quot; &lt;B&gt;&quot; + Localization.lang(&quot;Options&quot;) + &quot; -&gt; &quot;</span>
+<span class="nc" id="L66">            + Localization.lang(&quot;Manage journal abbreviations&quot;) + &quot;&lt;/B&gt;&lt;/HTML&gt;&quot;;</span>
+
+
+    /**
+     * Add controls for switching between abbreviated and full journal names.
+     * If this field also has a FieldContentSelector, we need to combine these.
+     *
+     * @param frame
+     * @param panel
+     * @param editor
+     * @param entry
+     * @param contentSelectors
+     * @param storeFieldAction
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getJournalExtraComponent(JabRefFrame frame, BasePanel panel, FieldEditor editor,
+            BibEntry entry, Set&lt;FieldContentSelector&gt; contentSelectors, StoreFieldAction storeFieldAction) {
+<span class="nc" id="L83">        JPanel controls = new JPanel();</span>
+<span class="nc" id="L84">        controls.setLayout(new BorderLayout());</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (!panel.getBibDatabaseContext().getMetaData().getContentSelectors(editor.getFieldName()).isEmpty()) {</span>
+<span class="nc" id="L86">            FieldContentSelector ws = new FieldContentSelector(frame, panel, frame, editor, panel.getBibDatabaseContext().getMetaData(),</span>
+<span class="nc" id="L87">                    storeFieldAction, false, &quot;, &quot;);</span>
+<span class="nc" id="L88">            contentSelectors.add(ws);</span>
+<span class="nc" id="L89">            controls.add(ws, BorderLayout.NORTH);</span>
+        }
+
+        // Button to toggle abbreviated/full journal names
+<span class="nc" id="L93">        JButton button = new JButton(Localization.lang(&quot;Toggle abbreviation&quot;));</span>
+<span class="nc" id="L94">        button.setToolTipText(ABBREVIATION_TOOLTIP_TEXT);</span>
+<span class="nc" id="L95">        button.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L96">            String text = editor.getText();</span>
+<span class="nc" id="L97">            JournalAbbreviationRepository abbreviationRepository = Globals.journalAbbreviationLoader.getRepository();</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            if (abbreviationRepository.isKnownName(text)) {</span>
+<span class="nc" id="L99">                String s = abbreviationRepository.getNextAbbreviation(text).orElse(text);</span>
+
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                if (s != null) {</span>
+<span class="nc" id="L102">                    editor.setText(s);</span>
+<span class="nc" id="L103">                    storeFieldAction.actionPerformed(new ActionEvent(editor, 0, &quot;&quot;));</span>
+<span class="nc" id="L104">                    panel.undoManager.addEdit(new UndoableFieldChange(entry, editor.getFieldName(), text, s));</span>
+                }
+            }
+<span class="nc" id="L107">        });</span>
+
+<span class="nc" id="L109">        controls.add(button, BorderLayout.SOUTH);</span>
+<span class="nc" id="L110">        return Optional.of(controls);</span>
+    }
+
+    /**
+     * Set up a mouse listener for opening an external viewer for with with EXTRA_EXTERNAL
+     *
+     * @param fieldEditor
+     * @param panel
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getExternalExtraComponent(BasePanel panel, FieldEditor fieldEditor) {
+<span class="nc" id="L121">        JPanel controls = new JPanel();</span>
+<span class="nc" id="L122">        controls.setLayout(new BorderLayout());</span>
+<span class="nc" id="L123">        JButton button = new JButton(Localization.lang(&quot;Open&quot;));</span>
+<span class="nc" id="L124">        button.setEnabled(false);</span>
+<span class="nc" id="L125">        button.addActionListener(actionEvent -&gt; {</span>
+            try {
+<span class="nc" id="L127">                JabRefDesktop.openExternalViewer(panel.getBibDatabaseContext(), fieldEditor.getText(), fieldEditor.getFieldName());</span>
+<span class="nc" id="L128">            } catch (IOException ex) {</span>
+<span class="nc" id="L129">                panel.output(Localization.lang(&quot;Unable to open link.&quot;));</span>
+            }
+<span class="nc" id="L131">        });</span>
+
+<span class="nc" id="L133">        controls.add(button, BorderLayout.SOUTH);</span>
+
+        // enable/disable button
+<span class="nc" id="L136">        JTextComponent url = (JTextComponent) fieldEditor;</span>
+
+<span class="nc" id="L138">        DocumentListener documentListener = new DocumentListener() {</span>
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+<span class="nc" id="L141">                checkUrl();</span>
+<span class="nc" id="L142">            }</span>
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+<span class="nc" id="L146">                checkUrl();</span>
+<span class="nc" id="L147">            }</span>
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+<span class="nc" id="L151">                checkUrl();</span>
+<span class="nc" id="L152">            }</span>
+
+            private void checkUrl() {
+<span class="nc bnc" id="L155" title="All 2 branches missed.">                if (URLUtil.isURL(url.getText())) {</span>
+<span class="nc" id="L156">                    button.setEnabled(true);</span>
+<span class="nc" id="L157">                } else {</span>
+<span class="nc" id="L158">                    button.setEnabled(false);</span>
+                }
+<span class="nc" id="L160">            }</span>
+        };
+<span class="nc" id="L162">        url.getDocument().addDocumentListener(documentListener);</span>
+
+<span class="nc" id="L164">        return Optional.of(controls);</span>
+    }
+
+    /**
+     * Set up a mouse listener for opening an external viewer and fetching by DOI
+     *
+     * @param fieldEditor
+     * @param panel
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getDoiExtraComponent(BasePanel panel, EntryEditor entryEditor, FieldEditor fieldEditor) {
+<span class="nc" id="L175">        JPanel controls = new JPanel();</span>
+<span class="nc" id="L176">        controls.setLayout(new BorderLayout());</span>
+        // open doi link
+<span class="nc" id="L178">        JButton button = new JButton(Localization.lang(&quot;Open&quot;));</span>
+<span class="nc" id="L179">        button.setEnabled(false);</span>
+<span class="nc" id="L180">        button.addActionListener(actionEvent -&gt; {</span>
+            try {
+<span class="nc" id="L182">                JabRefDesktop.openExternalViewer(panel.getBibDatabaseContext(), fieldEditor.getText(), fieldEditor.getFieldName());</span>
+<span class="nc" id="L183">            } catch (IOException ex) {</span>
+<span class="nc" id="L184">                panel.output(Localization.lang(&quot;Unable to open link.&quot;));</span>
+            }
+<span class="nc" id="L186">        });</span>
+        // lookup doi
+<span class="nc" id="L188">        JButton doiButton = new JButton(Localization.lang(&quot;Lookup DOI&quot;));</span>
+<span class="nc" id="L189">        doiButton.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L190">                Optional&lt;DOI&gt; doi = CrossRef.findDOI(entryEditor.getEntry());</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">                if (doi.isPresent()) {</span>
+<span class="nc" id="L192">                    entryEditor.getEntry().setField(&quot;doi&quot;, doi.get().getDOI());</span>
+<span class="nc" id="L193">                } else {</span>
+<span class="nc" id="L194">                    panel.frame().setStatus(Localization.lang(&quot;No DOI found&quot;));</span>
+                }
+<span class="nc" id="L196">        });</span>
+        // fetch bibtex data
+<span class="nc" id="L198">        JButton fetchButton = new JButton(Localization.lang(&quot;Get BibTeX data from DOI&quot;));</span>
+<span class="nc" id="L199">        fetchButton.setEnabled(false);</span>
+<span class="nc" id="L200">        fetchButton.addActionListener(actionEvent -&gt; new MergeEntryDOIDialog(panel));</span>
+
+<span class="nc" id="L202">        controls.add(button, BorderLayout.NORTH);</span>
+<span class="nc" id="L203">        controls.add(doiButton, BorderLayout.CENTER);</span>
+<span class="nc" id="L204">        controls.add(fetchButton, BorderLayout.SOUTH);</span>
+
+        // enable/disable button
+<span class="nc" id="L207">        JTextComponent doi = (JTextComponent) fieldEditor;</span>
+
+<span class="nc" id="L209">        DocumentListener documentListener = new DocumentListener() {</span>
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+<span class="nc" id="L212">                checkDoi();</span>
+<span class="nc" id="L213">            }</span>
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+<span class="nc" id="L217">                checkDoi();</span>
+<span class="nc" id="L218">            }</span>
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+<span class="nc" id="L222">                checkDoi();</span>
+<span class="nc" id="L223">            }</span>
+
+            private void checkDoi() {
+<span class="nc" id="L226">                Optional&lt;DOI&gt; doiUrl = DOI.build(doi.getText());</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">                if(doiUrl.isPresent()) {</span>
+<span class="nc" id="L228">                    button.setEnabled(true);</span>
+<span class="nc" id="L229">                    fetchButton.setEnabled(true);</span>
+<span class="nc" id="L230">                } else {</span>
+<span class="nc" id="L231">                    button.setEnabled(false);</span>
+<span class="nc" id="L232">                    fetchButton.setEnabled(false);</span>
+                }
+<span class="nc" id="L234">            }</span>
+        };
+<span class="nc" id="L236">        doi.getDocument().addDocumentListener(documentListener);</span>
+
+<span class="nc" id="L238">        return Optional.of(controls);</span>
+    }
+
+    /**
+     * Return a dropdown list containing Yes and No for fields with EXTRA_YES_NO
+     *
+     * @param fieldEditor
+     * @param entryEditor
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getYesNoExtraComponent(FieldEditor fieldEditor, EntryEditor entryEditor) {
+<span class="nc" id="L249">        final String[] options = {&quot;&quot;, &quot;Yes&quot;, &quot;No&quot;};</span>
+<span class="nc" id="L250">        JComboBox&lt;String&gt; yesno = new JComboBox&lt;&gt;(options);</span>
+<span class="nc" id="L251">        yesno.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L252">            fieldEditor.setText(((String) yesno.getSelectedItem()).toLowerCase());</span>
+<span class="nc" id="L253">            entryEditor.updateField(fieldEditor);</span>
+<span class="nc" id="L254">        });</span>
+<span class="nc" id="L255">        return Optional.of(yesno);</span>
+
+    }
+
+    /**
+     * Return a dropdown list with the month names for fields with EXTRA_MONTH
+     *
+     * @param fieldEditor
+     * @param entryEditor
+     * @param type
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getMonthExtraComponent(FieldEditor fieldEditor, EntryEditor entryEditor, BibDatabaseMode type) {
+<span class="nc" id="L268">        final String[] options = new String[13];</span>
+<span class="nc" id="L269">        options[0] = Localization.lang(&quot;Select&quot;);</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        for (int i = 1; i &lt;= 12; i++) {</span>
+<span class="nc" id="L271">            options[i] = MonthUtil.getMonthByNumber(i).fullName;</span>
+        }
+<span class="nc" id="L273">        JComboBox&lt;String&gt; month = new JComboBox&lt;&gt;(options);</span>
+<span class="nc" id="L274">        month.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L275">            int monthnumber = month.getSelectedIndex();</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">            if (monthnumber &gt;= 1) {</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">                if (type == BibDatabaseMode.BIBLATEX) {</span>
+<span class="nc" id="L278">                    fieldEditor.setText(String.valueOf(monthnumber));</span>
+<span class="nc" id="L279">                } else {</span>
+<span class="nc" id="L280">                    fieldEditor.setText(&quot;#&quot; + (MonthUtil.getMonthByNumber(monthnumber).bibtexFormat) + &quot;#&quot;);</span>
+                }
+<span class="nc" id="L282">            } else {</span>
+<span class="nc" id="L283">                fieldEditor.setText(&quot;&quot;);</span>
+            }
+<span class="nc" id="L285">            entryEditor.updateField(fieldEditor);</span>
+<span class="nc" id="L286">            month.setSelectedIndex(0);</span>
+<span class="nc" id="L287">        });</span>
+<span class="nc" id="L288">        return Optional.of(month);</span>
+
+    }
+
+    /**
+     * Return a button which sets the owner if the field for fields with EXTRA_SET_OWNER
+     * @param fieldEditor
+     * @param storeFieldAction
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getSetOwnerExtraComponent(FieldEditor fieldEditor,
+            StoreFieldAction storeFieldAction) {
+<span class="nc" id="L300">        JButton button = new JButton(Localization.lang(&quot;Auto&quot;));</span>
+<span class="nc" id="L301">        button.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L302">            fieldEditor.setText(Globals.prefs.get(JabRefPreferences.DEFAULT_OWNER));</span>
+<span class="nc" id="L303">            storeFieldAction.actionPerformed(new ActionEvent(fieldEditor, 0, &quot;&quot;));</span>
+<span class="nc" id="L304">        });</span>
+<span class="nc" id="L305">        return Optional.of(button);</span>
+
+    }
+
+    /**
+     * Set up a drop target for URLs for fields with EXTRA_URL
+     *
+     * @param fieldEditor
+     * @param storeFieldAction
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getURLExtraComponent(FieldEditor fieldEditor,
+            StoreFieldAction storeFieldAction) {
+<span class="nc" id="L318">        ((JComponent) fieldEditor).setDropTarget(new DropTarget((Component) fieldEditor, DnDConstants.ACTION_NONE,</span>
+<span class="nc" id="L319">                new SimpleUrlDragDrop(fieldEditor, storeFieldAction)));</span>
+
+<span class="nc" id="L321">        return Optional.empty();</span>
+    }
+
+    /**
+     * Return a button opening a content selector for fields where one exists
+     *
+     * @param frame
+     * @param panel
+     * @param editor
+     * @param contentSelectors
+     * @param storeFieldAction
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getSelectorExtraComponent(JabRefFrame frame, BasePanel panel, FieldEditor editor,
+            Set&lt;FieldContentSelector&gt; contentSelectors, StoreFieldAction storeFieldAction) {
+<span class="nc" id="L336">        FieldContentSelector ws = new FieldContentSelector(frame, panel, frame, editor, panel.getBibDatabaseContext().getMetaData(),</span>
+<span class="nc" id="L337">                storeFieldAction, false,</span>
+<span class="nc" id="L338">                InternalBibtexFields.getFieldExtras(editor.getFieldName())</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">                        .contains(FieldProperties.PERSON_NAMES) ? &quot; and &quot; : &quot;, &quot;);</span>
+<span class="nc" id="L340">        contentSelectors.add(ws);</span>
+<span class="nc" id="L341">        return Optional.of(ws);</span>
+    }
+
+    /**
+     * Set up field such that double click inserts the current date
+     * If isDataPicker is True, a button with a data picker is returned
+     *
+     * @param editor
+     * @param isDatePicker
+     * @return
+     */
+    public static Optional&lt;JComponent&gt; getDateTimeExtraComponent(FieldEditor editor, Boolean isDatePicker) {
+<span class="nc" id="L353">        ((JTextArea) editor).addMouseListener(new MouseAdapter() {</span>
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+<span class="nc bnc" id="L357" title="All 2 branches missed.">                if (e.getClickCount() == 2) {// double click</span>
+<span class="nc" id="L358">                    String date = new EasyDateFormat().getCurrentDate();</span>
+<span class="nc" id="L359">                    editor.setText(date);</span>
+                }
+<span class="nc" id="L361">            }</span>
+        });
+
+        // insert a datepicker, if the extras field contains this command
+<span class="nc bnc" id="L365" title="All 2 branches missed.">        if (isDatePicker) {</span>
+<span class="nc" id="L366">            DatePickerButton datePicker = new DatePickerButton(editor);</span>
+<span class="nc" id="L367">            return Optional.of(datePicker.getDatePicker());</span>
+        } else {
+<span class="nc" id="L369">            return Optional.empty();</span>
+        }
+
+    }
+
+    /**
+     * Return a dropdown list with the alternatives for editor type fields
+     *
+     * @param fieldEditor
+     * @param entryEditor
+     * @return
+     */
+
+    public static Optional&lt;JComponent&gt; getEditorTypeExtraComponent(FieldEditor fieldEditor, EntryEditor entryEditor) {
+<span class="nc" id="L383">        final String[] optionValues = {&quot;&quot;, &quot;editor&quot;, &quot;compiler&quot;, &quot;founder&quot;, &quot;continuator&quot;, &quot;redactor&quot;, &quot;reviser&quot;,</span>
+<span class="nc" id="L384">                &quot;collaborator&quot;};</span>
+<span class="nc" id="L385">        final String[] optionDescriptions = {Localization.lang(&quot;Select&quot;), Localization.lang(&quot;Editor&quot;),</span>
+<span class="nc" id="L386">                Localization.lang(&quot;Compiler&quot;), Localization.lang(&quot;Founder&quot;), Localization.lang(&quot;Continuator&quot;),</span>
+<span class="nc" id="L387">                Localization.lang(&quot;Redactor&quot;), Localization.lang(&quot;Reviser&quot;), Localization.lang(&quot;Collaborator&quot;)};</span>
+<span class="nc" id="L388">        JComboBox&lt;String&gt; editorType = new JComboBox&lt;&gt;(optionDescriptions);</span>
+<span class="nc" id="L389">        editorType.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L390">            fieldEditor.setText(optionValues[editorType.getSelectedIndex()]);</span>
+<span class="nc" id="L391">            entryEditor.updateField(fieldEditor);</span>
+<span class="nc" id="L392">        });</span>
+<span class="nc" id="L393">        return Optional.of(editorType);</span>
+
+    }
+
+    /**
+     * Return a dropdown list with the alternatives for pagination type fields
+     *
+     * @param fieldEditor
+     * @param entryEditor
+     * @return
+     */
+
+    public static Optional&lt;JComponent&gt; getPaginationExtraComponent(FieldEditor fieldEditor, EntryEditor entryEditor) {
+<span class="nc" id="L406">        final String[] optionValues = {&quot;&quot;, &quot;page&quot;, &quot;column&quot;, &quot;line&quot;, &quot;verse&quot;, &quot;section&quot;, &quot;paragraph&quot;, &quot;none&quot;};</span>
+<span class="nc" id="L407">        final String[] optionDescriptions = {Localization.lang(&quot;Select&quot;), Localization.lang(&quot;Page&quot;),</span>
+<span class="nc" id="L408">                Localization.lang(&quot;Column&quot;), Localization.lang(&quot;Line&quot;), Localization.lang(&quot;Verse&quot;),</span>
+<span class="nc" id="L409">                Localization.lang(&quot;Section&quot;), Localization.lang(&quot;Paragraph&quot;), Localization.lang(&quot;None&quot;)};</span>
+<span class="nc" id="L410">        JComboBox&lt;String&gt; pagination = new JComboBox&lt;&gt;(optionDescriptions);</span>
+<span class="nc" id="L411">        pagination.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L412">            fieldEditor.setText(optionValues[pagination.getSelectedIndex()]);</span>
+<span class="nc" id="L413">            entryEditor.updateField(fieldEditor);</span>
+<span class="nc" id="L414">        });</span>
+<span class="nc" id="L415">        return Optional.of(pagination);</span>
+    }
+
+    /**
+     * Return a dropdown list with the alternatives for pagination type fields
+     *
+     * @param fieldEditor
+     * @param entryEditor
+     * @return
+     */
+
+    public static Optional&lt;JComponent&gt; getTypeExtraComponent(FieldEditor fieldEditor, EntryEditor entryEditor,
+            boolean isPatent) {
+        String[] optionValues;
+        String[] optionDescriptions;
+<span class="nc bnc" id="L430" title="All 2 branches missed.">        if (isPatent) {</span>
+<span class="nc" id="L431">            optionValues = new String[] {&quot;&quot;, &quot;patent&quot;, &quot;patentde&quot;, &quot;patenteu&quot;, &quot;patentfr&quot;, &quot;patentuk&quot;, &quot;patentus&quot;,</span>
+<span class="nc" id="L432">                    &quot;patreq&quot;, &quot;patreqde&quot;, &quot;patreqeu&quot;, &quot;patreqfr&quot;, &quot;patrequk&quot;, &quot;patrequs&quot;};</span>
+<span class="nc" id="L433">            optionDescriptions = new String[] {Localization.lang(&quot;Select&quot;), Localization.lang(&quot;Patent&quot;),</span>
+<span class="nc" id="L434">                    Localization.lang(&quot;German patent&quot;), Localization.lang(&quot;European patent&quot;),</span>
+<span class="nc" id="L435">                    Localization.lang(&quot;French patent&quot;), Localization.lang(&quot;British patent&quot;),</span>
+<span class="nc" id="L436">                    Localization.lang(&quot;U.S. patent&quot;), Localization.lang(&quot;Patent request&quot;),</span>
+<span class="nc" id="L437">                    Localization.lang(&quot;German patent request&quot;), Localization.lang(&quot;European patent request&quot;),</span>
+<span class="nc" id="L438">                    Localization.lang(&quot;French patent request&quot;), Localization.lang(&quot;British patent request&quot;),</span>
+<span class="nc" id="L439">                    Localization.lang(&quot;U.S. patent request&quot;)};</span>
+<span class="nc" id="L440">        } else {</span>
+<span class="nc" id="L441">            optionValues = new String[] {&quot;&quot;, &quot;mathesis&quot;, &quot;phdthesis&quot;, &quot;candthesis&quot;, &quot;techreport&quot;, &quot;resreport&quot;,</span>
+<span class="nc" id="L442">                    &quot;software&quot;, &quot;datacd&quot;, &quot;audiocd&quot;};</span>
+<span class="nc" id="L443">            optionDescriptions = new String[] {Localization.lang(&quot;Select&quot;), Localization.lang(&quot;Master's thesis&quot;),</span>
+<span class="nc" id="L444">                    Localization.lang(&quot;PhD thesis&quot;), Localization.lang(&quot;Candidate thesis&quot;),</span>
+<span class="nc" id="L445">                    Localization.lang(&quot;Technical report&quot;), Localization.lang(&quot;Research report&quot;),</span>
+<span class="nc" id="L446">                    Localization.lang(&quot;Software&quot;), Localization.lang(&quot;Data CD&quot;), Localization.lang(&quot;Audio CD&quot;)};</span>
+        }
+<span class="nc" id="L448">        JComboBox&lt;String&gt; type = new JComboBox&lt;&gt;(optionDescriptions);</span>
+<span class="nc" id="L449">        type.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L450">            fieldEditor.setText(optionValues[type.getSelectedIndex()]);</span>
+<span class="nc" id="L451">            entryEditor.updateField(fieldEditor);</span>
+<span class="nc" id="L452">        });</span>
+<span class="nc" id="L453">        return Optional.of(type);</span>
+    }
+
+    /**
+     * Return a dropdown list with the gender alternatives for fields with GENDER
+     *
+     * @param fieldEditor
+     * @param entryEditor
+     * @return
+     */
+
+    public static Optional&lt;JComponent&gt; getGenderExtraComponent(FieldEditor fieldEditor, EntryEditor entryEditor) {
+<span class="nc" id="L465">        final String[] optionValues = {&quot;&quot;, &quot;sf&quot;, &quot;sm&quot;, &quot;sp&quot;, &quot;pf&quot;, &quot;pm&quot;, &quot;pn&quot;, &quot;pp&quot;};</span>
+<span class="nc" id="L466">        final String[] optionDescriptions = {Localization.lang(&quot;Select&quot;), Localization.lang(&quot;Female name&quot;),</span>
+<span class="nc" id="L467">                Localization.lang(&quot;Male name&quot;),</span>
+<span class="nc" id="L468">                Localization.lang(&quot;Neuter name&quot;), Localization.lang(&quot;Female names&quot;), Localization.lang(&quot;Male names&quot;),</span>
+<span class="nc" id="L469">                Localization.lang(&quot;Neuter names&quot;), Localization.lang(&quot;Mixed names&quot;)};</span>
+<span class="nc" id="L470">        JComboBox&lt;String&gt; gender = new JComboBox&lt;&gt;(optionDescriptions);</span>
+<span class="nc" id="L471">        gender.addActionListener(actionEvent -&gt; {</span>
+<span class="nc" id="L472">            fieldEditor.setText(optionValues[gender.getSelectedIndex()]);</span>
+<span class="nc" id="L473">            entryEditor.updateField(fieldEditor);</span>
+<span class="nc" id="L474">        });</span>
+<span class="nc" id="L475">        return Optional.of(gender);</span>
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

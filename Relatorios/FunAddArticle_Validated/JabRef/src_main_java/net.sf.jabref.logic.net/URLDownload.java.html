@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>URLDownload.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.net</a> &gt; <span class="el_source">URLDownload.java</span></div><h1>URLDownload.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.net;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.net.CookieHandler;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
+
+import net.sf.jabref.Globals;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Each call to a public method creates a new HTTP connection. Nothing is cached.
+ *
+ * @author Erik Putrycz erik.putrycz-at-nrc-cnrc.gc.ca
+ * @author Simon Harrer
+ */
+public class URLDownload {
+
+    private final URL source;
+
+<span class="nc" id="L53">    private static final Log LOGGER = LogFactory.getLog(URLDownload.class);</span>
+
+<span class="nc" id="L55">    private final Map&lt;String, String&gt; parameters = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L57">    private String postData = &quot;&quot;;</span>
+
+    /**
+     * URL download to a string.
+     * &lt;p&gt;
+     * Example
+     * URLDownload dl = new URLDownload(URL);
+     * String content = dl.downloadToString(ENCODING);
+     * dl.downloadToFile(FILE); // available in FILE
+     * String contentType = dl.determineMimeType();
+     *
+     * @param source The URL to download.
+     */
+
+<span class="nc" id="L71">    public URLDownload(URL source) {</span>
+<span class="nc" id="L72">        this.source = source;</span>
+
+<span class="nc" id="L74">        addParameters(&quot;User-Agent&quot;, &quot;JabRef&quot;);</span>
+
+<span class="nc" id="L76">        URLDownload.setCookieHandler();</span>
+<span class="nc" id="L77">    }</span>
+
+    public URL getSource() {
+<span class="nc" id="L80">        return source;</span>
+    }
+
+    private static void setCookieHandler() {
+        try {
+            // This should set up JabRef to receive cookies properly
+<span class="nc bnc" id="L86" title="All 2 branches missed.">            if (CookieHandler.getDefault() == null) {</span>
+<span class="nc" id="L87">                CookieHandler.setDefault(new CookieHandlerImpl());</span>
+            }
+<span class="nc" id="L89">        } catch (SecurityException ignored) {</span>
+            // Setting or getting the system default cookie handler is forbidden
+            // In this case cookie handling is not possible.
+        }
+<span class="nc" id="L93">    }</span>
+
+    public String determineMimeType() throws IOException {
+        // this does not cause a real performance issue as the underlying HTTP/TCP connection is reused
+<span class="nc" id="L97">        URLConnection urlConnection = openConnection();</span>
+        try {
+<span class="nc" id="L99">            return urlConnection.getContentType();</span>
+        } finally {
+            try {
+<span class="nc" id="L102">                urlConnection.getInputStream().close();</span>
+<span class="nc" id="L103">            } catch (IOException ignored) {</span>
+                // Ignored
+            }
+        }
+    }
+
+    public void addParameters(String key, String value) {
+<span class="nc" id="L110">        parameters.put(key, value);</span>
+<span class="nc" id="L111">    }</span>
+
+    public void setPostData(String postData) {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (postData != null) {</span>
+<span class="nc" id="L115">            this.postData = postData;</span>
+        }
+<span class="nc" id="L117">    }</span>
+
+    private URLConnection openConnection() throws IOException {
+<span class="nc" id="L120">        URLConnection connection = source.openConnection();</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        for (Map.Entry&lt;String, String&gt; entry : parameters.entrySet()) {</span>
+<span class="nc" id="L122">            connection.setRequestProperty(entry.getKey(), entry.getValue());</span>
+        }
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        if (!postData.isEmpty()) {</span>
+<span class="nc" id="L125">            connection.setDoOutput(true);</span>
+<span class="nc" id="L126">            try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream());) {</span>
+<span class="nc" id="L127">                wr.writeBytes(postData);</span>
+            }
+
+        }
+        // this does network i/o: GET + read returned headers
+<span class="nc" id="L132">        connection.connect();</span>
+
+<span class="nc" id="L134">        return connection;</span>
+    }
+
+    /**
+     * Encoding will be determined from JabRefPreferences.DEFAULT_ENCODING
+     *
+     * @return the downloaded string
+     * @throws IOException
+     */
+    public String downloadToString() throws IOException {
+<span class="nc" id="L144">        return downloadToString(Globals.prefs.getDefaultEncoding());</span>
+    }
+
+    public String downloadToString(Charset encoding) throws IOException {
+
+<span class="nc" id="L149">        try (InputStream input = new BufferedInputStream(openConnection().getInputStream());</span>
+<span class="nc" id="L150">             Writer output = new StringWriter()) {</span>
+<span class="nc" id="L151">            copy(input, output, encoding);</span>
+<span class="nc" id="L152">            return output.toString();</span>
+<span class="nc" id="L153">        } catch (IOException e) {</span>
+<span class="nc" id="L154">            LOGGER.warn(&quot;Could not copy input&quot;, e);</span>
+<span class="nc" id="L155">            throw e;</span>
+        }
+    }
+
+    private void copy(InputStream in, Writer out, Charset encoding) throws IOException {
+<span class="nc" id="L160">        InputStream monitoredInputStream = monitorInputStream(in);</span>
+<span class="nc" id="L161">        Reader r = new InputStreamReader(monitoredInputStream, encoding);</span>
+<span class="nc" id="L162">        try (BufferedReader read = new BufferedReader(r)) {</span>
+
+            String line;
+<span class="nc bnc" id="L165" title="All 2 branches missed.">            while ((line = read.readLine()) != null) {</span>
+<span class="nc" id="L166">                out.write(line);</span>
+<span class="nc" id="L167">                out.write(&quot;\n&quot;);</span>
+            }
+        }
+<span class="nc" id="L170">    }</span>
+
+    public void downloadToFile(File destination) throws IOException {
+
+<span class="nc" id="L174">        try (InputStream input = new BufferedInputStream(openConnection().getInputStream());</span>
+<span class="nc" id="L175">             OutputStream output = new BufferedOutputStream(new FileOutputStream(destination))) {</span>
+<span class="nc" id="L176">            copy(input, output);</span>
+<span class="nc" id="L177">        } catch (IOException e) {</span>
+<span class="nc" id="L178">            LOGGER.warn(&quot;Could not copy input&quot;, e);</span>
+<span class="nc" id="L179">            throw e;</span>
+        }
+<span class="nc" id="L181">    }</span>
+
+    private void copy(InputStream in, OutputStream out) throws IOException {
+<span class="nc" id="L184">        try (InputStream monitorInputStream = monitorInputStream(in)) {</span>
+<span class="nc" id="L185">            byte[] buffer = new byte[512];</span>
+<span class="nc" id="L186">            while (true) {</span>
+<span class="nc" id="L187">                int bytesRead = monitorInputStream.read(buffer);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">                if (bytesRead == -1) {</span>
+<span class="nc" id="L189">                    break;</span>
+                }
+<span class="nc" id="L191">                out.write(buffer, 0, bytesRead);</span>
+            }
+        }
+<span class="nc" id="L194">    }</span>
+
+    protected InputStream monitorInputStream(InputStream in) {
+<span class="nc" id="L197">        return in;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L202">        return &quot;URLDownload{&quot; + &quot;source=&quot; + source + '}';</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>NormalizeDateFormatter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.formatter.bibtexfields</a> &gt; <span class="el_source">NormalizeDateFormatter.java</span></div><h1>NormalizeDateFormatter.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.formatter.bibtexfields;
+
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
+import java.util.Optional;
+
+import net.sf.jabref.logic.formatter.Formatter;
+import net.sf.jabref.logic.l10n.Localization;
+
+/**
+ * This class transforms date to the format yyyy-mm-dd or yyyy-mm..
+ */
+<span class="fc" id="L14">public class NormalizeDateFormatter implements Formatter {</span>
+    @Override
+    public String getName() {
+<span class="nc" id="L17">        return Localization.lang(&quot;Normalize date&quot;);</span>
+    }
+
+    @Override
+    public String getKey() {
+<span class="fc" id="L22">        return &quot;normalize_date&quot;;</span>
+    }
+
+    /**
+     * Format date string to yyyy-mm-dd or yyyy-mm. Keeps the existing String if it does not match one of the following
+     * formats:
+     *  &quot;M/y&quot; (covers 9/15, 9/2015, and 09/2015)
+     *  &quot;MMMM (dd), yyyy&quot; (covers September 1, 2015 and September, 2015)
+     *  &quot;yyyy-MM-dd&quot; (covers 2009-1-15)
+     *  &quot;d.M.uuuu&quot; (covers 15.1.2015)
+     */
+    @Override
+    public String format(String value) {
+<span class="nc" id="L35">        Optional&lt;TemporalAccessor&gt; parsedDate = tryParseDate(value);</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        if (!parsedDate.isPresent()) {</span>
+<span class="nc" id="L37">            return value;</span>
+        }
+
+<span class="nc" id="L40">        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(&quot;uuuu-MM[-dd]&quot;);</span>
+<span class="nc" id="L41">        return dateFormatter.format(parsedDate.get());</span>
+    }
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L46">        return Localization.lang(&quot;Normalizes the date to ISO date format.&quot;);</span>
+    }
+
+    @Override
+    public String getExampleInput() {
+<span class="nc" id="L51">        return &quot;29.11.2003&quot;;</span>
+    }
+
+    /*
+     * Try to parse the following formats
+     *  &quot;M/y&quot; (covers 9/15, 9/2015, and 09/2015)
+     *  &quot;MMMM (dd), yyyy&quot; (covers September 1, 2015 and September, 2015)
+     *  &quot;yyyy-MM-dd&quot; (covers 2009-1-15)
+     *  &quot;d.M.uuuu&quot; (covers 15.1.2015)
+     *  &quot;uuuu.M.d&quot; (covers 2015.1.15)
+     * The code is essentially taken from http://stackoverflow.com/questions/4024544/how-to-parse-dates-in-multiple-formats-using-simpledateformat.
+     */
+    private Optional&lt;TemporalAccessor&gt; tryParseDate(String dateString) {
+<span class="nc" id="L64">        String[] formatStrings = {</span>
+<span class="nc" id="L65">                &quot;uuuu-M-d&quot;, &quot;uuuu-M&quot;,</span>
+<span class="nc" id="L66">                &quot;M/uu&quot;, &quot;M/uuuu&quot;,</span>
+<span class="nc" id="L67">                &quot;MMMM d, uuuu&quot;, &quot;MMMM, uuuu&quot;,</span>
+<span class="nc" id="L68">                &quot;d.M.uuuu&quot;, &quot;uuuu.M.d&quot;};</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        for (String formatString : formatStrings) {</span>
+            try {
+<span class="nc" id="L71">                return Optional.of(DateTimeFormatter.ofPattern(formatString).parse(dateString));</span>
+<span class="nc" id="L72">            } catch (DateTimeParseException ignored) {</span>
+                // Ignored
+            }
+        }
+
+<span class="nc" id="L77">        return Optional.empty();</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L82">        return defaultHashCode();</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="nc" id="L87">        return defaultEquals(obj);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

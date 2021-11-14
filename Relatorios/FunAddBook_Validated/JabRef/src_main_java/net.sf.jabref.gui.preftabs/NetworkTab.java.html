@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>NetworkTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">NetworkTab.java</span></div><h1>NetworkTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2013 JabRef contributors.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+*/
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Insets;
+
+import javax.swing.BorderFactory;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.net.ProxyPreferences;
+import net.sf.jabref.logic.net.ProxyRegisterer;
+
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+public class NetworkTab extends JPanel implements PrefsTab {
+
+    private final JCheckBox useProxyCheckBox;
+    private final JTextField hostnameTextField;
+    private final JTextField portTextField;
+    private final JCheckBox useAuthenticationCheckBox;
+    private final JTextField usernameTextField;
+    private final JPasswordField passwordTextField;
+    private final JabRefPreferences preferences;
+    private ProxyPreferences oldProxyPreferences;
+
+<span class="nc" id="L48">    public NetworkTab(JabRefPreferences preferences) {</span>
+<span class="nc" id="L49">        this.preferences = preferences;</span>
+
+<span class="nc" id="L51">        setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L53">        useProxyCheckBox = new JCheckBox(Localization.lang(&quot;Use custom proxy configuration&quot;));</span>
+
+<span class="nc" id="L55">        hostnameTextField = new JTextField();</span>
+<span class="nc" id="L56">        hostnameTextField.setEnabled(false);</span>
+<span class="nc" id="L57">        portTextField = new JTextField();</span>
+<span class="nc" id="L58">        portTextField.setEnabled(false);</span>
+
+<span class="nc" id="L60">        useAuthenticationCheckBox = new JCheckBox(Localization.lang(&quot;Proxy requires authentication&quot;));</span>
+<span class="nc" id="L61">        useAuthenticationCheckBox.setEnabled(false);</span>
+
+<span class="nc" id="L63">        usernameTextField = new JTextField();</span>
+<span class="nc" id="L64">        usernameTextField.setEnabled(false);</span>
+<span class="nc" id="L65">        passwordTextField = new JPasswordField();</span>
+<span class="nc" id="L66">        passwordTextField.setEnabled(false);</span>
+<span class="nc" id="L67">        JLabel passwordWarningLabel = new JLabel(Localization.lang(&quot;Attention: Password is stored in plain text!&quot;));</span>
+<span class="nc" id="L68">        passwordWarningLabel.setEnabled(false);</span>
+<span class="nc" id="L69">        passwordWarningLabel.setForeground(Color.RED);</span>
+
+<span class="nc" id="L71">        Insets margin = new Insets(0, 12, 3, 0);</span>
+<span class="nc" id="L72">        useProxyCheckBox.setMargin(margin);</span>
+<span class="nc" id="L73">        portTextField.setMargin(margin);</span>
+<span class="nc" id="L74">        useAuthenticationCheckBox.setMargin(margin);</span>
+
+        // Listener on useProxyCheckBox to enable and disable the proxy related settings;
+<span class="nc" id="L77">        useProxyCheckBox.addChangeListener(event -&gt; {</span>
+<span class="nc" id="L78">            hostnameTextField.setEnabled(useProxyCheckBox.isSelected());</span>
+<span class="nc" id="L79">            portTextField.setEnabled(useProxyCheckBox.isSelected());</span>
+<span class="nc" id="L80">            useAuthenticationCheckBox.setEnabled(useProxyCheckBox.isSelected());</span>
+<span class="nc" id="L81">        });</span>
+
+<span class="nc" id="L83">        useAuthenticationCheckBox.addChangeListener(event -&gt; {</span>
+<span class="nc bnc" id="L84" title="All 4 branches missed.">            usernameTextField.setEnabled(useProxyCheckBox.isSelected() &amp;&amp; useAuthenticationCheckBox.isSelected());</span>
+<span class="nc bnc" id="L85" title="All 4 branches missed.">            passwordTextField.setEnabled(useProxyCheckBox.isSelected() &amp;&amp; useAuthenticationCheckBox.isSelected());</span>
+<span class="nc bnc" id="L86" title="All 4 branches missed.">            passwordWarningLabel.setEnabled(useProxyCheckBox.isSelected() &amp;&amp; useAuthenticationCheckBox.isSelected());</span>
+<span class="nc" id="L87">        });</span>
+
+<span class="nc" id="L89">        FormLayout layout = new FormLayout(&quot;8dlu, left:pref, 4dlu, left:pref, 4dlu, fill:150dlu&quot;,</span>
+<span class="nc" id="L90">                &quot;p, 2dlu, p, 2dlu, p, 2dlu, p, 2dlu, p, 2dlu, p, 2dlu, p, p&quot;);</span>
+<span class="nc" id="L91">        FormBuilder builder = FormBuilder.create().layout(layout);</span>
+
+<span class="nc" id="L93">        builder.addSeparator(Localization.lang(&quot;Network&quot;)).xyw(1, 1, 6);</span>
+<span class="nc" id="L94">        builder.add(useProxyCheckBox).xyw(2, 3, 5);</span>
+<span class="nc" id="L95">        builder.add(Localization.lang(&quot;Hostname&quot;) + ':').xy(2, 5);</span>
+<span class="nc" id="L96">        builder.add(hostnameTextField).xyw(4, 5, 3);</span>
+<span class="nc" id="L97">        builder.add(Localization.lang(&quot;Port&quot;) + ':').xy(2, 7);</span>
+<span class="nc" id="L98">        builder.add(portTextField).xyw(4, 7, 3);</span>
+<span class="nc" id="L99">        builder.add(useAuthenticationCheckBox).xyw(4, 9, 3);</span>
+<span class="nc" id="L100">        builder.add(Localization.lang(&quot;Username&quot;) + ':').xy(4, 11);</span>
+<span class="nc" id="L101">        builder.add(usernameTextField).xy(6, 11);</span>
+<span class="nc" id="L102">        builder.add(Localization.lang(&quot;Password&quot;) + ':').xy(4, 13);</span>
+<span class="nc" id="L103">        builder.add(passwordTextField).xy(6, 13);</span>
+<span class="nc" id="L104">        builder.add(passwordWarningLabel).xy(6, 14);</span>
+
+<span class="nc" id="L106">        JPanel pan = builder.getPanel();</span>
+<span class="nc" id="L107">        pan.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L108">        add(pan, BorderLayout.CENTER);</span>
+<span class="nc" id="L109">    }</span>
+
+    @Override
+    public void setValues() {
+<span class="nc" id="L113">        ProxyPreferences proxyPreferences = ProxyPreferences.loadFromPreferences(preferences);</span>
+<span class="nc" id="L114">        useProxyCheckBox.setSelected(proxyPreferences.isUseProxy());</span>
+<span class="nc" id="L115">        hostnameTextField.setText(proxyPreferences.getHostname());</span>
+<span class="nc" id="L116">        portTextField.setText(proxyPreferences.getPort());</span>
+
+<span class="nc" id="L118">        useAuthenticationCheckBox.setSelected(proxyPreferences.isUseAuthentication());</span>
+<span class="nc" id="L119">        usernameTextField.setText(proxyPreferences.getUsername());</span>
+<span class="nc" id="L120">        passwordTextField.setText(proxyPreferences.getPassword());</span>
+
+<span class="nc" id="L122">        oldProxyPreferences = proxyPreferences;</span>
+<span class="nc" id="L123">    }</span>
+
+    @Override
+    public void storeSettings() {
+<span class="nc" id="L127">        Boolean useProxy = useProxyCheckBox.isSelected();</span>
+<span class="nc" id="L128">        String hostname = hostnameTextField.getText().trim();</span>
+<span class="nc" id="L129">        String port = portTextField.getText().trim();</span>
+<span class="nc" id="L130">        Boolean useAuthentication = useAuthenticationCheckBox.isSelected();</span>
+<span class="nc" id="L131">        String username = usernameTextField.getText().trim();</span>
+<span class="nc" id="L132">        String password = new String(passwordTextField.getPassword());</span>
+<span class="nc" id="L133">        ProxyPreferences proxyPreferences = new ProxyPreferences(useProxy, hostname, port, useAuthentication, username,</span>
+<span class="nc" id="L134">                password);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (!proxyPreferences.equals(oldProxyPreferences)) {</span>
+<span class="nc" id="L136">            ProxyRegisterer.register(proxyPreferences);</span>
+        }
+<span class="nc" id="L138">        proxyPreferences.storeInPreferences(preferences);</span>
+<span class="nc" id="L139">    }</span>
+
+    @Override
+    public boolean validateSettings() {
+        boolean validSetting;
+<span class="nc" id="L144">        boolean validAuthenticationSetting = false;</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">        if (useProxyCheckBox.isSelected()) {</span>
+<span class="nc" id="L146">            String host = hostnameTextField.getText();</span>
+<span class="nc" id="L147">            String port = portTextField.getText();</span>
+<span class="nc bnc" id="L148" title="All 8 branches missed.">            if ((host == null) || host.trim().isEmpty() || (port == null) || port.trim().isEmpty()) {</span>
+<span class="nc" id="L149">                validSetting = false;</span>
+<span class="nc" id="L150">            } else {</span>
+                Integer p;
+                try {
+<span class="nc" id="L153">                    p = Integer.parseInt(port);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                    validSetting = p &gt; 0;</span>
+<span class="nc" id="L155">                } catch (NumberFormatException e) {</span>
+<span class="nc" id="L156">                    validSetting = false;</span>
+                }
+            }
+<span class="nc bnc" id="L159" title="All 2 branches missed.">            if (useAuthenticationCheckBox.isSelected()) {</span>
+<span class="nc" id="L160">                String userName = usernameTextField.getText();</span>
+<span class="nc" id="L161">                char[] password = passwordTextField.getPassword();</span>
+                // no empty proxy passwords currently supported (they make no sense in this case anyway)
+<span class="nc bnc" id="L163" title="All 8 branches missed.">                if ((userName == null) || userName.trim().isEmpty() || (password == null) || (password.length == 0)) {</span>
+<span class="nc" id="L164">                    validAuthenticationSetting = false;</span>
+<span class="nc" id="L165">                    validSetting = false;</span>
+<span class="nc" id="L166">                } else {</span>
+<span class="nc" id="L167">                    validAuthenticationSetting = true;</span>
+                }
+            }
+<span class="nc" id="L170">        } else {</span>
+<span class="nc" id="L171">            validSetting = true;</span>
+        }
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (!validSetting) {</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">            if (validAuthenticationSetting) {</span>
+<span class="nc" id="L175">                JOptionPane.showMessageDialog(null, Localization.lang(&quot;Please specify both hostname and port&quot;),</span>
+<span class="nc" id="L176">                        Localization.lang(&quot;Invalid setting&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L177">            } else {</span>
+<span class="nc" id="L178">                JOptionPane.showMessageDialog(null, Localization.lang(&quot;Please specify both username and password&quot;),</span>
+<span class="nc" id="L179">                        Localization.lang(&quot;Invalid setting&quot;), JOptionPane.ERROR_MESSAGE);</span>
+            }
+        }
+<span class="nc" id="L182">        return validSetting;</span>
+    }
+
+    @Override
+    public String getTabName() {
+<span class="nc" id="L187">        return Localization.lang(&quot;Network&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

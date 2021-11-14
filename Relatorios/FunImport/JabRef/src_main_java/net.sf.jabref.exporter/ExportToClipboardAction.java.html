@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ExportToClipboardAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">ExportToClipboardAction.java</span></div><h1>ExportToClipboardAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.exporter;
+
+import java.awt.Toolkit;
+import java.awt.datatransfer.ClipboardOwner;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+
+import javax.swing.BorderFactory;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.worker.AbstractWorker;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: alver
+ * Date: Dec 12, 2006
+ * Time: 6:22:25 PM
+ * To change this template use File | Settings | File Templates.
+ */
+public class ExportToClipboardAction extends AbstractWorker {
+
+<span class="fc" id="L53">    private static final Log LOGGER = LogFactory.getLog(ExportToClipboardAction.class);</span>
+
+    private final JabRefFrame frame;
+
+    /**
+     * written by run() and read by update()
+     */
+    private String message;
+
+
+<span class="fc" id="L63">    public ExportToClipboardAction(JabRefFrame frame) {</span>
+<span class="fc" id="L64">        this.frame = Objects.requireNonNull(frame);</span>
+<span class="fc" id="L65">    }</span>
+
+    @Override
+    public void run() {
+<span class="nc" id="L69">        BasePanel panel = frame.getCurrentBasePanel();</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (panel == null) {</span>
+<span class="nc" id="L71">            return;</span>
+        }
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (panel.getSelectedEntries().isEmpty()) {</span>
+<span class="nc" id="L74">            message = Localization.lang(&quot;This operation requires one or more entries to be selected.&quot;);</span>
+<span class="nc" id="L75">            getCallBack().update();</span>
+<span class="nc" id="L76">            return;</span>
+        }
+
+<span class="nc" id="L79">        List&lt;IExportFormat&gt; exportFormats = new LinkedList&lt;&gt;(ExportFormats.getExportFormats().values());</span>
+<span class="nc" id="L80">        Collections.sort(exportFormats, (e1, e2) -&gt; e1.getDisplayName().compareTo(e2.getDisplayName()));</span>
+<span class="nc" id="L81">        String[] exportFormatDisplayNames = new String[exportFormats.size()];</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        for (int i = 0; i &lt; exportFormats.size(); i++) {</span>
+<span class="nc" id="L83">            IExportFormat exportFormat = exportFormats.get(i);</span>
+<span class="nc" id="L84">            exportFormatDisplayNames[i] = exportFormat.getDisplayName();</span>
+        }
+
+<span class="nc" id="L87">        JList&lt;String&gt; list = new JList&lt;&gt;(exportFormatDisplayNames);</span>
+<span class="nc" id="L88">        list.setBorder(BorderFactory.createEtchedBorder());</span>
+<span class="nc" id="L89">        list.setSelectionInterval(0, 0);</span>
+<span class="nc" id="L90">        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="nc" id="L91">        int answer = JOptionPane.showOptionDialog(frame, list, Localization.lang(&quot;Select export format&quot;),</span>
+<span class="nc" id="L92">                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null,</span>
+<span class="nc" id="L93">                new String[] {Localization.lang(&quot;Export with selected format&quot;),</span>
+<span class="nc" id="L94">                        Localization.lang(&quot;Return to JabRef&quot;)},</span>
+<span class="nc" id="L95">                Localization.lang(&quot;Export with selected format&quot;));</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (answer == JOptionPane.NO_OPTION) {</span>
+<span class="nc" id="L97">            return;</span>
+        }
+
+<span class="nc" id="L100">        IExportFormat format = exportFormats.get(list.getSelectedIndex());</span>
+
+        // Set the global variable for this database's file directory before exporting,
+        // so formatters can resolve linked files correctly.
+        // (This is an ugly hack!)
+<span class="nc" id="L105">        Globals.prefs.fileDirForDatabase = frame.getCurrentBasePanel().getBibDatabaseContext()</span>
+<span class="nc" id="L106">                .getFileDirectory();</span>
+
+<span class="nc" id="L108">        File tmp = null;</span>
+        try {
+            // To simplify the exporter API we simply do a normal export to a temporary
+            // file, and read the contents afterwards:
+<span class="nc" id="L112">            tmp = File.createTempFile(&quot;jabrefCb&quot;, &quot;.tmp&quot;);</span>
+<span class="nc" id="L113">            tmp.deleteOnExit();</span>
+<span class="nc" id="L114">            List&lt;BibEntry&gt; entries = panel.getSelectedEntries();</span>
+
+            // Write to file:
+<span class="nc" id="L117">            format.performExport(panel.getBibDatabaseContext(), tmp.getPath(), panel.getEncoding(), entries);</span>
+            // Read the file and put the contents on the clipboard:
+<span class="nc" id="L119">            StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L120">            try (Reader reader = new InputStreamReader(new FileInputStream(tmp), panel.getEncoding())) {</span>
+                int s;
+<span class="nc bnc" id="L122" title="All 2 branches missed.">                while ((s = reader.read()) != -1) {</span>
+<span class="nc" id="L123">                    sb.append((char) s);</span>
+                }
+            }
+<span class="nc" id="L126">            ClipboardOwner owner = (clipboard, content) -&gt; {</span>
+                // Do nothing
+<span class="nc" id="L128">            };</span>
+<span class="nc" id="L129">            RtfSelection rs = new RtfSelection(sb.toString());</span>
+<span class="nc" id="L130">            Toolkit.getDefaultToolkit().getSystemClipboard()</span>
+<span class="nc" id="L131">                    .setContents(rs, owner);</span>
+<span class="nc" id="L132">            message = Localization.lang(&quot;Entries exported to clipboard&quot;) + &quot;: &quot; + entries.size();</span>
+
+<span class="nc" id="L134">        } catch (Exception e) {</span>
+<span class="nc" id="L135">            LOGGER.error(&quot;Error exporting to clipboard&quot;, e); //To change body of catch statement use File | Settings | File Templates.</span>
+<span class="nc" id="L136">            message = Localization.lang(&quot;Error exporting to clipboard&quot;);</span>
+        } finally {
+            // Clean up:
+<span class="nc bnc" id="L139" title="All 4 branches missed.">            if ((tmp != null) &amp;&amp; !tmp.delete()) {</span>
+<span class="nc" id="L140">                LOGGER.info(&quot;Cannot delete temporary clipboard file&quot;);</span>
+            }
+        }
+<span class="nc" id="L143">    }</span>
+
+    @Override
+    public void update() {
+<span class="nc" id="L147">        frame.output(message);</span>
+<span class="nc" id="L148">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

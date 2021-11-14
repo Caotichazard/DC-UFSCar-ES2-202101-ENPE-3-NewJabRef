@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FileListTableModel.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">FileListTableModel.java</span></div><h1>FileListTableModel.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.StringJoiner;
+
+import javax.swing.JLabel;
+import javax.swing.SwingUtilities;
+import javax.swing.event.TableModelEvent;
+import javax.swing.table.AbstractTableModel;
+
+import net.sf.jabref.external.ExternalFileType;
+import net.sf.jabref.external.ExternalFileTypes;
+import net.sf.jabref.external.UnknownExternalFileType;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.entry.FileField;
+import net.sf.jabref.model.entry.ParsedFileField;
+
+/**
+ * Data structure to contain a list of file links, parseable from a coded string.
+ * Doubles as a table model for the file list editor.
+ */
+<span class="fc" id="L39">public class FileListTableModel extends AbstractTableModel {</span>
+
+<span class="fc" id="L41">    private final List&lt;FileListEntry&gt; list = new ArrayList&lt;&gt;();</span>
+
+    @Override
+    public int getRowCount() {
+<span class="fc" id="L45">        synchronized (list) {</span>
+<span class="fc" id="L46">            return list.size();</span>
+        }
+    }
+
+    @Override
+    public int getColumnCount() {
+<span class="fc" id="L52">        return 3;</span>
+    }
+
+    @Override
+    public Class&lt;String&gt; getColumnClass(int columnIndex) {
+<span class="nc" id="L57">        return String.class;</span>
+    }
+
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
+<span class="nc" id="L62">        synchronized (list) {</span>
+<span class="nc" id="L63">            FileListEntry entry = list.get(rowIndex);</span>
+<span class="nc bnc" id="L64" title="All 3 branches missed.">            switch (columnIndex) {</span>
+            case 0:
+<span class="nc" id="L66">                return entry.description;</span>
+            case 1:
+<span class="nc" id="L68">                return entry.link;</span>
+            default:
+<span class="nc bnc" id="L70" title="All 2 branches missed.">                return entry.type.isPresent() ? entry.type.get().getName() : &quot;&quot;;</span>
+            }
+        }
+    }
+
+    public FileListEntry getEntry(int index) {
+<span class="nc" id="L76">        synchronized (list) {</span>
+<span class="nc" id="L77">            return list.get(index);</span>
+        }
+    }
+
+    public void setEntry(int index, FileListEntry entry) {
+<span class="nc" id="L82">        synchronized (list) {</span>
+<span class="nc" id="L83">            list.set(index, entry);</span>
+<span class="nc" id="L84">            fireTableRowsUpdated(index, index);</span>
+        }
+<span class="nc" id="L86">    }</span>
+
+    public void removeEntry(int index) {
+<span class="nc" id="L89">        synchronized (list) {</span>
+<span class="nc" id="L90">            list.remove(index);</span>
+<span class="nc" id="L91">            fireTableRowsDeleted(index, index);</span>
+        }
+
+<span class="nc" id="L94">    }</span>
+
+    /**
+     * Add an entry to the table model, and fire a change event. The change event
+     * is fired on the event dispatch thread.
+     * @param index The row index to insert the entry at.
+     * @param entry The entry to insert.
+     */
+    public void addEntry(final int index, final FileListEntry entry) {
+<span class="nc" id="L103">        synchronized (list) {</span>
+<span class="nc" id="L104">            list.add(index, entry);</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">            if (SwingUtilities.isEventDispatchThread()) {</span>
+<span class="nc" id="L106">                fireTableRowsInserted(index, index);</span>
+<span class="nc" id="L107">            } else {</span>
+<span class="nc" id="L108">                SwingUtilities.invokeLater(() -&gt; fireTableRowsInserted(index, index));</span>
+            }
+        }
+
+<span class="nc" id="L112">    }</span>
+
+    @Override
+    public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+        // Do nothing
+<span class="nc" id="L117">    }</span>
+
+    /**
+     * Set up the table contents based on the flat string representation of the file list
+     * @param value The string representation
+     */
+    public void setContent(String value) {
+<span class="fc" id="L124">        setContent(value, false, true);</span>
+<span class="fc" id="L125">    }</span>
+
+    public void setContentDontGuessTypes(String value) {
+<span class="nc" id="L128">        setContent(value, false, false);</span>
+<span class="nc" id="L129">    }</span>
+
+    private FileListEntry setContent(String val, boolean firstOnly, boolean deduceUnknownTypes) {
+<span class="fc" id="L132">        String value = val;</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (value == null) {</span>
+<span class="fc" id="L134">            value = &quot;&quot;;</span>
+        }
+
+<span class="fc" id="L137">        List&lt;ParsedFileField&gt; fields = FileField.parse(value);</span>
+<span class="fc" id="L138">        List&lt;FileListEntry&gt; files = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">        for(ParsedFileField entry : fields) {</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">            if (entry.isEmpty()) {</span>
+<span class="nc" id="L142">                continue;</span>
+            }
+
+<span class="nc bnc" id="L145" title="All 2 branches missed.">            if (firstOnly) {</span>
+<span class="nc" id="L146">                return decodeEntry(entry, deduceUnknownTypes);</span>
+            } else {
+<span class="nc" id="L148">                files.add(decodeEntry(entry, deduceUnknownTypes));</span>
+            }
+        }
+
+<span class="fc" id="L152">        synchronized (list) {</span>
+<span class="fc" id="L153">            list.clear();</span>
+<span class="fc" id="L154">            list.addAll(files);</span>
+        }
+<span class="fc" id="L156">        fireTableChanged(new TableModelEvent(this));</span>
+<span class="fc" id="L157">        return null;</span>
+    }
+
+    /**
+     * Convenience method for finding a label corresponding to the type of the
+     * first file link in the given field content. The difference between using
+     * this method and using setContent() on an instance of FileListTableModel
+     * is a slight optimization: with this method, parsing is discontinued after
+     * the first entry has been found.
+     * @param content The file field content, as fed to this class' setContent() method.
+     * @return A JLabel set up with no text and the icon of the first entry's file type,
+     *  or null if no entry was found or the entry had no icon.
+     */
+    public static JLabel getFirstLabel(String content) {
+<span class="nc" id="L171">        FileListTableModel tm = new FileListTableModel();</span>
+<span class="nc" id="L172">        FileListEntry entry = tm.setContent(content, true, true);</span>
+<span class="nc bnc" id="L173" title="All 4 branches missed.">        if ((entry == null) || (!entry.type.isPresent())) {</span>
+<span class="nc" id="L174">            return null;</span>
+        }
+<span class="nc" id="L176">        return entry.type.get().getIconLabel();</span>
+    }
+
+    private FileListEntry decodeEntry(ParsedFileField entry, boolean deduceUnknownType) {
+<span class="nc" id="L180">        Optional&lt;ExternalFileType&gt; type = ExternalFileTypes.getInstance().getExternalFileTypeByName(entry.getFileType());</span>
+
+<span class="nc bnc" id="L182" title="All 4 branches missed.">        if (deduceUnknownType &amp;&amp; (type.get() instanceof UnknownExternalFileType)) {</span>
+            // No file type was recognized. Try to find a usable file type based
+            // on mime type:
+<span class="nc" id="L185">            type = ExternalFileTypes.getInstance().getExternalFileTypeByMimeType(entry.getFileType());</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">            if (!type.isPresent()) {</span>
+                // No type could be found from mime type on the extension:
+<span class="nc" id="L188">                Optional&lt;String&gt; extension = FileUtil.getFileExtension(entry.getLink());</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">                if (extension.isPresent()) {</span>
+<span class="nc" id="L190">                    Optional&lt;ExternalFileType&gt; typeGuess = ExternalFileTypes.getInstance()</span>
+<span class="nc" id="L191">                            .getExternalFileTypeByExt(extension.get());</span>
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                    if (typeGuess.isPresent()) {</span>
+<span class="nc" id="L194">                        type = typeGuess;</span>
+                    }
+                }
+            }
+        }
+
+<span class="nc" id="L200">        return new FileListEntry(entry.getDescription(), entry.getLink(), type);</span>
+    }
+
+    /**
+     * Transform the file list shown in the table into a flat string representable
+     * as a BibTeX field:
+     * @return String representation.
+     */
+    public String getStringRepresentation() {
+<span class="fc" id="L209">        synchronized (list) {</span>
+<span class="fc" id="L210">            String[][] array = new String[list.size()][];</span>
+<span class="fc" id="L211">            int i = 0;</span>
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">            for (FileListEntry entry : list) {</span>
+<span class="nc" id="L213">                array[i] = entry.getStringArrayRepresentation();</span>
+<span class="nc" id="L214">                i++;</span>
+            }
+<span class="fc" id="L216">            return FileField.encodeStringArray(array);</span>
+        }
+    }
+
+    /**
+     * Transform the file list shown in the table into a HTML string representation
+     * suitable for displaying the contents in a tooltip.
+     * @return Tooltip representation.
+     */
+    public String getToolTipHTMLRepresentation() {
+<span class="nc" id="L226">        StringJoiner sb = new StringJoiner(&quot;&lt;br&gt;&quot;, &quot;&lt;html&gt;&quot;, &quot;&lt;/html&gt;&quot;);</span>
+
+<span class="nc" id="L228">        synchronized (list) {</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">            for (FileListEntry entry : list) {</span>
+<span class="nc" id="L230">                sb.add(String.format(&quot;%s (%s)&quot;, entry.description, entry.link));</span>
+            }
+        }
+
+<span class="nc" id="L234">        return sb.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

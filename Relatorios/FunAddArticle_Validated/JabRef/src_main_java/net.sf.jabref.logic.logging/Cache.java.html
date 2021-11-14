@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>Cache.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.logging</a> &gt; <span class="el_source">Cache.java</span></div><h1>Cache.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.logging;
+
+import java.util.LinkedList;
+import java.util.Queue;
+
+/**
+ * Enables caching of messages
+ */
+public class Cache {
+
+    public static final int DEFAULT_CAPACITY = 500;
+    private final int capacity;
+<span class="fc" id="L28">    private final Queue&lt;String&gt; queue = new LinkedList&lt;&gt;();</span>
+
+<span class="fc" id="L30">    private String cache = &quot;&quot;;</span>
+<span class="fc" id="L31">    private boolean cacheRefreshNeeded = true;</span>
+
+    public Cache() {
+<span class="fc" id="L34">        this(DEFAULT_CAPACITY);</span>
+<span class="fc" id="L35">    }</span>
+
+<span class="fc" id="L37">    public Cache(int capacity) {</span>
+<span class="fc" id="L38">        this.capacity = capacity;</span>
+<span class="fc" id="L39">    }</span>
+
+    public synchronized String get() {
+<span class="nc" id="L42">        ensureCacheIsFresh();</span>
+<span class="nc" id="L43">        return cache;</span>
+    }
+
+    private void ensureCacheIsFresh() {
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (cacheRefreshNeeded) {</span>
+<span class="nc" id="L48">            cache = String.join(&quot;&quot;, queue);</span>
+        }
+<span class="nc" id="L50">    }</span>
+
+    public synchronized void add(String message) {
+<span class="nc" id="L53">        queue.add(message);</span>
+
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (isCapacityExceeded()) {</span>
+            // if we reached capacity, we switch to the &quot;real&quot; caching method and remove old lines
+<span class="nc" id="L57">            cacheRefreshNeeded = true;</span>
+<span class="nc" id="L58">            truncateLog();</span>
+<span class="nc" id="L59">        } else {</span>
+            // if we did not yet reach capacity, we just append the string to the cache
+            // cache is still up to date
+<span class="nc" id="L62">            cache = cache + message;</span>
+        }
+<span class="nc" id="L64">    }</span>
+
+    private void truncateLog() {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        while (isCapacityExceeded()) {</span>
+            // if log is too large, remove first line
+            // we need a while loop as the formatter may output more than one line
+<span class="nc" id="L70">            queue.poll();</span>
+        }
+<span class="nc" id="L72">    }</span>
+
+    private boolean isCapacityExceeded() {
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        return queue.size() &gt; capacity;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

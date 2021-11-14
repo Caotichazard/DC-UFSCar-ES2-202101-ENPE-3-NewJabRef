@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AddToGroupAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.groups</a> &gt; <span class="el_source">AddToGroupAction.java</span></div><h1>AddToGroupAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.groups;
+
+import java.awt.event.ActionEvent;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.swing.AbstractAction;
+
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.logic.groups.AbstractGroup;
+import net.sf.jabref.logic.groups.EntriesGroupChange;
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.util.Util;
+
+public class AddToGroupAction extends AbstractAction {
+
+    private final boolean move;
+    private GroupTreeNodeViewModel node;
+    private BasePanel panel;
+
+    /**
+     * @param move If true, remove entries from all other groups.
+     */
+    public AddToGroupAction(GroupTreeNodeViewModel node, boolean move, BasePanel panel) {
+<span class="nc" id="L44">        super(node.getNode().getGroup().getName());</span>
+<span class="nc" id="L45">        this.node = node;</span>
+<span class="nc" id="L46">        this.move = move;</span>
+<span class="nc" id="L47">        this.panel = panel;</span>
+<span class="nc" id="L48">    }</span>
+
+    public AddToGroupAction(boolean move) {
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        super(move ? Localization.lang(&quot;Assign entry selection exclusively to this group&quot;) :</span>
+<span class="fc" id="L52">                Localization.lang(&quot;Add entry selection to this group&quot;));</span>
+<span class="fc" id="L53">        this.move = move;</span>
+<span class="fc" id="L54">    }</span>
+
+    public void setBasePanel(BasePanel panel) {
+<span class="nc" id="L57">        this.panel = panel;</span>
+<span class="nc" id="L58">    }</span>
+
+    public void setNode(GroupTreeNodeViewModel node) {
+<span class="nc" id="L61">        this.node = node;</span>
+<span class="nc" id="L62">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent evt) {
+<span class="nc" id="L66">        final List&lt;BibEntry&gt; entries = panel.getSelectedEntries();</span>
+
+        // if an editor is showing, its fields must be updated after the assignment,
+        // and before that, the current edit has to be stored:
+<span class="nc" id="L70">        panel.storeCurrentEdit();</span>
+
+<span class="nc" id="L72">        NamedCompound undoAll = new NamedCompound(Localization.lang(&quot;change assignment of entries&quot;));</span>
+
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (move) {</span>
+<span class="nc" id="L75">            moveToGroup(entries, undoAll);</span>
+<span class="nc" id="L76">        } else {</span>
+<span class="nc" id="L77">            addToGroup(entries, undoAll);</span>
+        }
+
+<span class="nc" id="L80">        undoAll.end();</span>
+
+<span class="nc" id="L82">        panel.undoManager.addEdit(undoAll);</span>
+<span class="nc" id="L83">        panel.markBaseChanged();</span>
+<span class="nc" id="L84">        panel.updateEntryEditorIfShowing();</span>
+<span class="nc" id="L85">        panel.getGroupSelector().valueChanged(null);</span>
+<span class="nc" id="L86">    }</span>
+
+    public void moveToGroup(List&lt;BibEntry&gt; entries, NamedCompound undoAll) {
+<span class="nc" id="L89">        List&lt;GroupTreeNode&gt; groupsContainingEntries =</span>
+<span class="nc" id="L90">                node.getNode().getRoot().getContainingGroups(entries, false).stream().filter(node -&gt; node.getGroup().supportsRemove()).collect(</span>
+<span class="nc" id="L91">                        Collectors.toList());</span>
+
+<span class="nc" id="L93">        List&lt;AbstractGroup&gt; affectedGroups = groupsContainingEntries.stream().map(GroupTreeNode::getGroup).collect(</span>
+<span class="nc" id="L94">                Collectors.toList());</span>
+<span class="nc" id="L95">        affectedGroups.add(node.getNode().getGroup());</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (!Util.warnAssignmentSideEffects(affectedGroups, panel.frame())) {</span>
+<span class="nc" id="L97">            return; // user aborted operation</span>
+        }
+
+        // first remove
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        for (GroupTreeNode group : groupsContainingEntries) {</span>
+<span class="nc" id="L102">            Optional&lt;EntriesGroupChange&gt; undoRemove = group.getGroup().remove(entries);</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            if (undoRemove.isPresent()) {</span>
+<span class="nc" id="L104">                undoAll.addEdit(UndoableChangeEntriesOfGroup.getUndoableEdit(node, undoRemove.get()));</span>
+            }
+        }
+
+        // then add
+<span class="nc" id="L109">        Optional&lt;EntriesGroupChange&gt; undoAdd = node.addEntriesToGroup(entries);</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (undoAdd.isPresent()) {</span>
+<span class="nc" id="L111">            undoAll.addEdit(UndoableChangeEntriesOfGroup.getUndoableEdit(node, undoAdd.get()));</span>
+        }
+<span class="nc" id="L113">    }</span>
+
+    public void addToGroup(List&lt;BibEntry&gt; entries, NamedCompound undo) {
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (!Util.warnAssignmentSideEffects(node.getNode().getGroup(), panel.frame())) {</span>
+<span class="nc" id="L117">            return; // user aborted operation</span>
+        }
+
+<span class="nc" id="L120">        Optional&lt;EntriesGroupChange&gt; undoAdd = node.addEntriesToGroup(entries);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (undoAdd.isPresent()) {</span>
+<span class="nc" id="L122">            undo.addEdit(UndoableChangeEntriesOfGroup.getUndoableEdit(node, undoAdd.get()));</span>
+        }
+<span class="nc" id="L124">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

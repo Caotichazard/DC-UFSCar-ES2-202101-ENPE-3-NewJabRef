@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BiblioscapeImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">BiblioscapeImporter.java</span></div><h1>BiblioscapeImporter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer.fileformat;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.jabref.importer.ImportFormatReader;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Imports a Biblioscape Tag File. The format is described on
+ * http://www.biblioscape.com/manual_bsp/Biblioscape_Tag_File.htm Several
+ * Biblioscape field types are ignored. Others are only included in the BibTeX
+ * field &quot;comment&quot;.
+ */
+<span class="fc" id="L37">public class BiblioscapeImporter extends ImportFormat {</span>
+
+    /**
+     * Return the name of this import format.
+     */
+    @Override
+    public String getFormatName() {
+<span class="fc" id="L44">        return &quot;Biblioscape&quot;;</span>
+    }
+
+    /*
+     *  (non-Javadoc)
+     * @see net.sf.jabref.imports.ImportFormat#getCLIId()
+     */
+    @Override
+    public String getCLIId() {
+<span class="nc" id="L53">        return &quot;biblioscape&quot;;</span>
+    }
+
+    /**
+     * Check whether the source is in the correct format for this importer.
+     */
+    @Override
+    public boolean isRecognizedFormat(InputStream in) throws IOException {
+<span class="nc" id="L61">        return true;</span>
+    }
+
+    /**
+     * Parse the entries in the source, and return a List of BibEntry
+     * objects.
+     */
+    @Override
+    public List&lt;BibEntry&gt; importEntries(InputStream stream, OutputPrinter status) throws IOException {
+
+<span class="nc" id="L71">        List&lt;BibEntry&gt; bibItems = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L72">        BufferedReader in = new BufferedReader(ImportFormatReader.getReaderDefaultEncoding(stream));</span>
+        String line;
+<span class="nc" id="L74">        Map&lt;String, String&gt; hm = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L75">        Map&lt;String, StringBuilder&gt; lines = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L76">        StringBuilder previousLine = null;</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        while ((line = in.readLine()) != null) {</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">            if (line.isEmpty()) {</span>
+<span class="nc" id="L79">                continue; // ignore empty lines, e.g. at file</span>
+            }
+            // end
+            // entry delimiter -&gt; item complete
+<span class="nc bnc" id="L83" title="All 2 branches missed.">            if (&quot;------&quot;.equals(line)) {</span>
+<span class="nc" id="L84">                String[] type = new String[2];</span>
+<span class="nc" id="L85">                String[] pages = new String[2];</span>
+<span class="nc" id="L86">                String country = null;</span>
+<span class="nc" id="L87">                String address = null;</span>
+<span class="nc" id="L88">                String titleST = null;</span>
+<span class="nc" id="L89">                String titleTI = null;</span>
+<span class="nc" id="L90">                List&lt;String&gt; comments = new ArrayList&lt;&gt;();</span>
+                // add item
+<span class="nc bnc" id="L92" title="All 2 branches missed.">                for (Map.Entry&lt;String, StringBuilder&gt; entry : lines.entrySet()) {</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">                    if (&quot;AU&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L94">                        hm.put(&quot;author&quot;, entry.getValue()</span>
+<span class="nc" id="L95">                                .toString());</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                    } else if (&quot;TI&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L97">                        titleTI = entry.getValue()</span>
+<span class="nc" id="L98">                                .toString();</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">                    } else if (&quot;ST&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L100">                        titleST = entry.getValue()</span>
+<span class="nc" id="L101">                                .toString();</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                    } else if (&quot;YP&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L103">                        hm.put(&quot;year&quot;, entry</span>
+<span class="nc" id="L104">                                .getValue().toString());</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                    } else if (&quot;VL&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L106">                        hm.put(&quot;volume&quot;, entry</span>
+<span class="nc" id="L107">                                .getValue().toString());</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">                    } else if (&quot;NB&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L109">                        hm.put(&quot;number&quot;, entry</span>
+<span class="nc" id="L110">                                .getValue().toString());</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                    } else if (&quot;PS&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L112">                        pages[0] = entry.getValue()</span>
+<span class="nc" id="L113">                                .toString();</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">                    } else if (&quot;PE&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L115">                        pages[1] = entry.getValue()</span>
+<span class="nc" id="L116">                                .toString();</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">                    } else if (&quot;KW&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L118">                        hm.put(&quot;keywords&quot;, entry</span>
+<span class="nc" id="L119">                                .getValue().toString());</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">                    } else if (&quot;RT&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L121">                        type[0] = entry.getValue()</span>
+<span class="nc" id="L122">                                .toString();</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">                    } else if (&quot;SB&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L124">                        comments.add(&quot;Subject: &quot;</span>
+<span class="nc" id="L125">                                + entry.getValue());</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                    } else if (&quot;SA&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L127">                        comments</span>
+<span class="nc" id="L128">                        .add(&quot;Secondary Authors: &quot; + entry.getValue());</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                    } else if (&quot;NT&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L130">                        hm.put(&quot;note&quot;, entry</span>
+<span class="nc" id="L131">                                .getValue().toString());</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">                    } else if (&quot;PB&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L133">                        hm.put(&quot;publisher&quot;, entry</span>
+<span class="nc" id="L134">                                .getValue().toString());</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">                    } else if (&quot;TA&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L136">                        comments</span>
+<span class="nc" id="L137">                        .add(&quot;Tertiary Authors: &quot; + entry.getValue());</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                    } else if (&quot;TT&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L139">                        comments</span>
+<span class="nc" id="L140">                        .add(&quot;Tertiary Title: &quot; + entry.getValue());</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">                    } else if (&quot;ED&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L142">                        hm.put(&quot;edition&quot;, entry</span>
+<span class="nc" id="L143">                                .getValue().toString());</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">                    } else if (&quot;TW&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L145">                        type[1] = entry.getValue()</span>
+<span class="nc" id="L146">                                .toString();</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                    } else if (&quot;QA&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L148">                        comments</span>
+<span class="nc" id="L149">                        .add(&quot;Quaternary Authors: &quot; + entry.getValue());</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">                    } else if (&quot;QT&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L151">                        comments</span>
+<span class="nc" id="L152">                        .add(&quot;Quaternary Title: &quot; + entry.getValue());</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">                    } else if (&quot;IS&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L154">                        hm.put(&quot;isbn&quot;, entry</span>
+<span class="nc" id="L155">                                .getValue().toString());</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                    } else if (&quot;AB&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L157">                        hm.put(&quot;abstract&quot;, entry</span>
+<span class="nc" id="L158">                                .getValue().toString());</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">                    } else if (&quot;AD&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L160">                        address = entry.getValue()</span>
+<span class="nc" id="L161">                                .toString();</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                    } else if (&quot;LG&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L163">                        hm.put(&quot;language&quot;, entry</span>
+<span class="nc" id="L164">                                .getValue().toString());</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">                    } else if (&quot;CO&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L166">                        country = entry.getValue()</span>
+<span class="nc" id="L167">                                .toString();</span>
+<span class="nc bnc" id="L168" title="All 4 branches missed.">                    } else if (&quot;UR&quot;.equals(entry.getKey()) || &quot;AT&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L169">                        String s = entry.getValue().toString().trim();</span>
+<span class="nc bnc" id="L170" title="All 4 branches missed.">                        hm.put(s.startsWith(&quot;http://&quot;) || s.startsWith(&quot;ftp://&quot;) ? &quot;url&quot;</span>
+<span class="nc" id="L171">                                : &quot;pdf&quot;, entry.getValue().toString());</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                    } else if (&quot;C1&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L173">                        comments.add(&quot;Custom1: &quot;</span>
+<span class="nc" id="L174">                                + entry.getValue());</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">                    } else if (&quot;C2&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L176">                        comments.add(&quot;Custom2: &quot;</span>
+<span class="nc" id="L177">                                + entry.getValue());</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                    } else if (&quot;C3&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L179">                        comments.add(&quot;Custom3: &quot;</span>
+<span class="nc" id="L180">                                + entry.getValue());</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">                    } else if (&quot;C4&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L182">                        comments.add(&quot;Custom4: &quot;</span>
+<span class="nc" id="L183">                                + entry.getValue());</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">                    } else if (&quot;C5&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L185">                        comments.add(&quot;Custom5: &quot;</span>
+<span class="nc" id="L186">                                + entry.getValue());</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">                    } else if (&quot;C6&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L188">                        comments.add(&quot;Custom6: &quot;</span>
+<span class="nc" id="L189">                                + entry.getValue());</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                    } else if (&quot;DE&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L191">                        hm.put(&quot;annote&quot;, entry</span>
+<span class="nc" id="L192">                                .getValue().toString());</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                    } else if (&quot;CA&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L194">                        comments.add(&quot;Categories: &quot;</span>
+<span class="nc" id="L195">                                + entry.getValue());</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">                    } else if (&quot;TH&quot;.equals(entry.getKey())) {</span>
+<span class="nc" id="L197">                        comments.add(&quot;Short Title: &quot;</span>
+<span class="nc" id="L198">                                + entry.getValue());</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">                    } else if (&quot;SE&quot;.equals(entry.getKey()))</span>
+                    {
+<span class="nc" id="L201">                        hm.put(&quot;chapter&quot;, entry</span>
+<span class="nc" id="L202">                                .getValue().toString());</span>
+                        //else if (entry.getKey().equals(&quot;AC&quot;))
+                        // hm.put(&quot;&quot;,entry.getValue().toString());
+                        //else if (entry.getKey().equals(&quot;LP&quot;))
+                        // hm.put(&quot;&quot;,entry.getValue().toString());
+                    }
+                }
+
+<span class="nc" id="L210">                String bibtexType = &quot;misc&quot;;</span>
+                // to find type, first check TW, then RT
+<span class="nc bnc" id="L212" title="All 4 branches missed.">                for (int i = 1; (i &gt;= 0) &amp;&amp; &quot;misc&quot;.equals(bibtexType); --i) {</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">                    if (type[i] == null) {</span>
+<span class="nc" id="L214">                        continue;</span>
+                    }
+<span class="nc" id="L216">                    type[i] = type[i].toLowerCase();</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">                    if (type[i].contains(&quot;article&quot;)) {</span>
+<span class="nc" id="L218">                        bibtexType = &quot;article&quot;;</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">                    } else if (type[i].contains(&quot;journal&quot;)) {</span>
+<span class="nc" id="L220">                        bibtexType = &quot;article&quot;;</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">                    } else if (type[i].contains(&quot;book section&quot;)) {</span>
+<span class="nc" id="L222">                        bibtexType = &quot;inbook&quot;;</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">                    } else if (type[i].contains(&quot;book&quot;)) {</span>
+<span class="nc" id="L224">                        bibtexType = &quot;book&quot;;</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">                    } else if (type[i].contains(&quot;conference&quot;)) {</span>
+<span class="nc" id="L226">                        bibtexType = &quot;inproceedings&quot;;</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">                    } else if (type[i].contains(&quot;proceedings&quot;)) {</span>
+<span class="nc" id="L228">                        bibtexType = &quot;inproceedings&quot;;</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">                    } else if (type[i].contains(&quot;report&quot;)) {</span>
+<span class="nc" id="L230">                        bibtexType = &quot;techreport&quot;;</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">                    } else if (type[i].contains(&quot;thesis&quot;)</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">                            &amp;&amp; type[i].contains(&quot;master&quot;)) {</span>
+<span class="nc" id="L233">                        bibtexType = &quot;mastersthesis&quot;;</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">                    } else if (type[i].contains(&quot;thesis&quot;)) {</span>
+<span class="nc" id="L235">                        bibtexType = &quot;phdthesis&quot;;</span>
+                    }
+                }
+
+                // depending on bibtexType, decide where to place the titleRT and
+                // titleTI
+<span class="nc bnc" id="L241" title="All 2 branches missed.">                if (&quot;article&quot;.equals(bibtexType)) {</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">                    if (titleST != null) {</span>
+<span class="nc" id="L243">                        hm.put(&quot;journal&quot;, titleST);</span>
+                    }
+<span class="nc bnc" id="L245" title="All 2 branches missed.">                    if (titleTI != null) {</span>
+<span class="nc" id="L246">                        hm.put(&quot;title&quot;, titleTI);</span>
+                    }
+<span class="nc bnc" id="L248" title="All 2 branches missed.">                } else if (&quot;inbook&quot;.equals(bibtexType)) {</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">                    if (titleST != null) {</span>
+<span class="nc" id="L250">                        hm.put(&quot;booktitle&quot;, titleST);</span>
+                    }
+<span class="nc bnc" id="L252" title="All 2 branches missed.">                    if (titleTI != null) {</span>
+<span class="nc" id="L253">                        hm.put(&quot;title&quot;, titleTI);</span>
+                    }
+<span class="nc" id="L255">                } else {</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">                    if (titleST != null) {</span>
+<span class="nc" id="L257">                        hm.put(&quot;booktitle&quot;, titleST); // should not</span>
+                    }
+                    // happen, I
+                    // think
+<span class="nc bnc" id="L261" title="All 2 branches missed.">                    if (titleTI != null) {</span>
+<span class="nc" id="L262">                        hm.put(&quot;title&quot;, titleTI);</span>
+                    }
+                }
+
+                // concatenate pages
+<span class="nc bnc" id="L267" title="All 4 branches missed.">                if ((pages[0] != null) || (pages[1] != null)) {</span>
+<span class="nc bnc" id="L268" title="All 4 branches missed.">                    hm.put(&quot;pages&quot;, (pages[0] == null ? &quot;&quot; : pages[0]) + (pages[1] == null ? &quot;&quot; : &quot;--&quot; + pages[1]));</span>
+                }
+
+                // concatenate address and country
+<span class="nc bnc" id="L272" title="All 2 branches missed.">                if (address != null) {</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">                    hm.put(&quot;address&quot;, address + (country == null ? &quot;&quot; : &quot;, &quot; + country));</span>
+                }
+
+<span class="nc bnc" id="L276" title="All 2 branches missed.">                if (!comments.isEmpty()) { // set comment if present</span>
+<span class="nc" id="L277">                    hm.put(&quot;comment&quot;, String.join(&quot;;&quot;, comments));</span>
+                }
+<span class="nc" id="L279">                BibEntry b = new BibEntry(DEFAULT_BIBTEXENTRY_ID, bibtexType);</span>
+<span class="nc" id="L280">                b.setField(hm);</span>
+<span class="nc" id="L281">                bibItems.add(b);</span>
+
+<span class="nc" id="L283">                hm.clear();</span>
+<span class="nc" id="L284">                lines.clear();</span>
+<span class="nc" id="L285">                previousLine = null;</span>
+
+<span class="nc" id="L287">                continue;</span>
+            }
+            // new key
+<span class="nc bnc" id="L290" title="All 4 branches missed.">            if (line.startsWith(&quot;--&quot;) &amp;&amp; (line.length() &gt;= 7)</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">                    &amp;&amp; &quot;-- &quot;.equals(line.substring(4, 7))) {</span>
+<span class="nc" id="L292">                previousLine = new StringBuilder(line.substring(7));</span>
+<span class="nc" id="L293">                lines.put(line.substring(2, 4), previousLine);</span>
+<span class="nc" id="L294">                continue;</span>
+            }
+            // continuation (folding) of previous line
+<span class="nc bnc" id="L297" title="All 2 branches missed.">            if (previousLine == null) {</span>
+<span class="nc" id="L298">                return Collections.emptyList();</span>
+            }
+<span class="nc" id="L300">            previousLine.append(line.trim());</span>
+        }
+
+<span class="nc" id="L303">        return bibItems;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

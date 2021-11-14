@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MarkEntriesAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.worker</a> &gt; <span class="el_source">MarkEntriesAction.java</span></div><h1>MarkEntriesAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.worker;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.List;
+
+import javax.swing.JMenuItem;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.EntryMarker;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ *
+ */
+public class MarkEntriesAction extends AbstractWorker implements ActionListener {
+
+    private final JabRefFrame frame;
+    private final int level;
+    private final JMenuItem menuItem;
+    private int besLength;
+
+<span class="fc" id="L46">    private static final Log LOGGER = LogFactory.getLog(MarkEntriesAction.class);</span>
+
+<span class="fc" id="L48">    public MarkEntriesAction(JabRefFrame frame, int level) {</span>
+<span class="fc" id="L49">        this.frame = frame;</span>
+<span class="fc" id="L50">        this.level = level;</span>
+
+        //menuItem = new JMenuItem(Globals.menuTitle(&quot;Mark entries&quot;).replace(&quot;&amp;&quot;,&quot;&quot;));
+<span class="fc" id="L53">        menuItem = new JMenuItem(&quot;               &quot;);</span>
+<span class="fc" id="L54">        menuItem.setMnemonic(String.valueOf(level + 1).charAt(0));</span>
+<span class="fc" id="L55">        menuItem.setBackground(Globals.prefs.getColor(JabRefPreferences.MARKED_ENTRY_BACKGROUND + this.level));</span>
+<span class="fc" id="L56">        menuItem.setOpaque(true);</span>
+<span class="fc" id="L57">        menuItem.addActionListener(this);</span>
+<span class="fc" id="L58">    }</span>
+
+    public JMenuItem getMenuItem() {
+<span class="fc" id="L61">        return menuItem;</span>
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent actionEvent) {
+        try {
+<span class="nc" id="L67">            this.init();</span>
+<span class="nc" id="L68">            getWorker().run();</span>
+<span class="nc" id="L69">            getCallBack().update();</span>
+<span class="nc" id="L70">        } catch (Throwable t) {</span>
+<span class="nc" id="L71">            LOGGER.warn(&quot;Problem marking entries&quot;, t);</span>
+        }
+<span class="nc" id="L73">    }</span>
+
+    @Override
+    public void run() {
+<span class="nc" id="L77">        BasePanel panel = frame.getCurrentBasePanel();</span>
+<span class="nc" id="L78">        List&lt;BibEntry&gt; bes = panel.getSelectedEntries();</span>
+
+        // used at update() to determine output string
+<span class="nc" id="L81">        besLength = bes.size();</span>
+
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (!bes.isEmpty()) {</span>
+<span class="nc" id="L84">            NamedCompound ce = new NamedCompound(Localization.lang(&quot;Mark entries&quot;));</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">            for (BibEntry be : bes) {</span>
+<span class="nc" id="L86">                EntryMarker.markEntry(be, level + 1, false, ce);</span>
+            }
+<span class="nc" id="L88">            ce.end();</span>
+<span class="nc" id="L89">            panel.undoManager.addEdit(ce);</span>
+        }
+<span class="nc" id="L91">    }</span>
+
+    @Override
+    public void update() {
+        String outputStr;
+<span class="nc bnc" id="L96" title="All 3 branches missed.">        switch (besLength) {</span>
+        case 0:
+<span class="nc" id="L98">            outputStr = Localization.lang(&quot;This operation requires one or more entries to be selected.&quot;);</span>
+<span class="nc" id="L99">            break;</span>
+        case 1:
+<span class="nc" id="L101">            frame.getCurrentBasePanel().markBaseChanged();</span>
+<span class="nc" id="L102">            outputStr = Localization.lang(&quot;Marked selected entry&quot;);</span>
+<span class="nc" id="L103">            break;</span>
+        default:
+<span class="nc" id="L105">            frame.getCurrentBasePanel().markBaseChanged();</span>
+<span class="nc" id="L106">            outputStr = Localization.lang(&quot;Marked all %0 selected entries&quot;, Integer.toString(besLength));</span>
+            break;
+        }
+<span class="nc" id="L109">        frame.output(outputStr);</span>
+<span class="nc" id="L110">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

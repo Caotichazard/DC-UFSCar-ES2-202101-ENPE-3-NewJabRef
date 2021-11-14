@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractGroup.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.groups</a> &gt; <span class="el_source">AbstractGroup.java</span></div><h1>AbstractGroup.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.groups;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import net.sf.jabref.importer.fileformat.ParseException;
+import net.sf.jabref.logic.search.SearchMatcher;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * A group of BibtexEntries.
+ */
+public abstract class AbstractGroup implements SearchMatcher {
+
+    /**
+     * Character used for quoting in the string representation.
+     */
+    public static final char QUOTE_CHAR = '\\';
+    /**
+     * For separating units (e.g. name, which every group has) in the string
+     * representation
+     */
+    public static final String SEPARATOR = &quot;;&quot;;
+    /**
+     * The group's name (every type of group has one).
+     */
+    private String name;
+    /**
+     * The hierarchical context of the group (INDEPENDENT, REFINING, or
+     * INCLUDING). Defaults to INDEPENDENT, which will be used if and
+     * only if the context specified in the constructor is invalid.
+     */
+<span class="fc" id="L50">    private GroupHierarchyType context = GroupHierarchyType.INDEPENDENT;</span>
+
+<span class="fc" id="L52">    AbstractGroup(String name, GroupHierarchyType context) {</span>
+<span class="fc" id="L53">        this.name = name;</span>
+<span class="fc" id="L54">        setHierarchicalContext(context);</span>
+<span class="fc" id="L55">    }</span>
+
+    /**
+     * Re-create a group instance from a textual representation.
+     *
+     * @param s The result from the group's toString() method.
+     * @return New instance of the encoded group.
+     * @throws ParseException If an error occurred and a group could not be created,
+     *                        e.g. due to a malformed regular expression.
+     */
+    public static AbstractGroup fromString(String s) throws ParseException {
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (s.startsWith(KeywordGroup.ID)) {</span>
+<span class="nc" id="L67">            return KeywordGroup.fromString(s);</span>
+        }
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (s.startsWith(AllEntriesGroup.ID)) {</span>
+<span class="nc" id="L70">            return AllEntriesGroup.fromString(s);</span>
+        }
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (s.startsWith(SearchGroup.ID)) {</span>
+<span class="nc" id="L73">            return SearchGroup.fromString(s);</span>
+        }
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (s.startsWith(ExplicitGroup.ID)) {</span>
+<span class="nc" id="L76">            return ExplicitGroup.fromString(s);</span>
+        }
+<span class="nc" id="L78">        return null; // unknown group</span>
+    }
+
+    public GroupHierarchyType getContext() {
+<span class="nc" id="L82">        return context;</span>
+    }
+
+    public abstract String getTypeId();
+
+    /**
+     * Returns this group's name, e.g. for display in a list/tree.
+     */
+    public final String getName() {
+<span class="fc" id="L91">        return name;</span>
+    }
+
+    /**
+     * Sets the group's name.
+     */
+    public final void setName(String name) {
+<span class="nc" id="L98">        this.name = name;</span>
+<span class="nc" id="L99">    }</span>
+
+    /**
+     * @return true if this type of group supports the explicit adding of
+     * entries.
+     */
+    public abstract boolean supportsAdd();
+
+    /**
+     * @return true if this type of group supports the explicit removal of
+     * entries.
+     */
+    public abstract boolean supportsRemove();
+
+    /**
+     * Adds the specified entries to this group.
+     *
+     * @return If this group or one or more entries was/were modified as a
+     * result of this operation, an object is returned that allows to
+     * undo this change. null is returned otherwise.
+     */
+    public abstract Optional&lt;EntriesGroupChange&gt; add(List&lt;BibEntry&gt; entriesToAdd);
+
+    public Optional&lt;EntriesGroupChange&gt; add(BibEntry entryToAdd) {
+<span class="nc" id="L123">        return add(Collections.singletonList(entryToAdd));</span>
+    }
+
+    /**
+     * Removes the specified entries from this group.
+     *
+     * @return If this group or one or more entries was/were modified as a
+     * result of this operation, an object is returned that allows to
+     * undo this change. null is returned otherwise.
+     */
+    public abstract Optional&lt;EntriesGroupChange&gt; remove(List&lt;BibEntry&gt; entriesToRemove);
+
+    /**
+     * @return true if this group contains the specified entry, false otherwise.
+     */
+    public abstract boolean contains(BibEntry entry);
+
+    @Override
+    public boolean isMatch(BibEntry entry) {
+<span class="nc" id="L142">        return contains(entry);</span>
+    }
+
+    /**
+     * @return true if this group contains any of the specified entries, false
+     * otherwise.
+     */
+    public boolean containsAny(List&lt;BibEntry&gt; entries) {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        for (BibEntry entry : entries) {</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">            if (contains(entry)) {</span>
+<span class="nc" id="L152">                return true;</span>
+            }
+        }
+<span class="nc" id="L155">        return false;</span>
+    }
+
+    /**
+     * @return true if this group contains all of the specified entries, false
+     * otherwise.
+     */
+    public boolean containsAll(List&lt;BibEntry&gt; entries) {
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        for (BibEntry entry : entries) {</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">            if (!contains(entry)) {</span>
+<span class="nc" id="L165">                return false;</span>
+            }
+        }
+<span class="nc" id="L168">        return true;</span>
+    }
+
+    /**
+     * Returns true if this group is dynamic, i.e. uses a search definition or
+     * equiv. that might match new entries, or false if this group contains a
+     * fixed set of entries and thus will never match a new entry that was not
+     * explicitly added to it.
+     */
+    public abstract boolean isDynamic();
+
+    /**
+     * Returns the group's hierarchical context.
+     */
+    public GroupHierarchyType getHierarchicalContext() {
+<span class="fc" id="L183">        return context;</span>
+    }
+
+    /**
+     * Sets the groups's hierarchical context. If context is not a valid
+     * value, the call is ignored.
+     */
+    public void setHierarchicalContext(GroupHierarchyType context) {
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">        if (context == null) {</span>
+<span class="nc" id="L192">            return;</span>
+        }
+<span class="fc" id="L194">        this.context = context;</span>
+<span class="fc" id="L195">    }</span>
+
+    /**
+     * Returns a lengthy textual description of this instance (for
+     * the groups editor). The text is formatted in HTML.
+     */
+    public abstract String getDescription();
+
+    /**
+     * @return A deep copy of this object.
+     */
+    public abstract AbstractGroup deepCopy();
+
+    /**
+     * Returns a short description of the group in HTML (for a tooltip).
+     */
+    public abstract String getShortDescription();
+
+    // by general AbstractGroup contract, toString() must return
+    // something from which this object can be reconstructed
+    // using fromString(String).
+
+    // by general AbstractGroup contract, equals() must be implemented
+
+    /**
+     * Update the group, if necessary, to handle the situation where the group
+     * is applied to a different BibDatabase than it was created for. This
+     * is for instance used when updating the group tree due to an external change.
+     *
+     * @param db The database to refresh for.
+     */
+    public void refreshForNewDatabase(BibDatabase db) {
+        // Default is to do nothing. Group types that are affected by a change
+        // of database must override this method.
+<span class="nc" id="L229">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

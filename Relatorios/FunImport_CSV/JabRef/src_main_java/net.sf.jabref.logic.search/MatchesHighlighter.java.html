@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MatchesHighlighter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.search</a> &gt; <span class="el_source">MatchesHighlighter.java</span></div><h1>MatchesHighlighter.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.search;
+
+import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+<span class="nc" id="L8">public class MatchesHighlighter {</span>
+
+    // used at highlighting in preview area.
+    // Color chosen similar to JTextComponent.getSelectionColor(), which is
+    // used at highlighting words at the editor
+    public static final String HIGHLIGHT_COLOR = &quot;#3399FF&quot;;
+
+    /**
+     * Will return the text that was called by the method with HTML tags to highlight each word the user has searched
+     * for and will skip the highlight process if the first Char isn't a letter or a digit.
+     * &lt;p&gt;
+     * This check is a quick hack to avoid highlighting of HTML tags It does not always work, but it does its job mostly
+     *
+     * @param text             This is a String in which we search for different words
+     * @param wordsToHighlight List of all words which must be highlighted
+     * @return String that was called by the method, with HTML Tags if a word was found
+     */
+    public static String highlightWordsWithHTML(String text, Optional&lt;Pattern&gt; highlightPattern) {
+<span class="fc" id="L26">        Objects.requireNonNull(highlightPattern);</span>
+<span class="fc" id="L27">        Objects.requireNonNull(text);</span>
+
+<span class="pc bpc" id="L29" title="2 of 4 branches missed.">        if (text.isEmpty() || !highlightPattern.isPresent()) {</span>
+<span class="fc" id="L30">            return text;</span>
+        }
+
+<span class="nc" id="L33">        Matcher matcher = highlightPattern.get().matcher(text);</span>
+
+<span class="nc" id="L35">        StringBuffer sb = new StringBuffer();</span>
+<span class="nc" id="L36">        boolean foundSomething = false;</span>
+
+<span class="nc bnc" id="L38" title="All 2 branches missed.">        while (matcher.find()) {</span>
+<span class="nc" id="L39">            String found = matcher.group();</span>
+            // color the search keyword
+            // put first String Part and then html + word + html to a StringBuffer
+<span class="nc" id="L42">            matcher.appendReplacement(sb, &quot;&lt;span style=\&quot;background-color:&quot; + HIGHLIGHT_COLOR + &quot;;\&quot;&gt;&quot; + found + &quot;&lt;/span&gt;&quot;);</span>
+<span class="nc" id="L43">            foundSomething = true;</span>
+        }
+
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (foundSomething) {</span>
+<span class="nc" id="L47">            matcher.appendTail(sb);</span>
+<span class="nc" id="L48">            text = sb.toString();</span>
+        }
+
+<span class="nc" id="L51">        return text;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

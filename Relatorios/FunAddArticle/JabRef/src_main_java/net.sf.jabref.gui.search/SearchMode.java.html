@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SearchMode.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.search</a> &gt; <span class="el_source">SearchMode.java</span></div><h1>SearchMode.java</h1><pre class="source lang-java linenums">package net.sf.jabref.gui.search;
+
+import net.sf.jabref.logic.l10n.Localization;
+
+/**
+ * Collects the possible search modes
+ */
+<span class="fc" id="L8">public enum SearchMode {</span>
+
+<span class="fc" id="L10">    FLOAT(Localization.lang(&quot;Float&quot;),</span>
+<span class="fc" id="L11">            Localization.lang(&quot;Gray out non-hits&quot;)),</span>
+<span class="fc" id="L12">    FILTER(Localization.lang(&quot;Filter&quot;),</span>
+<span class="fc" id="L13">            Localization.lang(&quot;Hide non-hits&quot;))</span>
+    ;
+
+    private final String displayName;
+    private final String toolTipText;
+
+<span class="fc" id="L19">    SearchMode(String displayName, String toolTipText) {</span>
+<span class="fc" id="L20">        this.displayName = displayName;</span>
+<span class="fc" id="L21">        this.toolTipText = toolTipText;</span>
+<span class="fc" id="L22">    }</span>
+
+    public String getDisplayName() {
+<span class="fc" id="L25">        return displayName;</span>
+    }
+
+    public String getToolTipText() {
+<span class="fc" id="L29">        return toolTipText;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

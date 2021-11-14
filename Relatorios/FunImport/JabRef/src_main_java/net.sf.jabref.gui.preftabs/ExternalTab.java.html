@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ExternalTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">ExternalTab.java</span></div><h1>ExternalTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.external.ExternalFileTypeEditor;
+import net.sf.jabref.external.push.PushToApplication;
+import net.sf.jabref.external.push.PushToApplicationButton;
+import net.sf.jabref.external.push.PushToApplications;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+class ExternalTab extends JPanel implements PrefsTab {
+    private final JabRefPreferences prefs;
+
+    private final JabRefFrame frame;
+
+    private final JTextField emailSubject;
+    private final JTextField citeCommand;
+    private final JCheckBox openFoldersOfAttachedFiles;
+
+<span class="nc" id="L48">    public ExternalTab(JabRefFrame frame, PreferencesDialog prefsDiag, JabRefPreferences prefs) {</span>
+<span class="nc" id="L49">        this.prefs = prefs;</span>
+<span class="nc" id="L50">        this.frame = frame;</span>
+<span class="nc" id="L51">        setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L53">        JButton editFileTypes = new JButton(Localization.lang(&quot;Manage external file types&quot;));</span>
+<span class="nc" id="L54">        citeCommand = new JTextField(25);</span>
+<span class="nc" id="L55">        editFileTypes.addActionListener(ExternalFileTypeEditor.getAction(prefsDiag));</span>
+
+<span class="nc" id="L57">        FormLayout layout = new FormLayout(</span>
+<span class="nc" id="L58">                &quot;1dlu, 8dlu, left:pref, 4dlu, fill:150dlu, 4dlu, fill:pref&quot;, &quot;&quot;);</span>
+
+<span class="nc" id="L60">        DefaultFormBuilder builder = new DefaultFormBuilder(layout);</span>
+
+<span class="nc" id="L62">        builder.appendSeparator(Localization.lang(&quot;Sending of emails&quot;));</span>
+<span class="nc" id="L63">        builder.append(new JPanel());</span>
+<span class="nc" id="L64">        JLabel lab = new JLabel(Localization.lang(&quot;Subject for sending an email with references&quot;).concat(&quot;:&quot;));</span>
+<span class="nc" id="L65">        builder.append(lab);</span>
+<span class="nc" id="L66">        emailSubject = new JTextField(25);</span>
+<span class="nc" id="L67">        builder.append(emailSubject);</span>
+<span class="nc" id="L68">        builder.nextLine();</span>
+<span class="nc" id="L69">        builder.append(new JPanel());</span>
+<span class="nc" id="L70">        openFoldersOfAttachedFiles = new JCheckBox(Localization.lang(&quot;Automatically open folders of attached files&quot;));</span>
+<span class="nc" id="L71">        builder.append(openFoldersOfAttachedFiles);</span>
+<span class="nc" id="L72">        builder.nextLine();</span>
+
+<span class="nc" id="L74">        builder.appendSeparator(Localization.lang(&quot;External programs&quot;));</span>
+<span class="nc" id="L75">        builder.nextLine();</span>
+
+<span class="nc" id="L77">        JPanel butpan = new JPanel();</span>
+<span class="nc" id="L78">        butpan.setLayout(new GridLayout(3, 3));</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        for(PushToApplication pushToApplication : PushToApplications.getApplications()) {</span>
+<span class="nc" id="L80">            addSettingsButton(pushToApplication, butpan);</span>
+        }
+<span class="nc" id="L82">        builder.append(new JPanel());</span>
+<span class="nc" id="L83">        builder.append(butpan, 3);</span>
+
+<span class="nc" id="L85">        builder.nextLine();</span>
+<span class="nc" id="L86">        lab = new JLabel(Localization.lang(&quot;Cite command&quot;) + ':');</span>
+<span class="nc" id="L87">        JPanel pan = new JPanel();</span>
+<span class="nc" id="L88">        builder.append(pan);</span>
+<span class="nc" id="L89">        builder.append(lab);</span>
+<span class="nc" id="L90">        builder.append(citeCommand);</span>
+
+<span class="nc" id="L92">        builder.nextLine();</span>
+<span class="nc" id="L93">        builder.append(pan);</span>
+<span class="nc" id="L94">        builder.append(editFileTypes);</span>
+
+<span class="nc" id="L96">        pan = builder.getPanel();</span>
+<span class="nc" id="L97">        pan.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L98">        add(pan, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L100">    }</span>
+
+    private void addSettingsButton(final PushToApplication pt, JPanel p) {
+<span class="nc" id="L103">        JButton button = new JButton(Localization.lang(&quot;Settings for %0&quot;, pt.getApplicationName()),</span>
+<span class="nc" id="L104">                pt.getIcon());</span>
+<span class="nc" id="L105">        button.addActionListener(e -&gt; PushToApplicationButton.showSettingsDialog(frame, pt, pt.getSettingsPanel()));</span>
+<span class="nc" id="L106">        p.add(button);</span>
+<span class="nc" id="L107">    }</span>
+
+    @Override
+    public void setValues() {
+
+<span class="nc" id="L112">        emailSubject.setText(prefs.get(JabRefPreferences.EMAIL_SUBJECT));</span>
+<span class="nc" id="L113">        openFoldersOfAttachedFiles.setSelected(prefs.getBoolean(JabRefPreferences.OPEN_FOLDERS_OF_ATTACHED_FILES));</span>
+
+<span class="nc" id="L115">        citeCommand.setText(prefs.get(JabRefPreferences.CITE_COMMAND));</span>
+<span class="nc" id="L116">    }</span>
+
+    @Override
+    public void storeSettings() {
+<span class="nc" id="L120">        prefs.put(JabRefPreferences.EMAIL_SUBJECT, emailSubject.getText());</span>
+<span class="nc" id="L121">        prefs.putBoolean(JabRefPreferences.OPEN_FOLDERS_OF_ATTACHED_FILES, openFoldersOfAttachedFiles.isSelected());</span>
+<span class="nc" id="L122">        prefs.put(JabRefPreferences.CITE_COMMAND, citeCommand.getText());</span>
+<span class="nc" id="L123">    }</span>
+
+    @Override
+    public boolean validateSettings() {
+<span class="nc" id="L127">        return true;</span>
+    }
+
+    @Override
+    public String getTabName() {
+<span class="nc" id="L132">        return Localization.lang(&quot;External programs&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

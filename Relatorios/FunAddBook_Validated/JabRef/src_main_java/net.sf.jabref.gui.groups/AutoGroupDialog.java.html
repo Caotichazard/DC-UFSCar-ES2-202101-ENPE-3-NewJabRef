@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AutoGroupDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.groups</a> &gt; <span class="el_source">AutoGroupDialog.java</span></div><h1>AutoGroupDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.groups;
+
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.importer.fileformat.ParseException;
+import net.sf.jabref.logic.groups.ExplicitGroup;
+import net.sf.jabref.logic.groups.GroupHierarchyType;
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.logic.groups.GroupsUtil;
+import net.sf.jabref.logic.groups.KeywordGroup;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+/**
+ * Dialog for creating or modifying groups. Operates directly on the Vector containing group information.
+ */
+class AutoGroupDialog extends JDialog implements CaretListener {
+
+<span class="nc" id="L62">    private final JTextField remove = new JTextField(60);</span>
+<span class="nc" id="L63">    private final JTextField field = new JTextField(60);</span>
+<span class="nc" id="L64">    private final JTextField deliminator = new JTextField(60);</span>
+<span class="nc" id="L65">    private final JRadioButton keywords = new JRadioButton(</span>
+<span class="nc" id="L66">            Localization.lang(&quot;Generate groups from keywords in a BibTeX field&quot;));</span>
+<span class="nc" id="L67">    private final JRadioButton authors = new JRadioButton(Localization.lang(&quot;Generate groups for author last names&quot;));</span>
+<span class="nc" id="L68">    private final JRadioButton editors = new JRadioButton(Localization.lang(&quot;Generate groups for editor last names&quot;));</span>
+<span class="nc" id="L69">    private final JCheckBox nd = new JCheckBox(Localization.lang(&quot;Use the following delimiter character(s):&quot;));</span>
+<span class="nc" id="L70">    private final JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+    private final GroupTreeNodeViewModel m_groupsRoot;
+    private final JabRefFrame frame;
+    private final BasePanel panel;
+
+
+    /**
+     * @param groupsRoot The original set of groups, which is required as undo information when all groups are cleared.
+     */
+    public AutoGroupDialog(JabRefFrame jabrefFrame, BasePanel basePanel,
+            GroupTreeNodeViewModel groupsRoot, String defaultField, String defaultRemove, String defaultDeliminator) {
+<span class="nc" id="L81">        super(jabrefFrame, Localization.lang(&quot;Automatically create groups&quot;), true);</span>
+<span class="nc" id="L82">        frame = jabrefFrame;</span>
+<span class="nc" id="L83">        panel = basePanel;</span>
+<span class="nc" id="L84">        m_groupsRoot = groupsRoot;</span>
+<span class="nc" id="L85">        field.setText(defaultField);</span>
+<span class="nc" id="L86">        remove.setText(defaultRemove);</span>
+<span class="nc" id="L87">        deliminator.setText(defaultDeliminator);</span>
+<span class="nc" id="L88">        nd.setSelected(true);</span>
+<span class="nc" id="L89">        ActionListener okListener = new ActionListener() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L93">                dispose();</span>
+
+                try {
+<span class="nc" id="L96">                    GroupTreeNode autoGroupsRoot = new GroupTreeNode(</span>
+<span class="nc" id="L97">                            new ExplicitGroup(Localization.lang(&quot;Automatically created groups&quot;), GroupHierarchyType.INCLUDING));</span>
+                    Set&lt;String&gt; hs;
+<span class="nc" id="L99">                    String fieldText = field.getText();</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                    if (keywords.isSelected()) {</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                        if (nd.isSelected()) {</span>
+<span class="nc" id="L102">                            hs = GroupsUtil.findDeliminatedWordsInField(panel.getDatabase(),</span>
+<span class="nc" id="L103">                                    field.getText().toLowerCase().trim(), deliminator.getText());</span>
+<span class="nc" id="L104">                        } else {</span>
+<span class="nc" id="L105">                            hs = GroupsUtil.findAllWordsInField(panel.getDatabase(), field.getText().toLowerCase().trim(),</span>
+<span class="nc" id="L106">                                    remove.getText());</span>
+
+                        }
+<span class="nc bnc" id="L109" title="All 2 branches missed.">                    } else if (authors.isSelected()) {</span>
+<span class="nc" id="L110">                        List&lt;String&gt; fields = new ArrayList&lt;&gt;(2);</span>
+<span class="nc" id="L111">                        fields.add(&quot;author&quot;);</span>
+<span class="nc" id="L112">                        hs = GroupsUtil.findAuthorLastNames(panel.getDatabase(), fields);</span>
+<span class="nc" id="L113">                        fieldText = &quot;author&quot;;</span>
+<span class="nc" id="L114">                    } else { // editors.isSelected() as it is a radio button group.</span>
+<span class="nc" id="L115">                        List&lt;String&gt; fields = new ArrayList&lt;&gt;(2);</span>
+<span class="nc" id="L116">                        fields.add(&quot;editor&quot;);</span>
+<span class="nc" id="L117">                        hs = GroupsUtil.findAuthorLastNames(panel.getDatabase(), fields);</span>
+<span class="nc" id="L118">                        fieldText = &quot;editor&quot;;</span>
+                    }
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                    for (String keyword : hs) {</span>
+<span class="nc" id="L122">                        KeywordGroup group = new KeywordGroup(keyword, fieldText, keyword, false, false,</span>
+<span class="nc" id="L123">                                GroupHierarchyType.INDEPENDENT);</span>
+<span class="nc" id="L124">                        autoGroupsRoot.addChild(new GroupTreeNode(group));</span>
+                    }
+
+<span class="nc" id="L127">                    autoGroupsRoot.moveTo(m_groupsRoot.getNode());</span>
+<span class="nc" id="L128">                    NamedCompound ce = new NamedCompound(Localization.lang(&quot;Automatically create groups&quot;));</span>
+<span class="nc" id="L129">                    UndoableAddOrRemoveGroup undo = new UndoableAddOrRemoveGroup(m_groupsRoot, new GroupTreeNodeViewModel(autoGroupsRoot), UndoableAddOrRemoveGroup.ADD_NODE);</span>
+<span class="nc" id="L130">                    ce.addEdit(undo);</span>
+
+<span class="nc" id="L132">                    panel.markBaseChanged(); // a change always occurs</span>
+<span class="nc" id="L133">                    frame.output(Localization.lang(&quot;Created groups.&quot;));</span>
+<span class="nc" id="L134">                    ce.end();</span>
+<span class="nc" id="L135">                    panel.undoManager.addEdit(ce);</span>
+<span class="nc" id="L136">                } catch (ParseException exception) {</span>
+<span class="nc" id="L137">                    frame.showMessage(exception.getLocalizedMessage());</span>
+                }
+
+<span class="nc" id="L140">            }</span>
+        };
+<span class="nc" id="L142">        remove.addActionListener(okListener);</span>
+<span class="nc" id="L143">        field.addActionListener(okListener);</span>
+<span class="nc" id="L144">        field.addCaretListener(this);</span>
+<span class="nc" id="L145">        AbstractAction cancelAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L149">                dispose();</span>
+<span class="nc" id="L150">            }</span>
+        };
+<span class="nc" id="L152">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L153">        cancel.addActionListener(cancelAction);</span>
+<span class="nc" id="L154">        ok.addActionListener(okListener);</span>
+        // Key bindings:
+<span class="nc" id="L156">        JPanel main = new JPanel();</span>
+<span class="nc" id="L157">        ActionMap am = main.getActionMap();</span>
+<span class="nc" id="L158">        InputMap im = main.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+<span class="nc" id="L159">        im.put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L160">        am.put(&quot;close&quot;, cancelAction);</span>
+
+<span class="nc" id="L162">        ButtonGroup bg = new ButtonGroup();</span>
+<span class="nc" id="L163">        bg.add(keywords);</span>
+<span class="nc" id="L164">        bg.add(authors);</span>
+<span class="nc" id="L165">        bg.add(editors);</span>
+<span class="nc" id="L166">        keywords.setSelected(true);</span>
+
+<span class="nc" id="L168">        FormBuilder b = FormBuilder.create();</span>
+<span class="nc" id="L169">        b.layout(new FormLayout(&quot;left:20dlu, 4dlu, left:pref, 4dlu, fill:60dlu&quot;,</span>
+<span class="nc" id="L170">                &quot;p, 2dlu, p, 2dlu, p, 2dlu, p, 2dlu, p, 2dlu, p&quot;));</span>
+<span class="nc" id="L171">        b.add(keywords).xyw(1, 1, 5);</span>
+<span class="nc" id="L172">        b.add(Localization.lang(&quot;Field to group by&quot;) + &quot;:&quot;).xy(3, 3);</span>
+<span class="nc" id="L173">        b.add(field).xy(5, 3);</span>
+<span class="nc" id="L174">        b.add(Localization.lang(&quot;Characters to ignore&quot;) + &quot;:&quot;).xy(3, 5);</span>
+<span class="nc" id="L175">        b.add(remove).xy(5, 5);</span>
+<span class="nc" id="L176">        b.add(nd).xy(3, 7);</span>
+<span class="nc" id="L177">        b.add(deliminator).xy(5, 7);</span>
+<span class="nc" id="L178">        b.add(authors).xyw(1, 9, 5);</span>
+<span class="nc" id="L179">        b.add(editors).xyw(1, 11, 5);</span>
+<span class="nc" id="L180">        b.build();</span>
+<span class="nc" id="L181">        b.border(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+
+<span class="nc" id="L183">        JPanel opt = new JPanel();</span>
+<span class="nc" id="L184">        ButtonBarBuilder bb = new ButtonBarBuilder(opt);</span>
+<span class="nc" id="L185">        bb.addGlue();</span>
+<span class="nc" id="L186">        bb.addButton(ok);</span>
+<span class="nc" id="L187">        bb.addButton(cancel);</span>
+<span class="nc" id="L188">        bb.addGlue();</span>
+
+<span class="nc" id="L190">        main.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L191">        opt.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L192">        getContentPane().add(main, BorderLayout.CENTER);</span>
+<span class="nc" id="L193">        getContentPane().add(b.getPanel(), BorderLayout.CENTER);</span>
+<span class="nc" id="L194">        getContentPane().add(opt, BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L196">        updateComponents();</span>
+<span class="nc" id="L197">        pack();</span>
+<span class="nc" id="L198">        setLocationRelativeTo(frame);</span>
+<span class="nc" id="L199">    }</span>
+
+    @Override
+    public void caretUpdate(CaretEvent e) {
+<span class="nc" id="L203">        updateComponents();</span>
+<span class="nc" id="L204">    }</span>
+
+    private void updateComponents() {
+<span class="nc" id="L207">        String groupField = field.getText().trim();</span>
+<span class="nc" id="L208">        ok.setEnabled(groupField.matches(&quot;\\w+&quot;));</span>
+<span class="nc" id="L209">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

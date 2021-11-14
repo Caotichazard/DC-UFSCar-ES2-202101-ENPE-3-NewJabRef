@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AutoSetLinks.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.external</a> &gt; <span class="el_source">AutoSetLinks.java</span></div><h1>AutoSetLinks.java</h1><pre class="source lang-java linenums">package net.sf.jabref.external;
+
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.swing.BorderFactory;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.FileListEntry;
+import net.sf.jabref.gui.FileListTableModel;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.gui.undo.UndoableFieldChange;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.entry.BibEntry;
+
+<span class="nc bnc" id="L34" title="All 2 branches missed.">public class AutoSetLinks {</span>
+
+    /**
+     * Shortcut method if links are set without using the GUI
+     *
+     * @param entries  the entries for which links should be set
+     * @param databaseContext the database for which links are set
+     */
+    public static void autoSetLinks(Collection&lt;BibEntry&gt; entries, BibDatabaseContext databaseContext) {
+<span class="nc" id="L43">        autoSetLinks(entries, null, null, null, databaseContext, null, null);</span>
+<span class="nc" id="L44">    }</span>
+
+    /**
+     * Automatically add links for this set of entries, based on the globally stored list of external file types. The
+     * entries are modified, and corresponding UndoEdit elements added to the NamedCompound given as argument.
+     * Furthermore, all entries which are modified are added to the Set of entries given as an argument.
+     * &lt;p&gt;
+     * The entries' bibtex keys must have been set - entries lacking key are ignored. The operation is done in a new
+     * thread, which is returned for the caller to wait for if needed.
+     *
+     * @param entries          A collection of BibEntry objects to find links for.
+     * @param ce               A NamedCompound to add UndoEdit elements to.
+     * @param changedEntries   MODIFIED, optional. A Set of BibEntry objects to which all modified entries is added.
+     *                         This is used for status output and debugging
+     * @param singleTableModel UGLY HACK. The table model to insert links into. Already existing links are not
+     *                         duplicated or removed. This parameter has to be null if entries.count() != 1. The hack has been
+     *                         introduced as a bibtexentry does not (yet) support the function getListTableModel() and the
+     *                         FileListEntryEditor editor holds an instance of that table model and does not reconstruct it after the
+     *                         search has succeeded.
+     * @param databaseContext  The database providing the relevant file directory, if any.
+     * @param callback         An ActionListener that is notified (on the event dispatch thread) when the search is finished.
+     *                         The ActionEvent has id=0 if no new links were added, and id=1 if one or more links were added. This
+     *                         parameter can be null, which means that no callback will be notified.
+     * @param diag             An instantiated modal JDialog which will be used to display the progress of the automatically setting. This
+     *                         parameter can be null, which means that no progress update will be shown.
+     * @return the thread performing the automatically setting
+     */
+    public static Runnable autoSetLinks(final Collection&lt;BibEntry&gt; entries, final NamedCompound ce, final Set&lt;BibEntry&gt; changedEntries, final FileListTableModel singleTableModel, final BibDatabaseContext databaseContext, final ActionListener callback, final JDialog diag) {
+<span class="nc" id="L72">        final Collection&lt;ExternalFileType&gt; types = ExternalFileTypes.getInstance().getExternalFileTypeSelection();</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (diag != null) {</span>
+<span class="nc" id="L74">            final JProgressBar prog = new JProgressBar(JProgressBar.HORIZONTAL, 0, types.size() - 1);</span>
+<span class="nc" id="L75">            final JLabel label = new JLabel(Localization.lang(&quot;Searching for files&quot;));</span>
+<span class="nc" id="L76">            prog.setIndeterminate(true);</span>
+<span class="nc" id="L77">            prog.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L78">            diag.setTitle(Localization.lang(&quot;Automatically setting file links&quot;));</span>
+<span class="nc" id="L79">            diag.getContentPane().add(prog, BorderLayout.CENTER);</span>
+<span class="nc" id="L80">            diag.getContentPane().add(label, BorderLayout.SOUTH);</span>
+    
+<span class="nc" id="L82">            diag.pack();</span>
+<span class="nc" id="L83">            diag.setLocationRelativeTo(diag.getParent());</span>
+        }
+    
+<span class="nc" id="L86">        Runnable r = new Runnable() {</span>
+    
+            @Override
+            public void run() {
+                // determine directories to search in
+<span class="nc" id="L91">                List&lt;File&gt; dirs = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L92">                List&lt;String&gt; dirsS = databaseContext.getFileDirectory();</span>
+<span class="nc" id="L93">                dirs.addAll(dirsS.stream().map(File::new).collect(Collectors.toList()));</span>
+    
+                // determine extensions
+<span class="nc" id="L96">                Collection&lt;String&gt; extensions = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">                for (final ExternalFileType type : types) {</span>
+<span class="nc" id="L98">                    extensions.add(type.getExtension());</span>
+                }
+    
+                // Run the search operation:
+                Map&lt;BibEntry, List&lt;File&gt;&gt; result;
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                if (Globals.prefs.getBoolean(JabRefPreferences.AUTOLINK_USE_REG_EXP_SEARCH_KEY)) {</span>
+<span class="nc" id="L104">                    String regExp = Globals.prefs.get(JabRefPreferences.REG_EXP_SEARCH_EXPRESSION_KEY);</span>
+<span class="nc" id="L105">                    result = RegExpFileSearch.findFilesForSet(entries, extensions, dirs, regExp);</span>
+<span class="nc" id="L106">                } else {</span>
+<span class="nc" id="L107">                    result = FileUtil.findAssociatedFiles(entries, extensions, dirs);</span>
+                }
+    
+<span class="nc" id="L110">                boolean foundAny = false;</span>
+                // Iterate over the entries:
+<span class="nc bnc" id="L112" title="All 2 branches missed.">                for (Entry&lt;BibEntry, List&lt;File&gt;&gt; entryFilePair : result.entrySet()) {</span>
+                    FileListTableModel tableModel;
+<span class="nc" id="L114">                    String oldVal = entryFilePair.getKey().getField(Globals.FILE_FIELD);</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">                    if (singleTableModel == null) {</span>
+<span class="nc" id="L116">                        tableModel = new FileListTableModel();</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">                        if (oldVal != null) {</span>
+<span class="nc" id="L118">                            tableModel.setContent(oldVal);</span>
+                        }
+<span class="nc" id="L120">                    } else {</span>
+<span class="nc bnc" id="L121" title="All 4 branches missed.">                        assert entries.size() == 1;</span>
+<span class="nc" id="L122">                        tableModel = singleTableModel;</span>
+                    }
+<span class="nc" id="L124">                    List&lt;File&gt; files = entryFilePair.getValue();</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">                    for (File f : files) {</span>
+<span class="nc" id="L126">                        f = FileUtil.shortenFileName(f, dirsS);</span>
+<span class="nc" id="L127">                        boolean alreadyHas = false;</span>
+                        //System.out.println(&quot;File: &quot;+f.getPath());
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                        for (int j = 0; j &lt; tableModel.getRowCount(); j++) {</span>
+<span class="nc" id="L130">                            FileListEntry existingEntry = tableModel.getEntry(j);</span>
+                            //System.out.println(&quot;Comp: &quot;+existingEntry.getLink());
+<span class="nc bnc" id="L132" title="All 2 branches missed.">                            if (new File(existingEntry.link).equals(f)) {</span>
+<span class="nc" id="L133">                                alreadyHas = true;</span>
+<span class="nc" id="L134">                                foundAny = true;</span>
+<span class="nc" id="L135">                                break;</span>
+                            }
+                        }
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                        if (!alreadyHas) {</span>
+<span class="nc" id="L139">                            foundAny = true;</span>
+                            Optional&lt;ExternalFileType&gt; type;
+<span class="nc" id="L141">                            Optional&lt;String&gt; extension = FileUtil.getFileExtension(f);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">                            if (extension.isPresent()) {</span>
+<span class="nc" id="L143">                                type = ExternalFileTypes.getInstance().getExternalFileTypeByExt(extension.get());</span>
+<span class="nc" id="L144">                            } else {</span>
+<span class="nc" id="L145">                                type = Optional.of(new UnknownExternalFileType(&quot;&quot;));</span>
+                            }
+<span class="nc" id="L147">                            FileListEntry flEntry = new FileListEntry(f.getName(), f.getPath(), type);</span>
+<span class="nc" id="L148">                            tableModel.addEntry(tableModel.getRowCount(), flEntry);</span>
+    
+<span class="nc" id="L150">                            String newVal = tableModel.getStringRepresentation();</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">                            if (newVal.isEmpty()) {</span>
+<span class="nc" id="L152">                                newVal = null;</span>
+                            }
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                            if (ce != null) {</span>
+                                // store undo information
+<span class="nc" id="L156">                                UndoableFieldChange change = new UndoableFieldChange(entryFilePair.getKey(),</span>
+<span class="nc" id="L157">                                        Globals.FILE_FIELD, oldVal, newVal);</span>
+<span class="nc" id="L158">                                ce.addEdit(change);</span>
+                            }
+                            // hack: if table model is given, do NOT modify entry
+<span class="nc bnc" id="L161" title="All 2 branches missed.">                            if (singleTableModel == null) {</span>
+<span class="nc" id="L162">                                entryFilePair.getKey().setField(Globals.FILE_FIELD, newVal);</span>
+                            }
+<span class="nc bnc" id="L164" title="All 2 branches missed.">                            if (changedEntries != null) {</span>
+<span class="nc" id="L165">                                changedEntries.add(entryFilePair.getKey());</span>
+                            }
+                        }
+                    }
+                }
+    
+                // handle callbacks and dialog
+                // FIXME: The ID signals if action was successful :/
+<span class="nc bnc" id="L173" title="All 2 branches missed.">                final int id = foundAny ? 1 : 0;</span>
+<span class="nc" id="L174">                SwingUtilities.invokeLater(new Runnable() {</span>
+    
+                    @Override
+                    public void run() {
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                        if (diag != null) {</span>
+<span class="nc" id="L179">                            diag.dispose();</span>
+                        }
+<span class="nc bnc" id="L181" title="All 2 branches missed.">                        if (callback != null) {</span>
+<span class="nc" id="L182">                            callback.actionPerformed(new ActionEvent(this, id, &quot;&quot;));</span>
+                        }
+<span class="nc" id="L184">                    }</span>
+                });
+<span class="nc" id="L186">            }</span>
+        };
+<span class="nc" id="L188">        SwingUtilities.invokeLater(() -&gt; {</span>
+            // show dialog which will be hidden when the task is done
+<span class="nc bnc" id="L190" title="All 2 branches missed.">            if (diag != null) {</span>
+<span class="nc" id="L191">                diag.setVisible(true);</span>
+            }
+<span class="nc" id="L193">        });</span>
+<span class="nc" id="L194">        return r;</span>
+    }
+
+    /**
+     * Automatically add links for this entry to the table model given as an argument, based on the globally stored list
+     * of external file types. The entry itself is not modified. The entry's bibtex key must have been set.
+     *
+     * @param entry            The BibEntry to find links for.
+     * @param singleTableModel The table model to insert links into. Already existing links are not duplicated or
+     *                         removed.
+     * @param databaseContext  The database providing the relevant file directory, if any.
+     * @param callback         An ActionListener that is notified (on the event dispatch thread) when the search is finished.
+     *                         The ActionEvent has id=0 if no new links were added, and id=1 if one or more links were added. This
+     *                         parameter can be null, which means that no callback will be notified. The passed ActionEvent is
+     *                         constructed with (this, id, &quot;&quot;), where id is 1 if something has been done and 0 if nothing has been
+     *                         done.
+     * @param diag             An instantiated modal JDialog which will be used to display the progress of the automatically setting. This
+     *                         parameter can be null, which means that no progress update will be shown.
+     * @return the runnable able to perform the automatically setting
+     */
+    public static Runnable autoSetLinks(final BibEntry entry, final FileListTableModel singleTableModel, final BibDatabaseContext databaseContext, final ActionListener callback, final JDialog diag) {
+<span class="nc" id="L215">        return autoSetLinks(Collections.singletonList(entry), null, null, singleTableModel, databaseContext, callback,</span>
+<span class="nc" id="L216">                diag);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

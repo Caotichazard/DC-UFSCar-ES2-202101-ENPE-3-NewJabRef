@@ -1,0 +1,1335 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GroupSelector.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.groups</a> &gt; <span class="el_source">GroupSelector.java</span></div><h1>GroupSelector.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.groups;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Optional;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenu;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
+import javax.swing.border.Border;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
+import javax.swing.undo.AbstractUndoableEdit;
+import javax.swing.undo.CompoundEdit;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.MetaData;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.SidePaneComponent;
+import net.sf.jabref.gui.SidePaneManager;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.gui.maintable.MainTableDataModel;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.gui.worker.AbstractWorker;
+import net.sf.jabref.logic.groups.AbstractGroup;
+import net.sf.jabref.logic.groups.AllEntriesGroup;
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.logic.groups.MoveGroupChange;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.search.SearchMatcher;
+import net.sf.jabref.logic.search.matchers.MatcherSet;
+import net.sf.jabref.logic.search.matchers.MatcherSets;
+import net.sf.jabref.logic.search.matchers.NotMatcher;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * The whole UI component holding the groups tree and the buttons
+ */
+public class GroupSelector extends SidePaneComponent implements TreeSelectionListener {
+
+<span class="fc" id="L93">    private static final Log LOGGER = LogFactory.getLog(GroupSelector.class);</span>
+
+<span class="fc" id="L95">    private final JButton newButton = new JButton(IconTheme.JabRefIcon.ADD_NOBOX.getSmallIcon());</span>
+<span class="fc" id="L96">    private final JButton refresh = new JButton(IconTheme.JabRefIcon.REFRESH.getSmallIcon());</span>
+<span class="fc" id="L97">    private final JButton autoGroup = new JButton(IconTheme.JabRefIcon.AUTO_GROUP.getSmallIcon());</span>
+<span class="fc" id="L98">    private final JButton openset = new JButton(Localization.lang(&quot;Settings&quot;));</span>
+    private final GroupsTree groupsTree;
+    private DefaultTreeModel groupsTreeModel;
+    private GroupTreeNodeViewModel groupsRoot;
+    protected final JabRefFrame frame;
+<span class="fc" id="L103">    private final JPopupMenu groupsContextMenu = new JPopupMenu();</span>
+<span class="fc" id="L104">    private final JPopupMenu settings = new JPopupMenu();</span>
+    private final JRadioButtonMenuItem hideNonHits;
+    private final JRadioButtonMenuItem grayOut;
+<span class="fc" id="L107">    private final JRadioButtonMenuItem andCb = new JRadioButtonMenuItem(Localization.lang(&quot;Intersection&quot;), true);</span>
+<span class="fc" id="L108">    private final JRadioButtonMenuItem floatCb = new JRadioButtonMenuItem(Localization.lang(&quot;Float&quot;), true);</span>
+<span class="fc" id="L109">    private final JCheckBoxMenuItem invCb = new JCheckBoxMenuItem(Localization.lang(&quot;Inverted&quot;), false);</span>
+<span class="fc" id="L110">    private final JCheckBoxMenuItem select = new JCheckBoxMenuItem(Localization.lang(&quot;Select matches&quot;), false);</span>
+<span class="fc" id="L111">    private final JCheckBoxMenuItem showOverlappingGroups = new JCheckBoxMenuItem(</span>
+<span class="fc" id="L112">            Localization.lang(&quot;Highlight overlapping groups&quot;));</span>
+<span class="fc" id="L113">    private final JCheckBoxMenuItem showNumberOfElements = new JCheckBoxMenuItem(</span>
+<span class="fc" id="L114">            Localization.lang(&quot;Show number of elements contained in each group&quot;));</span>
+<span class="fc" id="L115">    private final JCheckBoxMenuItem autoAssignGroup = new JCheckBoxMenuItem(</span>
+<span class="fc" id="L116">            Localization.lang(&quot;Automatically assign new entry to selected groups&quot;));</span>
+<span class="fc" id="L117">    private final JCheckBoxMenuItem editModeCb = new JCheckBoxMenuItem(Localization.lang(&quot;Edit group membership&quot;),</span>
+<span class="fc" id="L118">            false);</span>
+<span class="fc" id="L119">    private final Border editModeBorder = BorderFactory.createTitledBorder(</span>
+<span class="fc" id="L120">            BorderFactory.createMatteBorder(2, 2, 2, 2, Color.RED), &quot;Edit mode&quot;, TitledBorder.RIGHT, TitledBorder.TOP,</span>
+<span class="fc" id="L121">            Font.getFont(&quot;Default&quot;), Color.RED);</span>
+    private boolean editModeIndicator;
+
+<span class="fc" id="L124">    private static final String MOVE_ONE_GROUP = Localization.lang(&quot;Please select exactly one group to move.&quot;);</span>
+
+<span class="fc" id="L126">    private final JMenu moveSubmenu = new JMenu(Localization.lang(&quot;Move&quot;));</span>
+<span class="fc" id="L127">    private final JMenu sortSubmenu = new JMenu(Localization.lang(&quot;Sort alphabetically&quot;));</span>
+
+<span class="fc" id="L129">    private final AbstractAction editGroupAction = new EditGroupAction();</span>
+<span class="fc" id="L130">    private final NodeAction editGroupPopupAction = new EditGroupAction();</span>
+<span class="fc" id="L131">    private final NodeAction addGroupPopupAction = new AddGroupAction();</span>
+<span class="fc" id="L132">    private final NodeAction addSubgroupPopupAction = new AddSubgroupAction();</span>
+<span class="fc" id="L133">    private final NodeAction removeGroupAndSubgroupsPopupAction = new RemoveGroupAndSubgroupsAction();</span>
+<span class="fc" id="L134">    private final NodeAction removeSubgroupsPopupAction = new RemoveSubgroupsAction();</span>
+<span class="fc" id="L135">    private final NodeAction removeGroupKeepSubgroupsPopupAction = new RemoveGroupKeepSubgroupsAction();</span>
+<span class="fc" id="L136">    private final NodeAction moveNodeUpPopupAction = new MoveNodeUpAction();</span>
+<span class="fc" id="L137">    private final NodeAction moveNodeDownPopupAction = new MoveNodeDownAction();</span>
+<span class="fc" id="L138">    private final NodeAction moveNodeLeftPopupAction = new MoveNodeLeftAction();</span>
+<span class="fc" id="L139">    private final NodeAction moveNodeRightPopupAction = new MoveNodeRightAction();</span>
+<span class="fc" id="L140">    private final NodeAction expandSubtreePopupAction = new ExpandSubtreeAction();</span>
+<span class="fc" id="L141">    private final NodeAction collapseSubtreePopupAction = new CollapseSubtreeAction();</span>
+<span class="fc" id="L142">    private final NodeAction sortDirectSubgroupsPopupAction = new SortDirectSubgroupsAction();</span>
+<span class="fc" id="L143">    private final NodeAction sortAllSubgroupsPopupAction = new SortAllSubgroupsAction();</span>
+<span class="fc" id="L144">    private final AddToGroupAction addToGroup = new AddToGroupAction(false);</span>
+<span class="fc" id="L145">    private final AddToGroupAction moveToGroup = new AddToGroupAction(true);</span>
+<span class="fc" id="L146">    private final RemoveFromGroupAction removeFromGroup = new RemoveFromGroupAction();</span>
+
+
+    /**
+     * The first element for each group defines which field to use for the quicksearch. The next two define the name and
+     * regexp for the group.
+     */
+    public GroupSelector(JabRefFrame frame, SidePaneManager manager) {
+<span class="fc" id="L154">        super(manager, IconTheme.JabRefIcon.TOGGLE_GROUPS.getIcon(), Localization.lang(&quot;Groups&quot;));</span>
+
+<span class="fc" id="L156">        this.frame = frame;</span>
+<span class="fc" id="L157">        hideNonHits = new JRadioButtonMenuItem(Localization.lang(&quot;Hide non-hits&quot;),</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">                !Globals.prefs.getBoolean(JabRefPreferences.GRAY_OUT_NON_HITS));</span>
+<span class="fc" id="L159">        grayOut = new JRadioButtonMenuItem(Localization.lang(&quot;Gray out non-hits&quot;),</span>
+<span class="fc" id="L160">                Globals.prefs.getBoolean(JabRefPreferences.GRAY_OUT_NON_HITS));</span>
+<span class="fc" id="L161">        ButtonGroup nonHits = new ButtonGroup();</span>
+<span class="fc" id="L162">        nonHits.add(hideNonHits);</span>
+<span class="fc" id="L163">        nonHits.add(grayOut);</span>
+<span class="fc" id="L164">        floatCb.addChangeListener(new ChangeListener() {</span>
+
+            @Override
+            public void stateChanged(ChangeEvent event) {
+<span class="nc" id="L168">                Globals.prefs.putBoolean(JabRefPreferences.GROUP_FLOAT_SELECTIONS, floatCb.isSelected());</span>
+<span class="nc" id="L169">            }</span>
+        });
+<span class="fc" id="L171">        andCb.addChangeListener(new ChangeListener() {</span>
+
+            @Override
+            public void stateChanged(ChangeEvent event) {
+<span class="nc" id="L175">                Globals.prefs.putBoolean(JabRefPreferences.GROUP_INTERSECT_SELECTIONS, andCb.isSelected());</span>
+<span class="nc" id="L176">            }</span>
+        });
+<span class="fc" id="L178">        invCb.addChangeListener(new ChangeListener() {</span>
+
+            @Override
+            public void stateChanged(ChangeEvent event) {
+<span class="nc" id="L182">                Globals.prefs.putBoolean(JabRefPreferences.GROUP_INVERT_SELECTIONS, invCb.isSelected());</span>
+<span class="nc" id="L183">            }</span>
+        });
+<span class="fc" id="L185">        showOverlappingGroups.addChangeListener(new ChangeListener() {</span>
+
+            @Override
+            public void stateChanged(ChangeEvent event) {
+<span class="nc" id="L189">                Globals.prefs.putBoolean(JabRefPreferences.GROUP_SHOW_OVERLAPPING, showOverlappingGroups.isSelected());</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                if (!showOverlappingGroups.isSelected()) {</span>
+<span class="nc" id="L191">                    groupsTree.setHighlight2Cells(null);</span>
+                }
+<span class="nc" id="L193">            }</span>
+        });
+
+<span class="fc" id="L196">        select.addChangeListener(new ChangeListener() {</span>
+
+            @Override
+            public void stateChanged(ChangeEvent event) {
+<span class="nc" id="L200">                Globals.prefs.putBoolean(JabRefPreferences.GROUP_SELECT_MATCHES, select.isSelected());</span>
+<span class="nc" id="L201">            }</span>
+        });
+<span class="pc" id="L203">        grayOut.addChangeListener(event -&gt; Globals.prefs.putBoolean(JabRefPreferences.GRAY_OUT_NON_HITS, grayOut.isSelected()));</span>
+
+<span class="fc" id="L205">        JRadioButtonMenuItem highlCb = new JRadioButtonMenuItem(Localization.lang(&quot;Highlight&quot;), false);</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.GROUP_FLOAT_SELECTIONS)) {</span>
+
+<span class="fc" id="L208">            floatCb.setSelected(true);</span>
+<span class="fc" id="L209">            highlCb.setSelected(false);</span>
+<span class="fc" id="L210">        } else {</span>
+<span class="nc" id="L211">            highlCb.setSelected(true);</span>
+<span class="nc" id="L212">            floatCb.setSelected(false);</span>
+        }
+<span class="fc" id="L214">        JRadioButtonMenuItem orCb = new JRadioButtonMenuItem(Localization.lang(&quot;Union&quot;), false);</span>
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.GROUP_INTERSECT_SELECTIONS)) {</span>
+<span class="fc" id="L216">            andCb.setSelected(true);</span>
+<span class="fc" id="L217">            orCb.setSelected(false);</span>
+<span class="fc" id="L218">        } else {</span>
+<span class="nc" id="L219">            orCb.setSelected(true);</span>
+<span class="nc" id="L220">            andCb.setSelected(false);</span>
+        }
+
+<span class="fc" id="L223">        showNumberOfElements.addChangeListener(new ChangeListener() {</span>
+
+            @Override
+            public void stateChanged(ChangeEvent e) {
+<span class="nc" id="L227">                Globals.prefs.putBoolean(JabRefPreferences.GROUP_SHOW_NUMBER_OF_ELEMENTS,</span>
+<span class="nc" id="L228">                        showNumberOfElements.isSelected());</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">                if (groupsTree != null) {</span>
+<span class="nc" id="L230">                    groupsTree.invalidate();</span>
+<span class="nc" id="L231">                    groupsTree.repaint();</span>
+                }
+<span class="nc" id="L233">            }</span>
+        });
+
+<span class="fc" id="L236">        autoAssignGroup.addChangeListener(new ChangeListener() {</span>
+
+            @Override
+            public void stateChanged(ChangeEvent event) {
+<span class="fc" id="L240">                Globals.prefs.putBoolean(JabRefPreferences.AUTO_ASSIGN_GROUP, autoAssignGroup.isSelected());</span>
+<span class="fc" id="L241">            }</span>
+        });
+
+<span class="fc" id="L244">        invCb.setSelected(Globals.prefs.getBoolean(JabRefPreferences.GROUP_INVERT_SELECTIONS));</span>
+<span class="fc" id="L245">        showOverlappingGroups.setSelected(Globals.prefs.getBoolean(JabRefPreferences.GROUP_SHOW_OVERLAPPING));</span>
+<span class="fc" id="L246">        select.setSelected(Globals.prefs.getBoolean(JabRefPreferences.GROUP_SELECT_MATCHES));</span>
+<span class="fc" id="L247">        editModeIndicator = Globals.prefs.getBoolean(JabRefPreferences.EDIT_GROUP_MEMBERSHIP_MODE);</span>
+<span class="fc" id="L248">        editModeCb.setSelected(editModeIndicator);</span>
+<span class="fc" id="L249">        showNumberOfElements.setSelected(Globals.prefs.getBoolean(JabRefPreferences.GROUP_SHOW_NUMBER_OF_ELEMENTS));</span>
+<span class="fc" id="L250">        autoAssignGroup.setSelected(Globals.prefs.getBoolean(JabRefPreferences.AUTO_ASSIGN_GROUP));</span>
+
+<span class="fc" id="L252">        openset.setMargin(new Insets(0, 0, 0, 0));</span>
+<span class="fc" id="L253">        settings.add(andCb);</span>
+<span class="fc" id="L254">        settings.add(orCb);</span>
+<span class="fc" id="L255">        settings.addSeparator();</span>
+<span class="fc" id="L256">        settings.add(invCb);</span>
+<span class="fc" id="L257">        settings.addSeparator();</span>
+<span class="fc" id="L258">        settings.add(select);</span>
+<span class="fc" id="L259">        settings.addSeparator();</span>
+<span class="fc" id="L260">        settings.add(editModeCb);</span>
+<span class="fc" id="L261">        settings.addSeparator();</span>
+<span class="fc" id="L262">        settings.add(grayOut);</span>
+<span class="fc" id="L263">        settings.add(hideNonHits);</span>
+<span class="fc" id="L264">        settings.addSeparator();</span>
+<span class="fc" id="L265">        settings.add(showOverlappingGroups);</span>
+<span class="fc" id="L266">        settings.addSeparator();</span>
+<span class="fc" id="L267">        settings.add(showNumberOfElements);</span>
+<span class="fc" id="L268">        settings.add(autoAssignGroup);</span>
+        // settings.add(moreRow);
+        // settings.add(lessRow);
+<span class="fc" id="L271">        openset.addActionListener(new ActionListener() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc bnc" id="L275" title="All 2 branches missed.">                if (!settings.isVisible()) {</span>
+<span class="nc" id="L276">                    JButton src = (JButton) e.getSource();</span>
+<span class="nc" id="L277">                    showNumberOfElements</span>
+<span class="nc" id="L278">                            .setSelected(Globals.prefs.getBoolean(JabRefPreferences.GROUP_SHOW_NUMBER_OF_ELEMENTS));</span>
+<span class="nc" id="L279">                    autoAssignGroup.setSelected(Globals.prefs.getBoolean(JabRefPreferences.AUTO_ASSIGN_GROUP));</span>
+<span class="nc" id="L280">                    settings.show(src, 0, openset.getHeight());</span>
+                }
+<span class="nc" id="L282">            }</span>
+        });
+
+<span class="pc" id="L285">        editModeCb.addActionListener(e -&gt; setEditMode(editModeCb.getState()));</span>
+
+<span class="fc" id="L287">        int butSize = newButton.getIcon().getIconHeight() + 5;</span>
+<span class="fc" id="L288">        Dimension butDim = new Dimension(butSize, butSize);</span>
+        //Dimension butDimSmall = new Dimension(20, 20);
+
+<span class="fc" id="L291">        newButton.setPreferredSize(butDim);</span>
+<span class="fc" id="L292">        newButton.setMinimumSize(butDim);</span>
+<span class="fc" id="L293">        refresh.setPreferredSize(butDim);</span>
+<span class="fc" id="L294">        refresh.setMinimumSize(butDim);</span>
+<span class="fc" id="L295">        JButton helpButton = new HelpAction(Localization.lang(&quot;Help on groups&quot;), HelpFiles.GROUP)</span>
+<span class="fc" id="L296">                .getHelpButton();</span>
+<span class="fc" id="L297">        helpButton.setPreferredSize(butDim);</span>
+<span class="fc" id="L298">        helpButton.setMinimumSize(butDim);</span>
+<span class="fc" id="L299">        autoGroup.setPreferredSize(butDim);</span>
+<span class="fc" id="L300">        autoGroup.setMinimumSize(butDim);</span>
+<span class="fc" id="L301">        openset.setPreferredSize(butDim);</span>
+<span class="fc" id="L302">        openset.setMinimumSize(butDim);</span>
+<span class="fc" id="L303">        Insets butIns = new Insets(0, 0, 0, 0);</span>
+<span class="fc" id="L304">        helpButton.setMargin(butIns);</span>
+<span class="fc" id="L305">        openset.setMargin(butIns);</span>
+<span class="fc" id="L306">        newButton.addActionListener(e -&gt; {</span>
+<span class="nc" id="L307">            GroupDialog gd = new GroupDialog(frame, panel, null);</span>
+<span class="nc" id="L308">            gd.setVisible(true);</span>
+<span class="nc bnc" id="L309" title="All 2 branches missed.">            if (gd.okPressed()) {</span>
+<span class="nc" id="L310">                AbstractGroup newGroup = gd.getResultingGroup();</span>
+<span class="nc" id="L311">                groupsRoot.addNewGroup(newGroup, panel.undoManager);</span>
+<span class="nc" id="L312">                panel.markBaseChanged();</span>
+<span class="nc" id="L313">                frame.output(Localization.lang(&quot;Created group \&quot;%0\&quot;.&quot;, newGroup.getName()));</span>
+            }
+<span class="nc" id="L315">        });</span>
+<span class="pc" id="L316">        refresh.addActionListener(e -&gt; revalidateGroups());</span>
+<span class="pc" id="L317">        andCb.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="pc" id="L318">        orCb.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="pc" id="L319">        invCb.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="pc" id="L320">        showOverlappingGroups.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="fc" id="L321">        autoGroup.addActionListener(e -&gt; {</span>
+<span class="nc" id="L322">            AutoGroupDialog gd = new AutoGroupDialog(frame, panel, groupsRoot,</span>
+<span class="nc" id="L323">                    Globals.prefs.get(JabRefPreferences.GROUPS_DEFAULT_FIELD), &quot; .,&quot;, &quot;,&quot;);</span>
+<span class="nc" id="L324">            gd.setVisible(true);</span>
+            // gd does the operation itself
+<span class="nc" id="L326">        });</span>
+<span class="pc" id="L327">        floatCb.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="pc" id="L328">        highlCb.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="pc" id="L329">        select.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="pc" id="L330">        hideNonHits.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="pc" id="L331">        grayOut.addActionListener(e -&gt; valueChanged(null));</span>
+<span class="fc" id="L332">        newButton.setToolTipText(Localization.lang(&quot;New group&quot;));</span>
+<span class="fc" id="L333">        refresh.setToolTipText(Localization.lang(&quot;Refresh view&quot;));</span>
+<span class="fc" id="L334">        andCb.setToolTipText(Localization.lang(&quot;Display only entries belonging to all selected groups.&quot;));</span>
+<span class="fc" id="L335">        orCb.setToolTipText(Localization.lang(&quot;Display all entries belonging to one or more of the selected groups.&quot;));</span>
+<span class="fc" id="L336">        autoGroup.setToolTipText(Localization.lang(&quot;Automatically create groups for database.&quot;));</span>
+<span class="fc" id="L337">        invCb.setToolTipText(&quot;&lt;html&gt;&quot; + Localization.lang(&quot;Show entries &lt;b&gt;not&lt;/b&gt; in group selection&quot;) + &quot;&lt;/html&gt;&quot;);</span>
+<span class="fc" id="L338">        showOverlappingGroups.setToolTipText(</span>
+<span class="fc" id="L339">                Localization.lang(&quot;Highlight groups that contain entries contained in any currently selected group&quot;));</span>
+<span class="fc" id="L340">        floatCb.setToolTipText(Localization.lang(&quot;Move entries in group selection to the top&quot;));</span>
+<span class="fc" id="L341">        highlCb.setToolTipText(Localization.lang(&quot;Gray out entries not in group selection&quot;));</span>
+<span class="fc" id="L342">        select.setToolTipText(Localization.lang(&quot;Select entries in group selection&quot;));</span>
+<span class="fc" id="L343">        editModeCb.setToolTipText(Localization.lang(&quot;Click group to toggle membership of selected entries&quot;));</span>
+<span class="fc" id="L344">        ButtonGroup bgr = new ButtonGroup();</span>
+<span class="fc" id="L345">        bgr.add(andCb);</span>
+<span class="fc" id="L346">        bgr.add(orCb);</span>
+<span class="fc" id="L347">        ButtonGroup visMode = new ButtonGroup();</span>
+<span class="fc" id="L348">        visMode.add(floatCb);</span>
+<span class="fc" id="L349">        visMode.add(highlCb);</span>
+
+<span class="fc" id="L351">        JPanel main = new JPanel();</span>
+<span class="fc" id="L352">        GridBagLayout gbl = new GridBagLayout();</span>
+<span class="fc" id="L353">        main.setLayout(gbl);</span>
+
+<span class="fc" id="L355">        GridBagConstraints con = new GridBagConstraints();</span>
+<span class="fc" id="L356">        con.fill = GridBagConstraints.BOTH;</span>
+        //con.insets = new Insets(0, 0, 2, 0);
+<span class="fc" id="L358">        con.weightx = 1;</span>
+<span class="fc" id="L359">        con.gridwidth = 1;</span>
+<span class="fc" id="L360">        con.gridx = 0;</span>
+<span class="fc" id="L361">        con.gridy = 0;</span>
+        //con.insets = new Insets(1, 1, 1, 1);
+<span class="fc" id="L363">        gbl.setConstraints(newButton, con);</span>
+<span class="fc" id="L364">        main.add(newButton);</span>
+<span class="fc" id="L365">        con.gridx = 1;</span>
+<span class="fc" id="L366">        gbl.setConstraints(refresh, con);</span>
+<span class="fc" id="L367">        main.add(refresh);</span>
+<span class="fc" id="L368">        con.gridx = 2;</span>
+<span class="fc" id="L369">        gbl.setConstraints(autoGroup, con);</span>
+<span class="fc" id="L370">        main.add(autoGroup);</span>
+<span class="fc" id="L371">        con.gridx = 3;</span>
+<span class="fc" id="L372">        con.gridwidth = GridBagConstraints.REMAINDER;</span>
+
+<span class="fc" id="L374">        gbl.setConstraints(helpButton, con);</span>
+<span class="fc" id="L375">        main.add(helpButton);</span>
+
+        // header.setBorder(BorderFactory.createMatteBorder(1,1,1,1,Color.red));
+        // helpButton.setBorder(BorderFactory.createMatteBorder(1,1,1,1,Color.red));
+<span class="fc" id="L379">        groupsTree = new GroupsTree(this);</span>
+<span class="fc" id="L380">        groupsTree.addTreeSelectionListener(this);</span>
+
+<span class="fc" id="L382">        JScrollPane sp = new JScrollPane(groupsTree, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="fc" id="L383">                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="fc" id="L384">        con.gridwidth = GridBagConstraints.REMAINDER;</span>
+<span class="fc" id="L385">        con.weighty = 1;</span>
+<span class="fc" id="L386">        con.gridx = 0;</span>
+<span class="fc" id="L387">        con.gridwidth = 4;</span>
+<span class="fc" id="L388">        con.gridy = 1;</span>
+<span class="fc" id="L389">        gbl.setConstraints(sp, con);</span>
+<span class="fc" id="L390">        main.add(sp);</span>
+
+<span class="fc" id="L392">        JPanel pan = new JPanel();</span>
+<span class="fc" id="L393">        GridBagLayout gb = new GridBagLayout();</span>
+<span class="fc" id="L394">        con.weighty = 0;</span>
+<span class="fc" id="L395">        gbl.setConstraints(pan, con);</span>
+<span class="fc" id="L396">        pan.setLayout(gb);</span>
+<span class="fc" id="L397">        con.insets = new Insets(0, 0, 0, 0);</span>
+<span class="fc" id="L398">        con.gridx = 0;</span>
+<span class="fc" id="L399">        con.gridy = 0;</span>
+<span class="fc" id="L400">        con.weightx = 1;</span>
+<span class="fc" id="L401">        con.gridwidth = 4;</span>
+<span class="fc" id="L402">        con.fill = GridBagConstraints.HORIZONTAL;</span>
+<span class="fc" id="L403">        gb.setConstraints(openset, con);</span>
+<span class="fc" id="L404">        pan.add(openset);</span>
+
+<span class="fc" id="L406">        con.gridwidth = 6;</span>
+<span class="fc" id="L407">        con.gridy = 1;</span>
+<span class="fc" id="L408">        con.gridx = 0;</span>
+<span class="fc" id="L409">        con.fill = GridBagConstraints.HORIZONTAL;</span>
+
+<span class="fc" id="L411">        con.gridy = 2;</span>
+<span class="fc" id="L412">        con.gridx = 0;</span>
+<span class="fc" id="L413">        con.gridwidth = 4;</span>
+<span class="fc" id="L414">        gbl.setConstraints(pan, con);</span>
+<span class="fc" id="L415">        main.add(pan);</span>
+<span class="fc" id="L416">        main.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));</span>
+<span class="fc" id="L417">        add(main, BorderLayout.CENTER);</span>
+<span class="fc" id="L418">        setEditMode(editModeIndicator);</span>
+<span class="fc" id="L419">        definePopup();</span>
+<span class="fc" id="L420">        NodeAction moveNodeUpAction = new MoveNodeUpAction();</span>
+<span class="fc" id="L421">        moveNodeUpAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_UP, KeyEvent.CTRL_MASK));</span>
+<span class="fc" id="L422">        NodeAction moveNodeDownAction = new MoveNodeDownAction();</span>
+<span class="fc" id="L423">        moveNodeDownAction.putValue(Action.ACCELERATOR_KEY,</span>
+<span class="fc" id="L424">                KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, KeyEvent.CTRL_MASK));</span>
+<span class="fc" id="L425">        NodeAction moveNodeLeftAction = new MoveNodeLeftAction();</span>
+<span class="fc" id="L426">        moveNodeLeftAction.putValue(Action.ACCELERATOR_KEY,</span>
+<span class="fc" id="L427">                KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, KeyEvent.CTRL_MASK));</span>
+<span class="fc" id="L428">        NodeAction moveNodeRightAction = new MoveNodeRightAction();</span>
+<span class="fc" id="L429">        moveNodeRightAction.putValue(Action.ACCELERATOR_KEY,</span>
+<span class="fc" id="L430">                KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, KeyEvent.CTRL_MASK));</span>
+
+
+<span class="fc" id="L433">        setGroups(new GroupTreeNode(new AllEntriesGroup()));</span>
+<span class="fc" id="L434">    }</span>
+
+    private void definePopup() {
+        // These key bindings are just to have the shortcuts displayed
+        // in the popup menu. The actual keystroke processing is in
+        // BasePanel (entryTable.addKeyListener(...)).
+<span class="fc" id="L440">        groupsContextMenu.add(editGroupPopupAction);</span>
+<span class="fc" id="L441">        groupsContextMenu.add(addGroupPopupAction);</span>
+<span class="fc" id="L442">        groupsContextMenu.add(addSubgroupPopupAction);</span>
+<span class="fc" id="L443">        groupsContextMenu.addSeparator();</span>
+<span class="fc" id="L444">        groupsContextMenu.add(removeGroupAndSubgroupsPopupAction);</span>
+<span class="fc" id="L445">        groupsContextMenu.add(removeGroupKeepSubgroupsPopupAction);</span>
+<span class="fc" id="L446">        groupsContextMenu.add(removeSubgroupsPopupAction);</span>
+<span class="fc" id="L447">        groupsContextMenu.addSeparator();</span>
+<span class="fc" id="L448">        groupsContextMenu.add(expandSubtreePopupAction);</span>
+<span class="fc" id="L449">        groupsContextMenu.add(collapseSubtreePopupAction);</span>
+<span class="fc" id="L450">        groupsContextMenu.addSeparator();</span>
+<span class="fc" id="L451">        groupsContextMenu.add(moveSubmenu);</span>
+<span class="fc" id="L452">        sortSubmenu.add(sortDirectSubgroupsPopupAction);</span>
+<span class="fc" id="L453">        sortSubmenu.add(sortAllSubgroupsPopupAction);</span>
+<span class="fc" id="L454">        groupsContextMenu.add(sortSubmenu);</span>
+<span class="fc" id="L455">        moveSubmenu.add(moveNodeUpPopupAction);</span>
+<span class="fc" id="L456">        moveSubmenu.add(moveNodeDownPopupAction);</span>
+<span class="fc" id="L457">        moveSubmenu.add(moveNodeLeftPopupAction);</span>
+<span class="fc" id="L458">        moveSubmenu.add(moveNodeRightPopupAction);</span>
+<span class="fc" id="L459">        groupsContextMenu.addSeparator();</span>
+<span class="fc" id="L460">        groupsContextMenu.add(addToGroup);</span>
+<span class="fc" id="L461">        groupsContextMenu.add(moveToGroup);</span>
+<span class="fc" id="L462">        groupsContextMenu.add(removeFromGroup);</span>
+<span class="fc" id="L463">        groupsTree.addMouseListener(new MouseAdapter() {</span>
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+<span class="nc bnc" id="L467" title="All 2 branches missed.">                if (e.isPopupTrigger()) {</span>
+<span class="nc" id="L468">                    showPopup(e);</span>
+                }
+<span class="nc" id="L470">            }</span>
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+<span class="nc bnc" id="L474" title="All 2 branches missed.">                if (e.isPopupTrigger()) {</span>
+<span class="nc" id="L475">                    showPopup(e);</span>
+                }
+<span class="nc" id="L477">            }</span>
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+<span class="nc" id="L481">                TreePath path = groupsTree.getPathForLocation(e.getPoint().x, e.getPoint().y);</span>
+<span class="nc bnc" id="L482" title="All 2 branches missed.">                if (path == null) {</span>
+<span class="nc" id="L483">                    return;</span>
+                }
+<span class="nc" id="L485">                GroupTreeNodeViewModel node = (GroupTreeNodeViewModel) path.getLastPathComponent();</span>
+                // the root node is &quot;AllEntries&quot; and cannot be edited
+<span class="nc bnc" id="L487" title="All 2 branches missed.">                if (node.getNode().isRoot()) {</span>
+<span class="nc" id="L488">                    return;</span>
+                }
+<span class="nc bnc" id="L490" title="All 4 branches missed.">                if ((e.getClickCount() == 2) &amp;&amp; (e.getButton() == MouseEvent.BUTTON1)) { // edit</span>
+<span class="nc" id="L491">                    editGroupAction.actionPerformed(null); // dummy event</span>
+<span class="nc bnc" id="L492" title="All 4 branches missed.">                } else if ((e.getClickCount() == 1) &amp;&amp; (e.getButton() == MouseEvent.BUTTON1)) {</span>
+<span class="nc" id="L493">                    annotationEvent(node);</span>
+                }
+<span class="nc" id="L495">            }</span>
+        });
+        // be sure to remove a possible border highlight when the popup menu
+        // disappears
+<span class="fc" id="L499">        groupsContextMenu.addPopupMenuListener(new PopupMenuListener() {</span>
+
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                // nothing to do
+<span class="nc" id="L504">            }</span>
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+<span class="nc" id="L508">                groupsTree.setHighlightBorderCell(null);</span>
+<span class="nc" id="L509">            }</span>
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+<span class="nc" id="L513">                groupsTree.setHighlightBorderCell(null);</span>
+<span class="nc" id="L514">            }</span>
+        });
+<span class="fc" id="L516">    }</span>
+
+    private void showPopup(MouseEvent e) {
+<span class="nc" id="L519">        final TreePath path = groupsTree.getPathForLocation(e.getPoint().x, e.getPoint().y);</span>
+<span class="nc" id="L520">        addGroupPopupAction.setEnabled(true);</span>
+<span class="nc bnc" id="L521" title="All 2 branches missed.">        addSubgroupPopupAction.setEnabled(path != null);</span>
+<span class="nc bnc" id="L522" title="All 2 branches missed.">        editGroupPopupAction.setEnabled(path != null);</span>
+<span class="nc bnc" id="L523" title="All 2 branches missed.">        removeGroupAndSubgroupsPopupAction.setEnabled(path != null);</span>
+<span class="nc bnc" id="L524" title="All 2 branches missed.">        removeGroupKeepSubgroupsPopupAction.setEnabled(path != null);</span>
+<span class="nc bnc" id="L525" title="All 2 branches missed.">        moveSubmenu.setEnabled(path != null);</span>
+<span class="nc bnc" id="L526" title="All 2 branches missed.">        expandSubtreePopupAction.setEnabled(path != null);</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">        collapseSubtreePopupAction.setEnabled(path != null);</span>
+<span class="nc bnc" id="L528" title="All 2 branches missed.">        removeSubgroupsPopupAction.setEnabled(path != null);</span>
+<span class="nc bnc" id="L529" title="All 2 branches missed.">        sortSubmenu.setEnabled(path != null);</span>
+<span class="nc" id="L530">        addToGroup.setEnabled(false);</span>
+<span class="nc" id="L531">        moveToGroup.setEnabled(false);</span>
+<span class="nc" id="L532">        removeFromGroup.setEnabled(false);</span>
+<span class="nc bnc" id="L533" title="All 2 branches missed.">        if (path != null) { // some path dependent enabling/disabling</span>
+<span class="nc" id="L534">            GroupTreeNodeViewModel node = (GroupTreeNodeViewModel) path.getLastPathComponent();</span>
+<span class="nc" id="L535">            editGroupPopupAction.setNode(node);</span>
+<span class="nc" id="L536">            addSubgroupPopupAction.setNode(node);</span>
+<span class="nc" id="L537">            removeGroupAndSubgroupsPopupAction.setNode(node);</span>
+<span class="nc" id="L538">            removeSubgroupsPopupAction.setNode(node);</span>
+<span class="nc" id="L539">            removeGroupKeepSubgroupsPopupAction.setNode(node);</span>
+<span class="nc" id="L540">            expandSubtreePopupAction.setNode(node);</span>
+<span class="nc" id="L541">            collapseSubtreePopupAction.setNode(node);</span>
+<span class="nc" id="L542">            sortDirectSubgroupsPopupAction.setNode(node);</span>
+<span class="nc" id="L543">            sortAllSubgroupsPopupAction.setNode(node);</span>
+<span class="nc" id="L544">            groupsTree.setHighlightBorderCell(node);</span>
+<span class="nc bnc" id="L545" title="All 2 branches missed.">            if (node.canBeEdited()) {</span>
+<span class="nc" id="L546">                editGroupPopupAction.setEnabled(false);</span>
+<span class="nc" id="L547">                addGroupPopupAction.setEnabled(false);</span>
+<span class="nc" id="L548">                removeGroupAndSubgroupsPopupAction.setEnabled(false);</span>
+<span class="nc" id="L549">                removeGroupKeepSubgroupsPopupAction.setEnabled(false);</span>
+<span class="nc" id="L550">            } else {</span>
+<span class="nc" id="L551">                editGroupPopupAction.setEnabled(true);</span>
+<span class="nc" id="L552">                addGroupPopupAction.setEnabled(true);</span>
+<span class="nc" id="L553">                addGroupPopupAction.setNode(node);</span>
+<span class="nc" id="L554">                removeGroupAndSubgroupsPopupAction.setEnabled(true);</span>
+<span class="nc" id="L555">                removeGroupKeepSubgroupsPopupAction.setEnabled(true);</span>
+            }
+<span class="nc" id="L557">            expandSubtreePopupAction</span>
+<span class="nc bnc" id="L558" title="All 4 branches missed.">                    .setEnabled(groupsTree.isCollapsed(path) || groupsTree.hasCollapsedDescendant(path));</span>
+<span class="nc" id="L559">            collapseSubtreePopupAction</span>
+<span class="nc bnc" id="L560" title="All 4 branches missed.">                    .setEnabled(groupsTree.isExpanded(path) || groupsTree.hasExpandedDescendant(path));</span>
+<span class="nc bnc" id="L561" title="All 2 branches missed.">            sortSubmenu.setEnabled(!node.isLeaf());</span>
+<span class="nc bnc" id="L562" title="All 2 branches missed.">            removeSubgroupsPopupAction.setEnabled(!node.isLeaf());</span>
+<span class="nc" id="L563">            moveNodeUpPopupAction.setEnabled(node.canMoveUp());</span>
+<span class="nc" id="L564">            moveNodeDownPopupAction.setEnabled(node.canMoveDown());</span>
+<span class="nc" id="L565">            moveNodeLeftPopupAction.setEnabled(node.canMoveLeft());</span>
+<span class="nc" id="L566">            moveNodeRightPopupAction.setEnabled(node.canMoveRight());</span>
+<span class="nc bnc" id="L567" title="All 4 branches missed.">            moveSubmenu.setEnabled(moveNodeUpPopupAction.isEnabled() || moveNodeDownPopupAction.isEnabled()</span>
+<span class="nc bnc" id="L568" title="All 4 branches missed.">                    || moveNodeLeftPopupAction.isEnabled() || moveNodeRightPopupAction.isEnabled());</span>
+<span class="nc" id="L569">            moveNodeUpPopupAction.setNode(node);</span>
+<span class="nc" id="L570">            moveNodeDownPopupAction.setNode(node);</span>
+<span class="nc" id="L571">            moveNodeLeftPopupAction.setNode(node);</span>
+<span class="nc" id="L572">            moveNodeRightPopupAction.setNode(node);</span>
+            // add/remove entries to/from group
+<span class="nc" id="L574">            List&lt;BibEntry&gt; selection = frame.getCurrentBasePanel().getSelectedEntries();</span>
+<span class="nc bnc" id="L575" title="All 2 branches missed.">            if (selection.size() &gt; 0) {</span>
+<span class="nc bnc" id="L576" title="All 2 branches missed.">                if (node.canAddEntries(selection)) {</span>
+<span class="nc" id="L577">                    addToGroup.setNode(node);</span>
+<span class="nc" id="L578">                    addToGroup.setBasePanel(panel);</span>
+<span class="nc" id="L579">                    addToGroup.setEnabled(true);</span>
+<span class="nc" id="L580">                    moveToGroup.setNode(node);</span>
+<span class="nc" id="L581">                    moveToGroup.setBasePanel(panel);</span>
+<span class="nc" id="L582">                    moveToGroup.setEnabled(true);</span>
+                }
+<span class="nc bnc" id="L584" title="All 2 branches missed.">                if (node.canRemoveEntries(selection)) {</span>
+<span class="nc" id="L585">                    removeFromGroup.setNode(node);</span>
+<span class="nc" id="L586">                    removeFromGroup.setBasePanel(panel);</span>
+<span class="nc" id="L587">                    removeFromGroup.setEnabled(true);</span>
+                }
+            }
+<span class="nc" id="L590">        } else {</span>
+<span class="nc" id="L591">            editGroupPopupAction.setNode(null);</span>
+<span class="nc" id="L592">            addGroupPopupAction.setNode(null);</span>
+<span class="nc" id="L593">            addSubgroupPopupAction.setNode(null);</span>
+<span class="nc" id="L594">            removeGroupAndSubgroupsPopupAction.setNode(null);</span>
+<span class="nc" id="L595">            removeSubgroupsPopupAction.setNode(null);</span>
+<span class="nc" id="L596">            removeGroupKeepSubgroupsPopupAction.setNode(null);</span>
+<span class="nc" id="L597">            moveNodeUpPopupAction.setNode(null);</span>
+<span class="nc" id="L598">            moveNodeDownPopupAction.setNode(null);</span>
+<span class="nc" id="L599">            moveNodeLeftPopupAction.setNode(null);</span>
+<span class="nc" id="L600">            moveNodeRightPopupAction.setNode(null);</span>
+<span class="nc" id="L601">            expandSubtreePopupAction.setNode(null);</span>
+<span class="nc" id="L602">            collapseSubtreePopupAction.setNode(null);</span>
+<span class="nc" id="L603">            sortDirectSubgroupsPopupAction.setNode(null);</span>
+<span class="nc" id="L604">            sortAllSubgroupsPopupAction.setNode(null);</span>
+        }
+<span class="nc" id="L606">        groupsContextMenu.show(groupsTree, e.getPoint().x, e.getPoint().y);</span>
+<span class="nc" id="L607">    }</span>
+
+    private void setEditMode(boolean editMode) {
+<span class="fc" id="L610">        Globals.prefs.putBoolean(JabRefPreferences.EDIT_GROUP_MEMBERSHIP_MODE, editModeIndicator);</span>
+<span class="fc" id="L611">        editModeIndicator = editMode;</span>
+
+<span class="pc bpc" id="L613" title="1 of 2 branches missed.">        if (editMode) {</span>
+<span class="nc" id="L614">            groupsTree.setBorder(editModeBorder);</span>
+<span class="nc" id="L615">            this.setTitle(&quot;&lt;html&gt;&lt;font color='red'&gt;Groups Edit mode&lt;/font&gt;&lt;/html&gt;&quot;);</span>
+<span class="nc" id="L616">        } else {</span>
+<span class="fc" id="L617">            groupsTree.setBorder(null);</span>
+<span class="fc" id="L618">            this.setTitle(Localization.lang(&quot;Groups&quot;));</span>
+        }
+<span class="fc" id="L620">        groupsTree.revalidate();</span>
+<span class="fc" id="L621">        groupsTree.repaint();</span>
+<span class="fc" id="L622">    }</span>
+
+    private void annotationEvent(GroupTreeNodeViewModel node) {
+<span class="nc bnc" id="L625" title="All 2 branches missed.">        if (editModeIndicator) {</span>
+<span class="nc" id="L626">            LOGGER.info(&quot;Performing annotation &quot; + node.getName());</span>
+<span class="nc" id="L627">            List&lt;BibEntry&gt; entries = panel.getSelectedEntries();</span>
+<span class="nc" id="L628">            node.changeEntriesTo(entries, panel.undoManager);</span>
+<span class="nc" id="L629">            panel.markBaseChanged();</span>
+<span class="nc" id="L630">            panel.updateEntryEditorIfShowing();</span>
+<span class="nc" id="L631">            updateShownEntriesAccordingToSelectedGroups();</span>
+        }
+<span class="nc" id="L633">    }</span>
+
+    @Override
+    public void valueChanged(TreeSelectionEvent e) {
+<span class="nc bnc" id="L637" title="All 2 branches missed.">        if (panel == null) {</span>
+<span class="nc" id="L638">            return; // ignore this event (happens for example if the file was closed)</span>
+        }
+<span class="nc bnc" id="L640" title="All 2 branches missed.">        if (getLeafsOfSelection().stream().allMatch(node -&gt; node.isAllEntriesGroup())) {</span>
+<span class="nc" id="L641">            panel.mainTable.getTableModel().updateGroupingState(MainTableDataModel.DisplayOption.DISABLED);</span>
+<span class="nc bnc" id="L642" title="All 2 branches missed.">            if (showOverlappingGroups.isSelected()) {</span>
+<span class="nc" id="L643">                groupsTree.setHighlight2Cells(null);</span>
+            }
+<span class="nc" id="L645">            frame.output(Localization.lang(&quot;Displaying no groups&quot;) + &quot;.&quot;);</span>
+<span class="nc" id="L646">            return;</span>
+        }
+
+<span class="nc bnc" id="L649" title="All 2 branches missed.">        if (!editModeIndicator) {</span>
+<span class="nc" id="L650">            updateShownEntriesAccordingToSelectedGroups();</span>
+        }
+<span class="nc" id="L652">    }</span>
+
+    private void updateShownEntriesAccordingToSelectedGroups() {
+<span class="nc" id="L655">        final MatcherSet searchRules = MatcherSets</span>
+<span class="nc bnc" id="L656" title="All 2 branches missed.">                .build(andCb.isSelected() ? MatcherSets.MatcherType.AND : MatcherSets.MatcherType.OR);</span>
+
+<span class="nc bnc" id="L658" title="All 2 branches missed.">        for(GroupTreeNodeViewModel node : getLeafsOfSelection()) {</span>
+<span class="nc" id="L659">            SearchMatcher searchRule = node.getNode().getSearchRule();</span>
+<span class="nc" id="L660">            searchRules.addRule(searchRule);</span>
+        }
+<span class="nc bnc" id="L662" title="All 2 branches missed.">        SearchMatcher searchRule = invCb.isSelected() ? new NotMatcher(searchRules) : searchRules;</span>
+<span class="nc" id="L663">        GroupingWorker worker = new GroupingWorker(searchRule);</span>
+<span class="nc" id="L664">        worker.getWorker().run();</span>
+<span class="nc" id="L665">        worker.getCallBack().update();</span>
+<span class="nc" id="L666">    }</span>
+
+    private List&lt;GroupTreeNodeViewModel&gt; getLeafsOfSelection() {
+<span class="nc" id="L669">        TreePath[] selection = groupsTree.getSelectionPaths();</span>
+<span class="nc bnc" id="L670" title="All 4 branches missed.">        if((selection == null) || (selection.length == 0)) {</span>
+<span class="nc" id="L671">            return new ArrayList&lt;&gt;();</span>
+        }
+
+<span class="nc" id="L674">        List&lt;GroupTreeNodeViewModel&gt; selectedLeafs = new ArrayList&lt;&gt;(selection.length);</span>
+<span class="nc bnc" id="L675" title="All 2 branches missed.">        for (TreePath path : selection) {</span>
+<span class="nc" id="L676">            selectedLeafs.add((GroupTreeNodeViewModel) path.getLastPathComponent());</span>
+        }
+<span class="nc" id="L678">        return selectedLeafs;</span>
+    }
+
+    private GroupTreeNodeViewModel getFirstSelectedNode() {
+<span class="nc" id="L682">        TreePath path = groupsTree.getSelectionPath();</span>
+<span class="nc bnc" id="L683" title="All 2 branches missed.">        if (path != null) {</span>
+<span class="nc" id="L684">            return (GroupTreeNodeViewModel) path.getLastPathComponent();</span>
+        }
+<span class="nc" id="L686">        return null;</span>
+    }
+
+    class GroupingWorker extends AbstractWorker {
+
+        private final SearchMatcher matcher;
+<span class="nc" id="L692">        private final List&lt;BibEntry&gt; matches = new ArrayList&lt;&gt;();</span>
+        private final boolean showOverlappingGroupsP;
+
+<span class="nc" id="L695">        public GroupingWorker(SearchMatcher matcher) {</span>
+<span class="nc" id="L696">            this.matcher = matcher;</span>
+<span class="nc" id="L697">            showOverlappingGroupsP = showOverlappingGroups.isSelected();</span>
+<span class="nc" id="L698">        }</span>
+
+        @Override
+        public void run() {
+<span class="nc bnc" id="L702" title="All 2 branches missed.">            for (BibEntry entry : panel.getDatabase().getEntries()) {</span>
+<span class="nc" id="L703">                boolean hit = matcher.isMatch(entry);</span>
+<span class="nc" id="L704">                entry.setGroupHit(hit);</span>
+<span class="nc bnc" id="L705" title="All 4 branches missed.">                if (hit &amp;&amp; showOverlappingGroupsP) {</span>
+<span class="nc" id="L706">                    matches.add(entry);</span>
+                }
+            }
+<span class="nc" id="L709">        }</span>
+
+        @Override
+        public void update() {
+            // Show the result in the chosen way:
+<span class="nc bnc" id="L714" title="All 2 branches missed.">            if (hideNonHits.isSelected()) {</span>
+<span class="nc" id="L715">                panel.mainTable.getTableModel().updateGroupingState(MainTableDataModel.DisplayOption.FILTER);</span>
+<span class="nc bnc" id="L716" title="All 2 branches missed.">            } else if (grayOut.isSelected()) {</span>
+<span class="nc" id="L717">                panel.mainTable.getTableModel().updateGroupingState(MainTableDataModel.DisplayOption.FLOAT);</span>
+            }
+<span class="nc" id="L719">            panel.mainTable.getTableModel().updateSortOrder();</span>
+<span class="nc" id="L720">            panel.mainTable.getTableModel().updateGroupFilter();</span>
+<span class="nc" id="L721">            panel.mainTable.scrollTo(0);</span>
+
+<span class="nc bnc" id="L723" title="All 2 branches missed.">            if (showOverlappingGroupsP) {</span>
+<span class="nc" id="L724">                showOverlappingGroups(matches);</span>
+            }
+<span class="nc" id="L726">            frame.output(Localization.lang(&quot;Updated group selection&quot;) + &quot;.&quot;);</span>
+<span class="nc" id="L727">        }</span>
+    }
+
+    /**
+     * Revalidate the groups tree (e.g. after the data stored in the model has been changed) and maintain the current
+     * selection and expansion state.
+     */
+    public void revalidateGroups() {
+<span class="nc" id="L735">        revalidateGroups(null);</span>
+<span class="nc" id="L736">    }</span>
+
+    /**
+     * Revalidate the groups tree (e.g. after the data stored in the model has been changed) and maintain the current
+     * selection and expansion state.
+     *
+     * @param node If this is non-null, the view is scrolled to make it visible.
+     */
+    private void revalidateGroups(GroupTreeNodeViewModel node) {
+<span class="nc" id="L745">        revalidateGroups(groupsTree.getSelectionPaths(), getExpandedPaths(), node);</span>
+<span class="nc" id="L746">    }</span>
+
+    /**
+     * Revalidate the groups tree (e.g. after the data stored in the model has been changed) and set the specified
+     * selection and expansion state.
+     */
+    public void revalidateGroups(TreePath[] selectionPaths, Enumeration&lt;TreePath&gt; expandedNodes) {
+<span class="nc" id="L753">        revalidateGroups(selectionPaths, expandedNodes, null);</span>
+<span class="nc" id="L754">    }</span>
+
+    /**
+     * Revalidate the groups tree (e.g. after the data stored in the model has been changed) and set the specified
+     * selection and expansion state.
+     *
+     * @param node If this is non-null, the view is scrolled to make it visible.
+     */
+    private void revalidateGroups(TreePath[] selectionPaths, Enumeration&lt;TreePath&gt; expandedNodes,
+            GroupTreeNodeViewModel node) {
+<span class="nc" id="L764">        groupsTreeModel.reload();</span>
+<span class="nc" id="L765">        groupsTree.clearSelection();</span>
+<span class="nc bnc" id="L766" title="All 2 branches missed.">        if (selectionPaths != null) {</span>
+<span class="nc" id="L767">            groupsTree.setSelectionPaths(selectionPaths);</span>
+        }
+        // tree is completely collapsed here
+<span class="nc bnc" id="L770" title="All 2 branches missed.">        if (expandedNodes != null) {</span>
+<span class="nc bnc" id="L771" title="All 2 branches missed.">            while (expandedNodes.hasMoreElements()) {</span>
+<span class="nc" id="L772">                groupsTree.expandPath(expandedNodes.nextElement());</span>
+            }
+        }
+<span class="nc" id="L775">        groupsTree.revalidate();</span>
+<span class="nc bnc" id="L776" title="All 2 branches missed.">        if (node != null) {</span>
+<span class="nc" id="L777">            groupsTree.scrollPathToVisible(node.getTreePath());</span>
+        }
+<span class="nc" id="L779">    }</span>
+
+    @Override
+    public void componentOpening() {
+<span class="nc" id="L783">        valueChanged(null);</span>
+<span class="nc" id="L784">    }</span>
+
+    @Override
+    public int getRescalingWeight() {
+<span class="nc" id="L788">        return 1;</span>
+    }
+
+    @Override
+    public void componentClosing() {
+<span class="nc bnc" id="L793" title="All 2 branches missed.">        if (panel != null) {// panel may be null if no file is open any more</span>
+<span class="nc" id="L794">            panel.mainTable.getTableModel().updateGroupingState(MainTableDataModel.DisplayOption.DISABLED);</span>
+        }
+<span class="nc" id="L796">        frame.groupToggle.setSelected(false);</span>
+<span class="nc" id="L797">    }</span>
+
+    private void setGroups(GroupTreeNode groupsRoot) {
+<span class="fc" id="L800">        this.groupsRoot = new GroupTreeNodeViewModel(groupsRoot);</span>
+<span class="pc" id="L801">        this.groupsRoot.subscribeToDescendantChanged(source -&gt; groupsTreeModel.nodeStructureChanged(source));</span>
+<span class="fc" id="L802">        groupsTreeModel = new DefaultTreeModel(this.groupsRoot);</span>
+<span class="fc" id="L803">        groupsTree.setModel(groupsTreeModel);</span>
+<span class="pc bpc" id="L804" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.GROUP_EXPAND_TREE)) {</span>
+<span class="fc" id="L805">            this.groupsRoot.expandSubtree(groupsTree);</span>
+        }
+<span class="fc" id="L807">    }</span>
+
+    /**
+     * Adds the specified node as a child of the current root. The group contained in &lt;b&gt;newGroups &lt;/b&gt; must not be of
+     * type AllEntriesGroup, since every tree has exactly one AllEntriesGroup (its root). The &lt;b&gt;newGroups &lt;/b&gt; are
+     * inserted directly, i.e. they are not deepCopy()'d.
+     */
+    public void addGroups(GroupTreeNode newGroups, CompoundEdit ce) {
+        // TODO: This shouldn't be a method of GroupSelector
+
+        // paranoia: ensure that there are never two instances of AllEntriesGroup
+<span class="nc bnc" id="L818" title="All 2 branches missed.">        if (newGroups.getGroup() instanceof AllEntriesGroup) {</span>
+<span class="nc" id="L819">            return; // this should be impossible anyway</span>
+        }
+<span class="nc" id="L821">        newGroups.moveTo(groupsRoot.getNode());</span>
+<span class="nc" id="L822">        UndoableAddOrRemoveGroup undo = new UndoableAddOrRemoveGroup(groupsRoot,</span>
+<span class="nc" id="L823">                new GroupTreeNodeViewModel(newGroups), UndoableAddOrRemoveGroup.ADD_NODE);</span>
+<span class="nc" id="L824">        ce.addEdit(undo);</span>
+<span class="nc" id="L825">    }</span>
+
+    private abstract class NodeAction extends AbstractAction {
+
+        private GroupTreeNodeViewModel node;
+
+<span class="fc" id="L831">        public NodeAction(String s) {</span>
+<span class="fc" id="L832">            super(s);</span>
+<span class="fc" id="L833">        }</span>
+
+        public void setNode(GroupTreeNodeViewModel node) {
+<span class="nc" id="L836">            this.node = node;</span>
+<span class="nc" id="L837">        }</span>
+
+        /**
+         * Returns the node to use in this action. If a node has been set explicitly (via setNode), it is returned.
+         * Otherwise, the first node in the current selection is returned. If all this fails, null is returned.
+         */
+        public GroupTreeNodeViewModel getNodeToUse() {
+<span class="nc bnc" id="L844" title="All 2 branches missed.">            if (node != null) {</span>
+<span class="nc" id="L845">                return node;</span>
+            }
+<span class="nc" id="L847">            return getFirstSelectedNode();</span>
+        }
+    }
+
+    private class EditGroupAction extends NodeAction {
+
+<span class="fc" id="L853">        public EditGroupAction() {</span>
+<span class="fc" id="L854">            super(Localization.lang(&quot;Edit group&quot;));</span>
+<span class="fc" id="L855">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L859">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L860">            final AbstractGroup oldGroup = node.getNode().getGroup();</span>
+<span class="nc" id="L861">            final GroupDialog gd = new GroupDialog(frame, panel, oldGroup);</span>
+<span class="nc" id="L862">            gd.setVisible(true);</span>
+<span class="nc bnc" id="L863" title="All 2 branches missed.">            if (gd.okPressed()) {</span>
+<span class="nc" id="L864">                AbstractGroup newGroup = gd.getResultingGroup();</span>
+<span class="nc" id="L865">                AbstractUndoableEdit undoAddPreviousEntries = gd.getUndoForAddPreviousEntries();</span>
+<span class="nc" id="L866">                UndoableModifyGroup undo = new UndoableModifyGroup(GroupSelector.this, groupsRoot, node, newGroup);</span>
+<span class="nc" id="L867">                node.getNode().setGroup(newGroup);</span>
+<span class="nc" id="L868">                revalidateGroups(node);</span>
+                // Store undo information.
+<span class="nc bnc" id="L870" title="All 2 branches missed.">                if (undoAddPreviousEntries == null) {</span>
+<span class="nc" id="L871">                    panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L872">                } else {</span>
+<span class="nc" id="L873">                    NamedCompound nc = new NamedCompound(&quot;Modify Group&quot;);</span>
+<span class="nc" id="L874">                    nc.addEdit(undo);</span>
+<span class="nc" id="L875">                    nc.addEdit(undoAddPreviousEntries);</span>
+<span class="nc" id="L876">                    nc.end();</span>
+<span class="nc" id="L877">                    panel.undoManager.addEdit(nc);</span>
+                }
+<span class="nc" id="L879">                panel.markBaseChanged();</span>
+<span class="nc" id="L880">                frame.output(Localization.lang(&quot;Modified group \&quot;%0\&quot;.&quot;, newGroup.getName()));</span>
+            }
+<span class="nc" id="L882">        }</span>
+    }
+
+    private class AddGroupAction extends NodeAction {
+
+<span class="fc" id="L887">        public AddGroupAction() {</span>
+<span class="fc" id="L888">            super(Localization.lang(&quot;Add group&quot;));</span>
+<span class="fc" id="L889">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L893">            final GroupDialog gd = new GroupDialog(frame, panel, null);</span>
+<span class="nc" id="L894">            gd.setVisible(true);</span>
+<span class="nc bnc" id="L895" title="All 2 branches missed.">            if (!gd.okPressed()) {</span>
+<span class="nc" id="L896">                return; // ignore</span>
+            }
+<span class="nc" id="L898">            final AbstractGroup newGroup = gd.getResultingGroup();</span>
+<span class="nc" id="L899">            final GroupTreeNode newNode = new GroupTreeNode(newGroup);</span>
+<span class="nc" id="L900">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc bnc" id="L901" title="All 2 branches missed.">            if (node == null) {</span>
+<span class="nc" id="L902">                groupsRoot.getNode().addChild(newNode);</span>
+<span class="nc" id="L903">            } else {</span>
+<span class="nc" id="L904">                ((GroupTreeNodeViewModel)node.getParent()).getNode().addChild(newNode, node.getNode().getPositionInParent() + 1);</span>
+            }
+<span class="nc" id="L906">            UndoableAddOrRemoveGroup undo = new UndoableAddOrRemoveGroup(groupsRoot,</span>
+<span class="nc" id="L907">                    new GroupTreeNodeViewModel(newNode), UndoableAddOrRemoveGroup.ADD_NODE);</span>
+<span class="nc bnc" id="L908" title="All 2 branches missed.">            groupsTree.expandPath((node == null ? groupsRoot : node).getTreePath());</span>
+            // Store undo information.
+<span class="nc" id="L910">            panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L911">            panel.markBaseChanged();</span>
+<span class="nc" id="L912">            frame.output(Localization.lang(&quot;Added group \&quot;%0\&quot;.&quot;, newGroup.getName()));</span>
+<span class="nc" id="L913">        }</span>
+    }
+
+    private class AddSubgroupAction extends NodeAction {
+
+<span class="fc" id="L918">        public AddSubgroupAction() {</span>
+<span class="fc" id="L919">            super(Localization.lang(&quot;Add subgroup&quot;));</span>
+<span class="fc" id="L920">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L924">            final GroupDialog gd = new GroupDialog(frame, panel, null);</span>
+<span class="nc" id="L925">            gd.setVisible(true);</span>
+<span class="nc bnc" id="L926" title="All 2 branches missed.">            if (!gd.okPressed()) {</span>
+<span class="nc" id="L927">                return; // ignore</span>
+            }
+<span class="nc" id="L929">            final AbstractGroup newGroup = gd.getResultingGroup();</span>
+<span class="nc" id="L930">            final GroupTreeNode newNode = new GroupTreeNode(newGroup);</span>
+<span class="nc" id="L931">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L932">            node.getNode().addChild(newNode);</span>
+<span class="nc" id="L933">            UndoableAddOrRemoveGroup undo = new UndoableAddOrRemoveGroup(groupsRoot,</span>
+<span class="nc" id="L934">                    new GroupTreeNodeViewModel(newNode), UndoableAddOrRemoveGroup.ADD_NODE);</span>
+<span class="nc" id="L935">            groupsTree.expandPath(node.getTreePath());</span>
+            // Store undo information.
+<span class="nc" id="L937">            panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L938">            panel.markBaseChanged();</span>
+<span class="nc" id="L939">            frame.output(Localization.lang(&quot;Added group \&quot;%0\&quot;.&quot;, newGroup.getName()));</span>
+<span class="nc" id="L940">        }</span>
+    }
+
+    private class RemoveGroupAndSubgroupsAction extends NodeAction {
+
+<span class="fc" id="L945">        public RemoveGroupAndSubgroupsAction() {</span>
+<span class="fc" id="L946">            super(Localization.lang(&quot;Remove group and subgroups&quot;));</span>
+<span class="fc" id="L947">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L951">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L952">            final AbstractGroup group = node.getNode().getGroup();</span>
+<span class="nc" id="L953">            int conf = JOptionPane.showConfirmDialog(frame,</span>
+<span class="nc" id="L954">                    Localization.lang(&quot;Remove group \&quot;%0\&quot; and its subgroups?&quot;, group.getName()),</span>
+<span class="nc" id="L955">                    Localization.lang(&quot;Remove group and subgroups&quot;), JOptionPane.YES_NO_OPTION);</span>
+<span class="nc bnc" id="L956" title="All 2 branches missed.">            if (conf == JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L957">                final UndoableAddOrRemoveGroup undo = new UndoableAddOrRemoveGroup(groupsRoot, node,</span>
+<span class="nc" id="L958">                        UndoableAddOrRemoveGroup.REMOVE_NODE_AND_CHILDREN);</span>
+<span class="nc" id="L959">                node.getNode().removeFromParent();</span>
+                // Store undo information.
+<span class="nc" id="L961">                panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L962">                panel.markBaseChanged();</span>
+<span class="nc" id="L963">                frame.output(Localization.lang(&quot;Removed group \&quot;%0\&quot; and its subgroups.&quot;, group.getName()));</span>
+            }
+<span class="nc" id="L965">        }</span>
+    }
+
+    private class RemoveSubgroupsAction extends NodeAction {
+
+<span class="fc" id="L970">        public RemoveSubgroupsAction() {</span>
+<span class="fc" id="L971">            super(Localization.lang(&quot;Remove subgroups&quot;));</span>
+<span class="fc" id="L972">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L976">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L977">            int conf = JOptionPane.showConfirmDialog(frame,</span>
+<span class="nc" id="L978">                    Localization.lang(&quot;Remove all subgroups of \&quot;%0\&quot;?&quot;, node.getName()),</span>
+<span class="nc" id="L979">                    Localization.lang(&quot;Remove subgroups&quot;), JOptionPane.YES_NO_OPTION);</span>
+<span class="nc bnc" id="L980" title="All 2 branches missed.">            if (conf == JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L981">                final UndoableModifySubtree undo = new UndoableModifySubtree(getGroupTreeRoot(),</span>
+<span class="nc" id="L982">                        node, &quot;Remove subgroups&quot;);</span>
+<span class="nc" id="L983">                node.getNode().removeAllChildren();</span>
+                //revalidateGroups();
+                // Store undo information.
+<span class="nc" id="L986">                panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L987">                panel.markBaseChanged();</span>
+<span class="nc" id="L988">                frame.output(Localization.lang(&quot;Removed all subgroups of group \&quot;%0\&quot;.&quot;, node.getName()));</span>
+            }
+<span class="nc" id="L990">        }</span>
+    }
+
+    private class RemoveGroupKeepSubgroupsAction extends NodeAction {
+
+<span class="fc" id="L995">        public RemoveGroupKeepSubgroupsAction() {</span>
+<span class="fc" id="L996">            super(Localization.lang(&quot;Remove group, keep subgroups&quot;));</span>
+<span class="fc" id="L997">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1001">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L1002">            final AbstractGroup group = node.getNode().getGroup();</span>
+<span class="nc" id="L1003">            int conf = JOptionPane.showConfirmDialog(frame, Localization.lang(&quot;Remove group \&quot;%0\&quot;?&quot;, group.getName()),</span>
+<span class="nc" id="L1004">                    Localization.lang(&quot;Remove group&quot;), JOptionPane.YES_NO_OPTION);</span>
+<span class="nc bnc" id="L1005" title="All 2 branches missed.">            if (conf == JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L1006">                final UndoableAddOrRemoveGroup undo = new UndoableAddOrRemoveGroup(groupsRoot, node,</span>
+<span class="nc" id="L1007">                        UndoableAddOrRemoveGroup.REMOVE_NODE_KEEP_CHILDREN);</span>
+<span class="nc" id="L1008">                final GroupTreeNodeViewModel parent = (GroupTreeNodeViewModel)node.getParent();</span>
+<span class="nc" id="L1009">                node.getNode().removeFromParent();</span>
+<span class="nc" id="L1010">                node.getNode().moveAllChildrenTo(parent.getNode(), parent.getIndex(node));</span>
+
+                // Store undo information.
+<span class="nc" id="L1013">                panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L1014">                panel.markBaseChanged();</span>
+<span class="nc" id="L1015">                frame.output(Localization.lang(&quot;Removed group \&quot;%0\&quot;.&quot;, group.getName()));</span>
+            }
+<span class="nc" id="L1017">        }</span>
+    }
+
+
+    public TreePath getSelectionPath() {
+<span class="nc" id="L1022">        return groupsTree.getSelectionPath();</span>
+    }
+
+
+    private class SortDirectSubgroupsAction extends NodeAction {
+
+<span class="fc" id="L1028">        public SortDirectSubgroupsAction() {</span>
+<span class="fc" id="L1029">            super(Localization.lang(&quot;Immediate subgroups&quot;));</span>
+<span class="fc" id="L1030">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent ae) {
+<span class="nc" id="L1034">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L1035">            final UndoableModifySubtree undo = new UndoableModifySubtree(getGroupTreeRoot(), node,</span>
+<span class="nc" id="L1036">                    Localization.lang(&quot;sort subgroups&quot;));</span>
+<span class="nc" id="L1037">            groupsTree.sort(node, false);</span>
+<span class="nc" id="L1038">            panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L1039">            panel.markBaseChanged();</span>
+<span class="nc" id="L1040">            frame.output(Localization.lang(&quot;Sorted immediate subgroups.&quot;));</span>
+<span class="nc" id="L1041">        }</span>
+    }
+
+    private class SortAllSubgroupsAction extends NodeAction {
+
+<span class="fc" id="L1046">        public SortAllSubgroupsAction() {</span>
+<span class="fc" id="L1047">            super(Localization.lang(&quot;All subgroups (recursively)&quot;));</span>
+<span class="fc" id="L1048">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent ae) {
+<span class="nc" id="L1052">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L1053">            final UndoableModifySubtree undo = new UndoableModifySubtree(getGroupTreeRoot(), node,</span>
+<span class="nc" id="L1054">                    Localization.lang(&quot;sort subgroups&quot;));</span>
+<span class="nc" id="L1055">            groupsTree.sort(node, true);</span>
+<span class="nc" id="L1056">            panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L1057">            panel.markBaseChanged();</span>
+<span class="nc" id="L1058">            frame.output(Localization.lang(&quot;Sorted all subgroups recursively.&quot;));</span>
+<span class="nc" id="L1059">        }</span>
+    }
+
+    private class ExpandSubtreeAction extends NodeAction {
+
+<span class="fc" id="L1064">        public ExpandSubtreeAction() {</span>
+<span class="fc" id="L1065">            super(Localization.lang(&quot;Expand subtree&quot;));</span>
+<span class="fc" id="L1066">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent ae) {
+<span class="nc" id="L1070">            getNodeToUse().expandSubtree(groupsTree);</span>
+<span class="nc" id="L1071">            revalidateGroups();</span>
+<span class="nc" id="L1072">        }</span>
+    }
+
+    private class CollapseSubtreeAction extends NodeAction {
+
+<span class="fc" id="L1077">        public CollapseSubtreeAction() {</span>
+<span class="fc" id="L1078">            super(Localization.lang(&quot;Collapse subtree&quot;));</span>
+<span class="fc" id="L1079">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent ae) {
+<span class="nc" id="L1083">            getNodeToUse().collapseSubtree(groupsTree);</span>
+<span class="nc" id="L1084">            revalidateGroups();</span>
+<span class="nc" id="L1085">        }</span>
+    }
+
+    private class MoveNodeUpAction extends NodeAction {
+
+<span class="fc" id="L1090">        public MoveNodeUpAction() {</span>
+<span class="fc" id="L1091">            super(Localization.lang(&quot;Up&quot;));</span>
+<span class="fc" id="L1092">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1096">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L1097">            moveNodeUp(node, false);</span>
+<span class="nc" id="L1098">        }</span>
+    }
+
+    private class MoveNodeDownAction extends NodeAction {
+
+<span class="fc" id="L1103">        public MoveNodeDownAction() {</span>
+<span class="fc" id="L1104">            super(Localization.lang(&quot;Down&quot;));</span>
+<span class="fc" id="L1105">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1109">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L1110">            moveNodeDown(node, false);</span>
+<span class="nc" id="L1111">        }</span>
+    }
+
+    private class MoveNodeLeftAction extends NodeAction {
+
+<span class="fc" id="L1116">        public MoveNodeLeftAction() {</span>
+<span class="fc" id="L1117">            super(Localization.lang(&quot;Left&quot;));</span>
+<span class="fc" id="L1118">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1122">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L1123">            moveNodeLeft(node, false);</span>
+<span class="nc" id="L1124">        }</span>
+    }
+
+    private class MoveNodeRightAction extends NodeAction {
+
+<span class="fc" id="L1129">        public MoveNodeRightAction() {</span>
+<span class="fc" id="L1130">            super(Localization.lang(&quot;Right&quot;));</span>
+<span class="fc" id="L1131">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1135">            final GroupTreeNodeViewModel node = getNodeToUse();</span>
+<span class="nc" id="L1136">            moveNodeRight(node, false);</span>
+<span class="nc" id="L1137">        }</span>
+    }
+
+
+    /**
+     * @param node The node to move
+     * @return true if move was successful, false if not.
+     */
+    public boolean moveNodeUp(GroupTreeNodeViewModel node, boolean checkSingleSelection) {
+<span class="nc bnc" id="L1146" title="All 4 branches missed.">        if (checkSingleSelection &amp;&amp; (groupsTree.getSelectionCount() != 1)) {</span>
+<span class="nc" id="L1147">            frame.output(MOVE_ONE_GROUP);</span>
+<span class="nc" id="L1148">            return false; // not possible</span>
+        }
+        Optional&lt;MoveGroupChange&gt; moveChange;
+<span class="nc bnc" id="L1151" title="All 4 branches missed.">        if (!node.canMoveUp() || (! (moveChange = node.moveUp()).isPresent())) {</span>
+<span class="nc" id="L1152">            frame.output(Localization.lang(&quot;Cannot move group \&quot;%0\&quot; up.&quot;, node.getNode().getGroup().getName()));</span>
+<span class="nc" id="L1153">            return false; // not possible</span>
+        }
+        // update selection/expansion state (not really needed when
+        // moving among siblings, but I'm paranoid)
+<span class="nc" id="L1157">        revalidateGroups(groupsTree.refreshPaths(groupsTree.getSelectionPaths()),</span>
+<span class="nc" id="L1158">                groupsTree.refreshPaths(getExpandedPaths()));</span>
+<span class="nc" id="L1159">        concludeMoveGroup(moveChange.get(), node);</span>
+<span class="nc" id="L1160">        return true;</span>
+    }
+
+    /**
+     * @param node The node to move
+     * @return true if move was successful, false if not.
+     */
+    public boolean moveNodeDown(GroupTreeNodeViewModel node, boolean checkSingleSelection) {
+<span class="nc bnc" id="L1168" title="All 4 branches missed.">        if (checkSingleSelection &amp;&amp; (groupsTree.getSelectionCount() != 1)) {</span>
+<span class="nc" id="L1169">            frame.output(MOVE_ONE_GROUP);</span>
+<span class="nc" id="L1170">            return false; // not possible</span>
+        }
+        Optional&lt;MoveGroupChange&gt; moveChange;
+<span class="nc bnc" id="L1173" title="All 4 branches missed.">        if (!node.canMoveDown() || (! (moveChange = node.moveDown()).isPresent())) {</span>
+<span class="nc" id="L1174">            frame.output(Localization.lang(&quot;Cannot move group \&quot;%0\&quot; down.&quot;, node.getNode().getGroup().getName()));</span>
+<span class="nc" id="L1175">            return false; // not possible</span>
+        }
+        // update selection/expansion state (not really needed when
+        // moving among siblings, but I'm paranoid)
+<span class="nc" id="L1179">        revalidateGroups(groupsTree.refreshPaths(groupsTree.getSelectionPaths()),</span>
+<span class="nc" id="L1180">                groupsTree.refreshPaths(getExpandedPaths()));</span>
+<span class="nc" id="L1181">        concludeMoveGroup(moveChange.get(), node);</span>
+<span class="nc" id="L1182">        return true;</span>
+    }
+
+    /**
+     * @param node The node to move
+     * @return true if move was successful, false if not.
+     */
+    public boolean moveNodeLeft(GroupTreeNodeViewModel node, boolean checkSingleSelection) {
+<span class="nc bnc" id="L1190" title="All 4 branches missed.">        if (checkSingleSelection &amp;&amp; (groupsTree.getSelectionCount() != 1)) {</span>
+<span class="nc" id="L1191">            frame.output(MOVE_ONE_GROUP);</span>
+<span class="nc" id="L1192">            return false; // not possible</span>
+        }
+        Optional&lt;MoveGroupChange&gt; moveChange;
+<span class="nc bnc" id="L1195" title="All 4 branches missed.">        if (!node.canMoveLeft() || (! (moveChange = node.moveLeft()).isPresent())) {</span>
+<span class="nc" id="L1196">            frame.output(Localization.lang(&quot;Cannot move group \&quot;%0\&quot; left.&quot;, node.getNode().getGroup().getName()));</span>
+<span class="nc" id="L1197">            return false; // not possible</span>
+        }
+        // update selection/expansion state
+<span class="nc" id="L1200">        revalidateGroups(groupsTree.refreshPaths(groupsTree.getSelectionPaths()),</span>
+<span class="nc" id="L1201">                groupsTree.refreshPaths(getExpandedPaths()));</span>
+<span class="nc" id="L1202">        concludeMoveGroup(moveChange.get(), node);</span>
+<span class="nc" id="L1203">        return true;</span>
+    }
+
+    /**
+     * @param node The node to move
+     * @return true if move was successful, false if not.
+     */
+    public boolean moveNodeRight(GroupTreeNodeViewModel node, boolean checkSingleSelection) {
+<span class="nc bnc" id="L1211" title="All 4 branches missed.">        if (checkSingleSelection &amp;&amp; (groupsTree.getSelectionCount() != 1)) {</span>
+<span class="nc" id="L1212">            frame.output(MOVE_ONE_GROUP);</span>
+<span class="nc" id="L1213">            return false; // not possible</span>
+        }
+        Optional&lt;MoveGroupChange&gt; moveChange;
+<span class="nc bnc" id="L1216" title="All 4 branches missed.">        if (!node.canMoveRight() || (! (moveChange = node.moveRight()).isPresent())) {</span>
+<span class="nc" id="L1217">            frame.output(Localization.lang(&quot;Cannot move group \&quot;%0\&quot; right.&quot;, node.getNode().getGroup().getName()));</span>
+<span class="nc" id="L1218">            return false; // not possible</span>
+        }
+        // update selection/expansion state
+<span class="nc" id="L1221">        revalidateGroups(groupsTree.refreshPaths(groupsTree.getSelectionPaths()),</span>
+<span class="nc" id="L1222">                groupsTree.refreshPaths(getExpandedPaths()));</span>
+<span class="nc" id="L1223">        concludeMoveGroup(moveChange.get(), node);</span>
+<span class="nc" id="L1224">        return true;</span>
+    }
+
+    /**
+     * Concludes the moving of a group tree node by storing the specified undo information, marking the change, and
+     * setting the status line.
+     *
+     * @param moveChange Undo information for the move operation.
+     * @param node The node that has been moved.
+     */
+    public void concludeMoveGroup(MoveGroupChange moveChange, GroupTreeNodeViewModel node) {
+<span class="nc" id="L1235">        panel.undoManager.addEdit(new UndoableMoveGroup(this.groupsRoot, moveChange));</span>
+<span class="nc" id="L1236">        panel.markBaseChanged();</span>
+<span class="nc" id="L1237">        frame.output(Localization.lang(&quot;Moved group \&quot;%0\&quot;.&quot;, node.getNode().getGroup().getName()));</span>
+<span class="nc" id="L1238">    }</span>
+
+    public void concludeAssignment(AbstractUndoableEdit undo, GroupTreeNode node, int assignedEntries) {
+<span class="nc bnc" id="L1241" title="All 2 branches missed.">        if (undo == null) {</span>
+<span class="nc" id="L1242">            frame.output(Localization.lang(&quot;The group \&quot;%0\&quot; already contains the selection.&quot;,</span>
+<span class="nc" id="L1243">                    node.getGroup().getName()));</span>
+<span class="nc" id="L1244">            return;</span>
+        }
+<span class="nc" id="L1246">        panel.undoManager.addEdit(undo);</span>
+<span class="nc" id="L1247">        panel.markBaseChanged();</span>
+<span class="nc" id="L1248">        panel.updateEntryEditorIfShowing();</span>
+<span class="nc" id="L1249">        final String groupName = node.getGroup().getName();</span>
+<span class="nc bnc" id="L1250" title="All 2 branches missed.">        if (assignedEntries == 1) {</span>
+<span class="nc" id="L1251">            frame.output(Localization.lang(&quot;Assigned 1 entry to group \&quot;%0\&quot;.&quot;, groupName));</span>
+<span class="nc" id="L1252">        } else {</span>
+<span class="nc" id="L1253">            frame.output(Localization.lang(&quot;Assigned %0 entries to group \&quot;%1\&quot;.&quot;, String.valueOf(assignedEntries),</span>
+<span class="nc" id="L1254">                    groupName));</span>
+        }
+<span class="nc" id="L1256">    }</span>
+
+
+
+    public GroupTreeNodeViewModel getGroupTreeRoot() {
+<span class="nc" id="L1261">        return groupsRoot;</span>
+    }
+
+    public Enumeration&lt;TreePath&gt; getExpandedPaths() {
+<span class="nc" id="L1265">        return groupsTree.getExpandedDescendants(groupsRoot.getTreePath());</span>
+    }
+
+    /**
+     * panel may be null to indicate that no file is currently open.
+     */
+    @Override
+    public void setActiveBasePanel(BasePanel panel) {
+<span class="fc" id="L1273">        super.setActiveBasePanel(panel);</span>
+<span class="pc bpc" id="L1274" title="1 of 2 branches missed.">        if (panel == null) { // hide groups</span>
+<span class="nc" id="L1275">            frame.getSidePaneManager().hide(&quot;groups&quot;);</span>
+<span class="nc" id="L1276">            return;</span>
+        }
+<span class="fc" id="L1278">        MetaData metaData = panel.getBibDatabaseContext().getMetaData();</span>
+<span class="pc bpc" id="L1279" title="1 of 2 branches missed.">        if (metaData.getGroups() == null) {</span>
+<span class="fc" id="L1280">            GroupTreeNode newGroupsRoot = new GroupTreeNode(new AllEntriesGroup());</span>
+<span class="fc" id="L1281">            metaData.setGroups(newGroupsRoot);</span>
+<span class="fc" id="L1282">            setGroups(newGroupsRoot);</span>
+<span class="fc" id="L1283">        } else {</span>
+<span class="nc" id="L1284">            setGroups(metaData.getGroups());</span>
+        }
+
+        // auto show/hide groups interface
+<span class="pc bpc" id="L1288" title="2 of 4 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.GROUP_AUTO_SHOW) &amp;&amp; !groupsRoot.isLeaf()) { // groups were defined</span>
+<span class="nc" id="L1289">            frame.getSidePaneManager().show(&quot;groups&quot;);</span>
+<span class="nc" id="L1290">            frame.groupToggle.setSelected(true);</span>
+<span class="pc bpc" id="L1291" title="2 of 4 branches missed.">        } else if (Globals.prefs.getBoolean(JabRefPreferences.GROUP_AUTO_HIDE) &amp;&amp; groupsRoot.isLeaf()) { // groups were not defined</span>
+<span class="fc" id="L1292">            frame.getSidePaneManager().hide(&quot;groups&quot;);</span>
+<span class="fc" id="L1293">            frame.groupToggle.setSelected(false);</span>
+        }
+
+<span class="fc" id="L1296">        synchronized (getTreeLock()) {</span>
+<span class="fc" id="L1297">            validateTree();</span>
+        }
+
+<span class="fc" id="L1300">    }</span>
+
+    /**
+     * Highlight all groups that contain any/all of the specified entries. If entries is null or has zero length,
+     * highlight is cleared.
+     */
+    public void showMatchingGroups(List&lt;BibEntry&gt; list, boolean requireAll) {
+<span class="pc bpc" id="L1307" title="3 of 4 branches missed.">        if ((list == null) || (list.isEmpty())) { // nothing selected</span>
+<span class="fc" id="L1308">            groupsTree.setHighlight3Cells(null);</span>
+<span class="fc" id="L1309">            groupsTree.revalidate();</span>
+<span class="fc" id="L1310">            return;</span>
+        }
+<span class="nc" id="L1312">        List&lt;GroupTreeNode&gt; nodeList = groupsRoot.getNode().getContainingGroups(list, requireAll);</span>
+<span class="nc" id="L1313">        groupsTree.setHighlight3Cells(nodeList.toArray());</span>
+        // ensure that all highlighted nodes are visible
+<span class="nc bnc" id="L1315" title="All 2 branches missed.">        for (GroupTreeNode node : nodeList) {</span>
+<span class="nc" id="L1316">            node.getParent().ifPresent(</span>
+<span class="nc" id="L1317">                    parentNode -&gt; groupsTree.expandPath(new GroupTreeNodeViewModel(parentNode).getTreePath()));</span>
+        }
+<span class="nc" id="L1319">        groupsTree.revalidate();</span>
+<span class="nc" id="L1320">    }</span>
+
+    /**
+     * Show groups that, if selected, would show at least one of the entries found in the specified search.
+     */
+    private void showOverlappingGroups(List&lt;BibEntry&gt; matches) { //DatabaseSearch search) {
+<span class="nc" id="L1326">        List&lt;GroupTreeNode&gt; nodes = groupsRoot.getNode().getMatchingGroups(matches);</span>
+<span class="nc" id="L1327">        groupsTree.setHighlight2Cells(nodes.toArray());</span>
+<span class="nc" id="L1328">    }</span>
+
+    public GroupsTree getGroupsTree() {
+<span class="nc" id="L1331">        return this.groupsTree;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

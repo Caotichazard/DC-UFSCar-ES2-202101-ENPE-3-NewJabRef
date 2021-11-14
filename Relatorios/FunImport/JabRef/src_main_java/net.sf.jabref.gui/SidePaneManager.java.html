@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SidePaneManager.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">SidePaneManager.java</span></div><h1>SidePaneManager.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import javax.swing.SwingUtilities;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Manages visibility of SideShowComponents in a given newly constructed
+ * sidePane.
+ */
+public class SidePaneManager {
+
+<span class="fc" id="L42">    private static final Log LOGGER = LogFactory.getLog(SidePaneManager.class);</span>
+
+    private final JabRefFrame frame;
+
+    private final SidePane sidep;
+
+<span class="fc" id="L48">    private final Map&lt;String, SidePaneComponent&gt; components = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L49">    private final Map&lt;SidePaneComponent, String&gt; componentNames = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L51">    private final List&lt;SidePaneComponent&gt; visible = new LinkedList&lt;&gt;();</span>
+
+
+<span class="fc" id="L54">    public SidePaneManager(JabRefFrame frame) {</span>
+<span class="fc" id="L55">        this.frame = frame;</span>
+        /*
+         * Change by Morten Alver 2005.12.04: By postponing the updating of the
+         * side pane components, we get rid of the annoying latency when
+         * switching tabs:
+         */
+<span class="fc" id="L61">        frame.getTabbedPane().addChangeListener(event -&gt; SwingUtilities.invokeLater(</span>
+<span class="fc" id="L62">                () -&gt; setActiveBasePanel(SidePaneManager.this.frame.getCurrentBasePanel())));</span>
+<span class="fc" id="L63">        sidep = new SidePane();</span>
+<span class="fc" id="L64">        sidep.setVisible(false);</span>
+<span class="fc" id="L65">    }</span>
+
+    public SidePane getPanel() {
+<span class="fc" id="L68">        return sidep;</span>
+    }
+
+    public synchronized boolean hasComponent(String name) {
+<span class="nc" id="L72">        return components.containsKey(name);</span>
+    }
+
+    public synchronized boolean isComponentVisible(String name) {
+<span class="fc" id="L76">        Object o = components.get(name);</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (o == null) {</span>
+<span class="fc" id="L78">            return false;</span>
+        } else {
+<span class="fc" id="L80">            return visible.contains(o);</span>
+        }
+    }
+
+    public synchronized void toggle(String name) {
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (isComponentVisible(name)) {</span>
+<span class="nc" id="L86">            hide(name);</span>
+<span class="nc" id="L87">        } else {</span>
+<span class="nc" id="L88">            show(name);</span>
+        }
+<span class="nc" id="L90">    }</span>
+
+    public synchronized void show(String name) {
+<span class="nc" id="L93">        Object o = components.get(name);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (o == null) {</span>
+<span class="nc" id="L95">            LOGGER.warn(&quot;Side pane component '&quot; + name + &quot;' unknown.&quot;);</span>
+<span class="nc" id="L96">        } else {</span>
+<span class="nc" id="L97">            show((SidePaneComponent) o);</span>
+        }
+<span class="nc" id="L99">    }</span>
+
+    public synchronized void hide(String name) {
+<span class="fc" id="L102">        Object o = components.get(name);</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if (o == null) {</span>
+<span class="nc" id="L104">            LOGGER.warn(&quot;Side pane component '&quot; + name + &quot;' unknown.&quot;);</span>
+<span class="nc" id="L105">        } else {</span>
+<span class="fc" id="L106">            hideComponent((SidePaneComponent) o);</span>
+        }
+<span class="fc" id="L108">    }</span>
+
+    public synchronized void register(String name, SidePaneComponent comp) {
+<span class="fc" id="L111">        components.put(name, comp);</span>
+<span class="fc" id="L112">        componentNames.put(comp, name);</span>
+<span class="fc" id="L113">    }</span>
+
+    private synchronized void show(SidePaneComponent component) {
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (!visible.contains(component)) {</span>
+            // Put the new component at the top of the group
+<span class="nc" id="L118">            visible.add(0, component);</span>
+
+            // Sort the visible components by their preferred position
+<span class="nc" id="L121">            Collections.sort(visible, new PreferredIndexSort());</span>
+
+<span class="nc" id="L123">            updateView();</span>
+<span class="nc" id="L124">            component.componentOpening();</span>
+        }
+<span class="nc" id="L126">    }</span>
+
+    public synchronized SidePaneComponent getComponent(String name) {
+<span class="nc" id="L129">        return components.get(name);</span>
+    }
+
+    private synchronized String getComponentName(SidePaneComponent comp) {
+<span class="nc" id="L133">        return componentNames.get(comp);</span>
+    }
+
+    public synchronized void hideComponent(SidePaneComponent comp) {
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        if (visible.contains(comp)) {</span>
+<span class="nc" id="L138">            comp.componentClosing();</span>
+<span class="nc" id="L139">            visible.remove(comp);</span>
+<span class="nc" id="L140">            updateView();</span>
+        }
+<span class="fc" id="L142">    }</span>
+
+    public synchronized void hideComponent(String name) {
+<span class="nc" id="L145">        SidePaneComponent comp = components.get(name);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (comp == null) {</span>
+<span class="nc" id="L147">            return;</span>
+        }
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (visible.contains(comp)) {</span>
+<span class="nc" id="L150">            comp.componentClosing();</span>
+<span class="nc" id="L151">            visible.remove(comp);</span>
+<span class="nc" id="L152">            updateView();</span>
+        }
+<span class="nc" id="L154">    }</span>
+
+    private static Map&lt;String, Integer&gt; getPreferredPositions() {
+<span class="nc" id="L157">        Map&lt;String, Integer&gt; preferredPositions = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L159">        List&lt;String&gt; componentNames = Globals.prefs.getStringList(JabRefPreferences.SIDE_PANE_COMPONENT_NAMES);</span>
+<span class="nc" id="L160">        List&lt;String&gt; componentPositions = Globals.prefs</span>
+<span class="nc" id="L161">                .getStringList(JabRefPreferences.SIDE_PANE_COMPONENT_PREFERRED_POSITIONS);</span>
+
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        for (int i = 0; i &lt; componentNames.size(); ++i) {</span>
+            try {
+<span class="nc" id="L165">                preferredPositions.put(componentNames.get(i), Integer.parseInt(componentPositions.get(i)));</span>
+<span class="nc" id="L166">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L167">                LOGGER.info(&quot;Invalid number format for side pane component '&quot; + componentNames.get(i) + &quot;'.&quot;, e);</span>
+            }
+        }
+
+<span class="nc" id="L171">        return preferredPositions;</span>
+    }
+
+    private void updatePreferredPositions() {
+<span class="nc" id="L175">        Map&lt;String, Integer&gt; preferredPositions = getPreferredPositions();</span>
+
+        // Update the preferred positions of all visible components
+<span class="nc" id="L178">        int index = 0;</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">        for (SidePaneComponent comp : visible) {</span>
+<span class="nc" id="L180">            String componentName = getComponentName(comp);</span>
+<span class="nc" id="L181">            preferredPositions.put(componentName, index);</span>
+<span class="nc" id="L182">            index++;</span>
+        }
+
+        // Split the map into a pair of parallel String lists suitable for storage
+<span class="nc" id="L186">        List&lt;String&gt; tmpComponentNames = new ArrayList&lt;&gt;(preferredPositions.keySet());</span>
+<span class="nc" id="L187">        List&lt;String&gt; componentPositions = preferredPositions.values().stream().map(Object::toString)</span>
+<span class="nc" id="L188">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L190">        Globals.prefs.putStringList(JabRefPreferences.SIDE_PANE_COMPONENT_NAMES, tmpComponentNames);</span>
+<span class="nc" id="L191">        Globals.prefs.putStringList(JabRefPreferences.SIDE_PANE_COMPONENT_PREFERRED_POSITIONS, componentPositions);</span>
+<span class="nc" id="L192">    }</span>
+
+
+    // Helper class for sorting visible components based on their preferred position
+    private class PreferredIndexSort implements Comparator&lt;SidePaneComponent&gt; {
+
+        private final Map&lt;String, Integer&gt; preferredPositions;
+
+
+<span class="nc" id="L201">        public PreferredIndexSort() {</span>
+<span class="nc" id="L202">            preferredPositions = getPreferredPositions();</span>
+<span class="nc" id="L203">        }</span>
+
+        @Override
+        public int compare(SidePaneComponent comp1, SidePaneComponent comp2) {
+<span class="nc" id="L207">            int pos1 = preferredPositions.getOrDefault(getComponentName(comp1), 0);</span>
+<span class="nc" id="L208">            int pos2 = preferredPositions.getOrDefault(getComponentName(comp2), 0);</span>
+<span class="nc" id="L209">            return Integer.valueOf(pos1).compareTo(pos2);</span>
+        }
+    }
+
+
+    public synchronized void moveUp(SidePaneComponent comp) {
+<span class="nc bnc" id="L215" title="All 2 branches missed.">        if (visible.contains(comp)) {</span>
+<span class="nc" id="L216">            int currIndex = visible.indexOf(comp);</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">            if (currIndex &gt; 0) {</span>
+<span class="nc" id="L218">                int newIndex = currIndex - 1;</span>
+<span class="nc" id="L219">                visible.remove(currIndex);</span>
+<span class="nc" id="L220">                visible.add(newIndex, comp);</span>
+
+<span class="nc" id="L222">                updatePreferredPositions();</span>
+<span class="nc" id="L223">                updateView();</span>
+            }
+        }
+<span class="nc" id="L226">    }</span>
+
+    public synchronized void moveDown(SidePaneComponent comp) {
+<span class="nc bnc" id="L229" title="All 2 branches missed.">        if (visible.contains(comp)) {</span>
+<span class="nc" id="L230">            int currIndex = visible.indexOf(comp);</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">            if (currIndex &lt; (visible.size() - 1)) {</span>
+<span class="nc" id="L232">                int newIndex = currIndex + 1;</span>
+<span class="nc" id="L233">                visible.remove(currIndex);</span>
+<span class="nc" id="L234">                visible.add(newIndex, comp);</span>
+
+<span class="nc" id="L236">                updatePreferredPositions();</span>
+<span class="nc" id="L237">                updateView();</span>
+            }
+        }
+<span class="nc" id="L240">    }</span>
+
+    public synchronized void unregisterComponent(String name) {
+<span class="nc" id="L243">        componentNames.remove(components.get(name));</span>
+<span class="nc" id="L244">        components.remove(name);</span>
+<span class="nc" id="L245">    }</span>
+
+    /**
+     * Update all side pane components to show information from the given
+     * BasePanel.
+     *
+     * @param panel
+     */
+
+    private synchronized void setActiveBasePanel(BasePanel panel) {
+<span class="fc bfc" id="L255" title="All 2 branches covered.">        for (Map.Entry&lt;String, SidePaneComponent&gt; stringSidePaneComponentEntry : components.entrySet()) {</span>
+<span class="fc" id="L256">            stringSidePaneComponentEntry.getValue().setActiveBasePanel(panel);</span>
+        }
+<span class="fc" id="L258">    }</span>
+
+    public synchronized void updateView() {
+<span class="fc" id="L261">        sidep.setComponents(visible);</span>
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">        if (visible.isEmpty()) {</span>
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">            if (sidep.isVisible()) {</span>
+<span class="nc" id="L264">                Globals.prefs.putInt(JabRefPreferences.SIDE_PANE_WIDTH, frame.getSplitPane().getDividerLocation());</span>
+            }
+<span class="fc" id="L266">            sidep.setVisible(false);</span>
+<span class="fc" id="L267">        } else {</span>
+<span class="nc" id="L268">            boolean wasVisible = sidep.isVisible();</span>
+<span class="nc" id="L269">            sidep.setVisible(true);</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">            if (!wasVisible) {</span>
+<span class="nc" id="L271">                int width = Globals.prefs.getInt(JabRefPreferences.SIDE_PANE_WIDTH);</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">                if (width &gt; 0) {</span>
+<span class="nc" id="L273">                    frame.getSplitPane().setDividerLocation(width);</span>
+<span class="nc" id="L274">                } else {</span>
+<span class="nc" id="L275">                    frame.getSplitPane().setDividerLocation(getPanel().getPreferredSize().width);</span>
+                }
+            }
+        }
+<span class="fc" id="L279">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

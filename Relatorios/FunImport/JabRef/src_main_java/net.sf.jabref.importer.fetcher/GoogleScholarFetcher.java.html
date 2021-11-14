@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GoogleScholarFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">GoogleScholarFetcher.java</span></div><h1>GoogleScholarFetcher.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer.fetcher;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+import net.sf.jabref.gui.FetcherPreviewDialog;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.importer.ParserResult;
+import net.sf.jabref.importer.fileformat.BibtexParser;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.net.URLDownload;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+<span class="fc" id="L49">public class GoogleScholarFetcher implements PreviewEntryFetcher {</span>
+
+<span class="fc" id="L51">    private static final Log LOGGER = LogFactory.getLog(GoogleScholarFetcher.class);</span>
+
+    private boolean hasRunConfig;
+    private static final int MAX_ENTRIES_TO_LOAD = 50;
+    private static final String QUERY_MARKER = &quot;___QUERY___&quot;;
+    private static final String URL_START = &quot;http://scholar.google.com&quot;;
+    private static final String URL_SETTING = &quot;http://scholar.google.com/scholar_settings&quot;;
+    private static final String URL_SETPREFS = &quot;http://scholar.google.com/scholar_setprefs&quot;;
+    private static final String SEARCH_URL = GoogleScholarFetcher.URL_START + &quot;/scholar?q=&quot; + GoogleScholarFetcher.QUERY_MARKER
+            + &quot;&amp;amp;hl=en&amp;amp;btnG=Search&quot;;
+
+<span class="fc" id="L62">    private static final Pattern BIBTEX_LINK_PATTERN = Pattern.compile(&quot;&lt;a href=\&quot;([^\&quot;]*)\&quot;[^&gt;]*&gt;[A-Za-z ]*BibTeX&quot;);</span>
+<span class="fc" id="L63">    private static final Pattern TITLE_START_PATTERN = Pattern.compile(&quot;&lt;div class=\&quot;gs_ri\&quot;&gt;&quot;);</span>
+<span class="fc" id="L64">    private static final Pattern LINK_PATTERN = Pattern.compile(&quot;&lt;h3 class=\&quot;gs_rt\&quot;&gt;&lt;a href=\&quot;([^\&quot;]*)\&quot;&gt;&quot;);</span>
+<span class="fc" id="L65">    private static final Pattern TITLE_END_PATTERN = Pattern.compile(&quot;&lt;div class=\&quot;gs_fl\&quot;&gt;&quot;);</span>
+
+<span class="fc" id="L67">    private static final Pattern INPUT_PATTERN = Pattern.compile(&quot;&lt;input type=([^ ]+) name=([^ ]+) value=([^&gt; ]+)&quot;);</span>
+
+<span class="fc" id="L69">    private final Map&lt;String, String&gt; entryLinks = new HashMap&lt;&gt;();</span>
+    //final static Pattern NEXT_PAGE_PATTERN = Pattern.compile(
+    //        &quot;&lt;a href=\&quot;([^\&quot;]*)\&quot;&gt;&lt;span class=\&quot;SPRITE_nav_next\&quot;&gt; &lt;/span&gt;&lt;br&gt;&lt;span style=\&quot;.*\&quot;&gt;Next&lt;/span&gt;&lt;/a&gt;&quot;);
+
+    private boolean stopFetching;
+
+
+    @Override
+    public int getWarningLimit() {
+<span class="nc" id="L78">        return 10;</span>
+    }
+
+    @Override
+    public int getPreferredPreviewHeight() {
+<span class="nc" id="L83">        return 100;</span>
+    }
+
+    @Override
+    public boolean processQuery(String query, ImportInspector inspector, OutputPrinter status) {
+<span class="nc" id="L88">        return false;</span>
+    }
+
+    @Override
+    public boolean processQueryGetPreview(String query, FetcherPreviewDialog preview, OutputPrinter status) {
+<span class="nc" id="L93">        entryLinks.clear();</span>
+<span class="nc" id="L94">        stopFetching = false;</span>
+        try {
+<span class="nc bnc" id="L96" title="All 2 branches missed.">            if (!hasRunConfig) {</span>
+<span class="nc" id="L97">                runConfig();</span>
+<span class="nc" id="L98">                hasRunConfig = true;</span>
+            }
+<span class="nc" id="L100">            Map&lt;String, JLabel&gt; citations = getCitations(query);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">            for (Map.Entry&lt;String, JLabel&gt; linkEntry : citations.entrySet()) {</span>
+<span class="nc" id="L102">                preview.addEntry(linkEntry.getKey(), linkEntry.getValue());</span>
+            }
+
+<span class="nc" id="L105">            return true;</span>
+<span class="nc" id="L106">        } catch (IOException e) {</span>
+<span class="nc" id="L107">            LOGGER.warn(&quot;Error fetching from Google Scholar&quot;, e);</span>
+<span class="nc" id="L108">            status.showMessage(Localization.lang(&quot;Error while fetching from %0&quot;, &quot;Google Scholar&quot;));</span>
+<span class="nc" id="L109">            return false;</span>
+        }
+    }
+
+    @Override
+    public void getEntries(Map&lt;String, Boolean&gt; selection, ImportInspector inspector) {
+<span class="nc" id="L115">        int toDownload = 0;</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        for (Map.Entry&lt;String, Boolean&gt; selEntry : selection.entrySet()) {</span>
+<span class="nc" id="L117">            boolean isSelected = selEntry.getValue();</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">            if (isSelected) {</span>
+<span class="nc" id="L119">                toDownload++;</span>
+            }
+        }
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (toDownload == 0) {</span>
+<span class="nc" id="L123">            return;</span>
+        }
+
+<span class="nc" id="L126">        int downloaded = 0;</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        for (Map.Entry&lt;String, Boolean&gt; selEntry : selection.entrySet()) {</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">            if (stopFetching) {</span>
+<span class="nc" id="L130">                break;</span>
+            }
+<span class="nc" id="L132">            inspector.setProgress(downloaded, toDownload);</span>
+<span class="nc" id="L133">            boolean isSelected = selEntry.getValue();</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">            if (isSelected) {</span>
+<span class="nc" id="L135">                downloaded++;</span>
+                try {
+<span class="nc" id="L137">                    BibEntry entry = downloadEntry(selEntry.getKey());</span>
+<span class="nc" id="L138">                    inspector.addEntry(entry);</span>
+<span class="nc" id="L139">                } catch (IOException e) {</span>
+<span class="nc" id="L140">                    LOGGER.warn(&quot;Cannot download entry from Google scholar&quot;, e);</span>
+                }
+            }
+        }
+
+<span class="nc" id="L145">    }</span>
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L149">        return &quot;Google Scholar&quot;;</span>
+    }
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L154">        return HelpFiles.FETCHER_GOOGLE_SCHOLAR;</span>
+    }
+
+    @Override
+    public JPanel getOptionsPanel() {
+<span class="nc" id="L159">        return null;</span>
+    }
+
+    @Override
+    public void stopFetching() {
+<span class="nc" id="L164">        stopFetching = true;</span>
+<span class="nc" id="L165">    }</span>
+
+    /*  Used for debugging */
+    /*    private static void save(String filename, String content) throws IOException {
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(filename))) {
+            out.write(content);
+        }
+    }
+    */
+
+    private static void runConfig() throws IOException {
+        try {
+<span class="nc" id="L177">            new URLDownload(new URL(&quot;http://scholar.google.com&quot;)).downloadToString();</span>
+            //save(&quot;setting.html&quot;, ud.getStringContent());
+<span class="nc" id="L179">            String settingsPage = new URLDownload(new URL(GoogleScholarFetcher.URL_SETTING)).downloadToString();</span>
+            // Get the form items and their values from the page:
+<span class="nc" id="L181">            Map&lt;String, String&gt; formItems = GoogleScholarFetcher.getFormElements(settingsPage);</span>
+            // Override the important ones:
+<span class="nc" id="L183">            formItems.put(&quot;scis&quot;, &quot;yes&quot;);</span>
+<span class="nc" id="L184">            formItems.put(&quot;scisf&quot;, &quot;4&quot;);</span>
+<span class="nc" id="L185">            formItems.put(&quot;num&quot;, String.valueOf(GoogleScholarFetcher.MAX_ENTRIES_TO_LOAD));</span>
+<span class="nc" id="L186">            String request = formItems.entrySet().stream().map(Object::toString)</span>
+<span class="nc" id="L187">                    .collect(Collectors.joining(&quot;&amp;&quot;, GoogleScholarFetcher.URL_SETPREFS + &quot;?&quot;, &quot;&amp;submit=&quot;));</span>
+            // Download the URL to set preferences:
+<span class="nc" id="L189">            new URLDownload(new URL(request)).downloadToString();</span>
+
+<span class="nc" id="L191">        } catch (UnsupportedEncodingException ex) {</span>
+<span class="nc" id="L192">            LOGGER.error(&quot;Unsupported encoding.&quot;, ex);</span>
+        }
+<span class="nc" id="L194">    }</span>
+
+    /**
+     * @param query The search term to query Google Scholar for.
+     * @return a list of IDs
+     * @throws java.io.IOException
+     */
+    private Map&lt;String, JLabel&gt; getCitations(String query) throws IOException {
+        String urlQuery;
+<span class="nc" id="L203">        LinkedHashMap&lt;String, JLabel&gt; res = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="nc" id="L205">        urlQuery = GoogleScholarFetcher.SEARCH_URL.replace(GoogleScholarFetcher.QUERY_MARKER,</span>
+<span class="nc" id="L206">                URLEncoder.encode(query, StandardCharsets.UTF_8.name()));</span>
+<span class="nc" id="L207">        int count = 1;</span>
+        String nextPage;
+<span class="nc bnc" id="L209" title="All 4 branches missed.">        while (((nextPage = getCitationsFromUrl(urlQuery, res)) != null) &amp;&amp; (count &lt; 2)) {</span>
+<span class="nc" id="L210">            urlQuery = nextPage;</span>
+<span class="nc" id="L211">            count++;</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">            if (stopFetching) {</span>
+<span class="nc" id="L213">                break;</span>
+            }
+        }
+<span class="nc" id="L216">        return res;</span>
+    }
+
+    private String getCitationsFromUrl(String urlQuery, Map&lt;String, JLabel&gt; ids) throws IOException {
+<span class="nc" id="L220">        URL url = new URL(urlQuery);</span>
+<span class="nc" id="L221">        String cont = new URLDownload(url).downloadToString();</span>
+<span class="nc" id="L222">        Matcher m = GoogleScholarFetcher.BIBTEX_LINK_PATTERN.matcher(cont);</span>
+<span class="nc" id="L223">        int lastRegionStart = 0;</span>
+
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        while (m.find()) {</span>
+<span class="nc" id="L226">            String link = m.group(1).replace(&quot;&amp;amp;&quot;, &quot;&amp;&quot;);</span>
+            String pText;
+<span class="nc" id="L228">            String part = cont.substring(lastRegionStart, m.start());</span>
+<span class="nc" id="L229">            Matcher titleS = GoogleScholarFetcher.TITLE_START_PATTERN.matcher(part);</span>
+<span class="nc" id="L230">            Matcher titleE = GoogleScholarFetcher.TITLE_END_PATTERN.matcher(part);</span>
+<span class="nc" id="L231">            boolean fS = titleS.find();</span>
+<span class="nc" id="L232">            boolean fE = titleE.find();</span>
+<span class="nc bnc" id="L233" title="All 4 branches missed.">            if (fS &amp;&amp; fE) {</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">                if (titleS.end() &lt; titleE.start()) {</span>
+<span class="nc" id="L235">                    pText = part.substring(titleS.end(), titleE.start());</span>
+<span class="nc" id="L236">                } else {</span>
+<span class="nc" id="L237">                    pText = part;</span>
+                }
+<span class="nc" id="L239">            } else {</span>
+<span class="nc" id="L240">                pText = link;</span>
+            }
+
+<span class="nc" id="L243">            pText = pText.replace(&quot;[PDF]&quot;, &quot;&quot;);</span>
+<span class="nc" id="L244">            JLabel preview = new JLabel(&quot;&lt;html&gt;&quot; + pText + &quot;&lt;/html&gt;&quot;);</span>
+<span class="nc" id="L245">            ids.put(link, preview);</span>
+
+            // See if we can extract the link Google Scholar puts on the entry's title.
+            // That will be set as &quot;url&quot; for the entry if downloaded:
+<span class="nc" id="L249">            Matcher linkMatcher = GoogleScholarFetcher.LINK_PATTERN.matcher(pText);</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            if (linkMatcher.find()) {</span>
+<span class="nc" id="L251">                entryLinks.put(link, linkMatcher.group(1));</span>
+            }
+
+<span class="nc" id="L254">            lastRegionStart = m.end();</span>
+        }
+
+        /*m = NEXT_PAGE_PATTERN.matcher(cont);
+        if (m.find()) {
+            System.out.println(&quot;NEXT: &quot;+URL_START+m.group(1).replace(&quot;&amp;amp;&quot;, &quot;&amp;&quot;));
+            return URL_START+m.group(1).replace(&quot;&amp;amp;&quot;, &quot;&amp;&quot;);
+        }
+        else*/
+<span class="nc" id="L263">        return null;</span>
+    }
+
+    private BibEntry downloadEntry(String link) throws IOException {
+        try {
+<span class="nc" id="L268">            URL url = new URL(GoogleScholarFetcher.URL_START + link);</span>
+<span class="nc" id="L269">            String s = new URLDownload(url).downloadToString();</span>
+<span class="nc" id="L270">            BibtexParser bp = new BibtexParser(new StringReader(s));</span>
+<span class="nc" id="L271">            ParserResult pr = bp.parse();</span>
+<span class="nc bnc" id="L272" title="All 4 branches missed.">            if ((pr != null) &amp;&amp; (pr.getDatabase() != null)) {</span>
+<span class="nc" id="L273">                Collection&lt;BibEntry&gt; entries = pr.getDatabase().getEntries();</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">                if (entries.size() == 1) {</span>
+<span class="nc" id="L275">                    BibEntry entry = entries.iterator().next();</span>
+<span class="nc" id="L276">                    entry.clearField(BibEntry.KEY_FIELD);</span>
+                    // If the entry's url field is not set, and we have stored an url for this
+                    // entry, set it:
+<span class="nc bnc" id="L279" title="All 2 branches missed.">                    if (!entry.hasField(&quot;url&quot;)) {</span>
+<span class="nc" id="L280">                        String storedUrl = entryLinks.get(link);</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">                        if (storedUrl != null) {</span>
+<span class="nc" id="L282">                            entry.setField(&quot;url&quot;, storedUrl);</span>
+                        }
+                    }
+
+                    // Clean up some remaining HTML code from Elsevier(?) papers
+                    // Search for: Poincare algebra
+                    // to see an example
+<span class="nc" id="L289">                    String title = entry.getField(&quot;title&quot;);</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">                    if (title != null) {</span>
+<span class="nc" id="L291">                        String newtitle = title.replaceAll(&quot;&lt;.?i&gt;([^&lt;]*)&lt;/i&gt;&quot;, &quot;$1&quot;);</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">                        if (!newtitle.equals(title)) {</span>
+<span class="nc" id="L293">                            entry.setField(&quot;title&quot;, newtitle);</span>
+                        }
+                    }
+
+<span class="nc" id="L297">                    return entry;</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">                } else if (entries.isEmpty()) {</span>
+<span class="nc" id="L299">                    LOGGER.warn(&quot;No entry found! (&quot; + link + &quot;)&quot;);</span>
+<span class="nc" id="L300">                    return null;</span>
+                } else {
+<span class="nc" id="L302">                    LOGGER.debug(entries.size() + &quot; entries found! (&quot; + link + &quot;)&quot;);</span>
+<span class="nc" id="L303">                    return null;</span>
+                }
+            }
+<span class="nc" id="L306">            LOGGER.warn(&quot;Parser failed! (&quot; + link + &quot;)&quot;);</span>
+<span class="nc" id="L307">            return null;</span>
+<span class="nc" id="L308">        } catch (MalformedURLException ex) {</span>
+<span class="nc" id="L309">            LOGGER.error(&quot;Malformed URL.&quot;, ex);</span>
+<span class="nc" id="L310">            return null;</span>
+        }
+    }
+
+
+
+    private static Map&lt;String, String&gt; getFormElements(String page) {
+<span class="nc" id="L317">        Matcher m = GoogleScholarFetcher.INPUT_PATTERN.matcher(page);</span>
+<span class="nc" id="L318">        Map&lt;String, String&gt; items = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L319" title="All 2 branches missed.">        while (m.find()) {</span>
+<span class="nc" id="L320">            String name = m.group(2);</span>
+<span class="nc bnc" id="L321" title="All 4 branches missed.">            if ((name.length() &gt; 2) &amp;&amp; (name.charAt(0) == '&quot;')</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">                    &amp;&amp; (name.charAt(name.length() - 1) == '&quot;')) {</span>
+<span class="nc" id="L323">                name = name.substring(1, name.length() - 1);</span>
+            }
+<span class="nc" id="L325">            String value = m.group(3);</span>
+<span class="nc bnc" id="L326" title="All 4 branches missed.">            if ((value.length() &gt; 2) &amp;&amp; (value.charAt(0) == '&quot;')</span>
+<span class="nc bnc" id="L327" title="All 2 branches missed.">                    &amp;&amp; (value.charAt(value.length() - 1) == '&quot;')) {</span>
+<span class="nc" id="L328">                value = value.substring(1, value.length() - 1);</span>
+            }
+<span class="nc" id="L330">            items.put(name, value);</span>
+        }
+<span class="nc" id="L332">        return items;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

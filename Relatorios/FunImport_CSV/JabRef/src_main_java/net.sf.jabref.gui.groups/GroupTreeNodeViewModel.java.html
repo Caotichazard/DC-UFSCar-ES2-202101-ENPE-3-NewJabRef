@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GroupTreeNodeViewModel.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.groups</a> &gt; <span class="el_source">GroupTreeNodeViewModel.java</span></div><h1>GroupTreeNodeViewModel.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License along
+ with this program; if not, write to the Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.groups;
+
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+
+import javax.swing.Icon;
+import javax.swing.JTree;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
+import javax.swing.undo.AbstractUndoableEdit;
+import javax.swing.undo.UndoManager;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefGUI;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.undo.CountingUndoManager;
+import net.sf.jabref.logic.groups.AbstractGroup;
+import net.sf.jabref.logic.groups.AllEntriesGroup;
+import net.sf.jabref.logic.groups.EntriesGroupChange;
+import net.sf.jabref.logic.groups.ExplicitGroup;
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.logic.groups.KeywordGroup;
+import net.sf.jabref.logic.groups.MoveGroupChange;
+import net.sf.jabref.logic.groups.SearchGroup;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.entry.BibEntry;
+
+public class GroupTreeNodeViewModel implements Transferable, TreeNode {
+
+    private static final int MAX_DISPLAYED_LETTERS = 35;
+<span class="fc" id="L55">    private static final Icon GROUP_REFINING_ICON = IconTheme.JabRefIcon.GROUP_REFINING.getSmallIcon();</span>
+<span class="fc" id="L56">    private static final Icon GROUP_INCLUDING_ICON = IconTheme.JabRefIcon.GROUP_INCLUDING.getSmallIcon();</span>
+<span class="fc" id="L57">    private static final Icon GROUP_REGULAR_ICON = null;</span>
+
+    public static final DataFlavor FLAVOR;
+    private static final DataFlavor[] FLAVORS;
+
+    static {
+<span class="fc" id="L63">        DataFlavor df = null;</span>
+        try {
+<span class="fc" id="L65">            df = new DataFlavor(DataFlavor.javaJVMLocalObjectMimeType</span>
+                    + &quot;;class=net.sf.jabref.logic.groups.GroupTreeNode&quot;);
+<span class="pc" id="L67">        } catch (ClassNotFoundException e) {</span>
+            // never happens
+        }
+<span class="fc" id="L70">        FLAVOR = df;</span>
+<span class="fc" id="L71">        FLAVORS = new DataFlavor[] {GroupTreeNodeViewModel.FLAVOR};</span>
+<span class="fc" id="L72">    }</span>
+
+    private final GroupTreeNode node;
+
+    @Override
+    public String toString() {
+<span class="fc" id="L78">        final StringBuilder sb = new StringBuilder(&quot;GroupTreeNodeViewModel{&quot;);</span>
+<span class="fc" id="L79">        sb.append(&quot;node=&quot;).append(node);</span>
+<span class="fc" id="L80">        sb.append('}');</span>
+<span class="fc" id="L81">        return sb.toString();</span>
+    }
+
+<span class="fc" id="L84">    public GroupTreeNodeViewModel(GroupTreeNode node) {</span>
+<span class="fc" id="L85">        this.node = node;</span>
+<span class="fc" id="L86">    }</span>
+
+    @Override
+    public DataFlavor[] getTransferDataFlavors() {
+<span class="nc" id="L90">        return GroupTreeNodeViewModel.FLAVORS;</span>
+    }
+
+    @Override
+    public boolean isDataFlavorSupported(DataFlavor someFlavor) {
+<span class="nc" id="L95">        return someFlavor.equals(GroupTreeNodeViewModel.FLAVOR);</span>
+    }
+
+    @Override
+    public Object getTransferData(DataFlavor someFlavor)
+            throws UnsupportedFlavorException, IOException {
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (!isDataFlavorSupported(someFlavor)) {</span>
+<span class="nc" id="L102">            throw new UnsupportedFlavorException(someFlavor);</span>
+        }
+<span class="nc" id="L104">        return this;</span>
+    }
+
+    @Override
+    public TreeNode getChildAt(int childIndex) {
+<span class="nc" id="L109">        return node.getChildAt(childIndex).map(GroupTreeNodeViewModel::new).orElse(null);</span>
+    }
+
+    @Override
+    public int getChildCount() {
+<span class="nc" id="L114">        return node.getNumberOfChildren();</span>
+    }
+
+    @Override
+    public TreeNode getParent() {
+<span class="nc" id="L119">        return node.getParent().map(GroupTreeNodeViewModel::new).orElse(null);</span>
+    }
+
+    @Override
+    public int getIndex(TreeNode child) {
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        if(! (child instanceof GroupTreeNodeViewModel)) {</span>
+<span class="nc" id="L125">            return -1;</span>
+        }
+
+<span class="nc" id="L128">        GroupTreeNodeViewModel childViewModel = (GroupTreeNodeViewModel)child;</span>
+<span class="nc" id="L129">        return node.getIndexOfChild(childViewModel.getNode()).orElse(-1);</span>
+    }
+
+    @Override
+    public boolean getAllowsChildren() {
+<span class="nc" id="L134">        return true;</span>
+    }
+
+    @Override
+    public boolean isLeaf() {
+<span class="fc" id="L139">        return node.isLeaf();</span>
+    }
+
+    @Override
+    public Enumeration children() {
+<span class="nc" id="L144">        Iterable&lt;GroupTreeNode&gt; children = node.getChildren();</span>
+<span class="nc" id="L145">        return new Enumeration&lt;GroupTreeNodeViewModel&gt;() {</span>
+
+            @Override
+            public boolean hasMoreElements() {
+<span class="nc" id="L149">                return children.iterator().hasNext();</span>
+            }
+
+            @Override
+            public GroupTreeNodeViewModel nextElement() {
+<span class="nc" id="L154">                return new GroupTreeNodeViewModel(children.iterator().next());</span>
+            }
+        };
+    }
+
+    public GroupTreeNode getNode() {
+<span class="fc" id="L160">        return node;</span>
+    }
+
+    /** Collapse this node and all its children. */
+    public void collapseSubtree(JTree tree) {
+<span class="nc" id="L165">        tree.collapsePath(this.getTreePath());</span>
+
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        for(GroupTreeNodeViewModel child : getChildren()) {</span>
+<span class="nc" id="L168">            child.collapseSubtree(tree);</span>
+        }
+<span class="nc" id="L170">    }</span>
+
+    /** Expand this node and all its children. */
+    public void expandSubtree(JTree tree) {
+<span class="fc" id="L174">        tree.expandPath(this.getTreePath());</span>
+
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        for(GroupTreeNodeViewModel child : getChildren()) {</span>
+<span class="nc" id="L177">            child.expandSubtree(tree);</span>
+        }
+<span class="fc" id="L179">    }</span>
+
+    public List&lt;GroupTreeNodeViewModel&gt; getChildren() {
+<span class="fc" id="L182">        List&lt;GroupTreeNodeViewModel&gt; children = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">        for(GroupTreeNode child : node.getChildren()) {</span>
+<span class="nc" id="L184">            children.add(new GroupTreeNodeViewModel(child));</span>
+        }
+<span class="fc" id="L186">        return children;</span>
+    }
+
+    protected boolean printInItalics() {
+<span class="pc bpc" id="L190" title="2 of 4 branches missed.">        return Globals.prefs.getBoolean(JabRefPreferences.GROUP_SHOW_DYNAMIC) &amp;&amp;  node.getGroup().isDynamic();</span>
+    }
+
+    public String getText() {
+<span class="fc" id="L194">        AbstractGroup group = node.getGroup();</span>
+<span class="fc" id="L195">        String name = StringUtil.limitStringLength(group.getName(), MAX_DISPLAYED_LETTERS);</span>
+<span class="fc" id="L196">        StringBuilder sb = new StringBuilder(60);</span>
+<span class="fc" id="L197">        sb.append(name);</span>
+
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.GROUP_SHOW_NUMBER_OF_ELEMENTS)) {</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">            if (group instanceof ExplicitGroup) {</span>
+<span class="nc" id="L201">                sb.append(&quot; [&quot;).append(((ExplicitGroup) group).getNumEntries()).append(']');</span>
+<span class="nc bnc" id="L202" title="All 4 branches missed.">            } else if ((group instanceof KeywordGroup) || (group instanceof SearchGroup)) {</span>
+<span class="nc" id="L203">                int hits = 0;</span>
+<span class="nc" id="L204">                BasePanel currentBasePanel = JabRefGUI.getMainFrame().getCurrentBasePanel();</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">                if(currentBasePanel != null) {</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                    for (BibEntry entry : currentBasePanel.getDatabase().getEntries()) {</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">                        if (group.contains(entry)) {</span>
+<span class="nc" id="L208">                            hits++;</span>
+                        }
+                    }
+                }
+<span class="nc" id="L212">                sb.append(&quot; [&quot;).append(hits).append(']');</span>
+            }
+        }
+
+<span class="fc" id="L216">        return sb.toString();</span>
+    }
+
+    public String getDescription() {
+<span class="fc" id="L220">        return &quot;&lt;html&gt;&quot; + node.getGroup().getShortDescription() + &quot;&lt;/html&gt;&quot;;</span>
+    }
+
+    public Icon getIcon() {
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.GROUP_SHOW_ICONS)) {</span>
+<span class="pc bpc" id="L225" title="2 of 3 branches missed.">            switch (node.getGroup().getHierarchicalContext()) {</span>
+            case REFINING:
+<span class="nc" id="L227">                return GROUP_REFINING_ICON;</span>
+            case INCLUDING:
+<span class="nc" id="L229">                return GROUP_INCLUDING_ICON;</span>
+            default:
+<span class="fc" id="L231">                return GROUP_REGULAR_ICON;</span>
+            }
+        } else {
+<span class="nc" id="L234">            return null;</span>
+        }
+    }
+
+    public TreePath getTreePath() {
+<span class="fc" id="L239">        List&lt;GroupTreeNode&gt; pathToNode = node.getPathFromRoot();</span>
+<span class="fc" id="L240">        return new TreePath(pathToNode.stream().map(GroupTreeNodeViewModel::new).toArray());</span>
+    }
+
+    public boolean canAddEntries(List&lt;BibEntry&gt; entries) {
+<span class="nc bnc" id="L244" title="All 4 branches missed.">        return getNode().getGroup().supportsAdd() &amp;&amp; !getNode().getGroup().containsAll(entries);</span>
+    }
+
+    public boolean canRemoveEntries(List&lt;BibEntry&gt; entries) {
+<span class="nc bnc" id="L248" title="All 4 branches missed.">        return getNode().getGroup().supportsRemove() &amp;&amp; getNode().getGroup().containsAny(entries);</span>
+    }
+
+    public void sortChildrenByName(boolean recursive) {
+<span class="nc" id="L252">        getNode().sortChildren(</span>
+<span class="nc" id="L253">                (node1, node2) -&gt; node1.getGroup().getName().compareToIgnoreCase(node2.getGroup().getName()),</span>
+<span class="nc" id="L254">                recursive);</span>
+<span class="nc" id="L255">    }</span>
+
+    @Override
+    public boolean equals(Object o) {
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">        if (this == o) {</span>
+<span class="fc" id="L260">            return true;</span>
+        }
+<span class="nc bnc" id="L262" title="All 4 branches missed.">        if ((o == null) || (getClass() != o.getClass())) {</span>
+<span class="nc" id="L263">            return false;</span>
+        }
+
+<span class="nc" id="L266">        GroupTreeNodeViewModel viewModel = (GroupTreeNodeViewModel) o;</span>
+<span class="nc" id="L267">        return node.equals(viewModel.node);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="fc" id="L272">        return node.hashCode();</span>
+    }
+
+    public String getName() {
+<span class="nc" id="L276">        return getNode().getGroup().getName();</span>
+    }
+
+    public boolean canBeEdited() {
+<span class="nc" id="L280">        return getNode().getGroup() instanceof AllEntriesGroup;</span>
+    }
+
+    public boolean canMoveUp() {
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        return (getNode().getPreviousSibling() != null)</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">                &amp;&amp; !(getNode().getGroup() instanceof AllEntriesGroup);</span>
+    }
+
+    public boolean canMoveDown() {
+<span class="nc bnc" id="L289" title="All 2 branches missed.">        return (getNode().getNextSibling() != null)</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">                &amp;&amp; !(getNode().getGroup() instanceof AllEntriesGroup);</span>
+    }
+
+    public boolean canMoveLeft() {
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        return !(getNode().getGroup() instanceof AllEntriesGroup)</span>
+                // TODO: Null!
+<span class="nc bnc" id="L296" title="All 2 branches missed.">                &amp;&amp; !(getNode().getParent().get().getGroup() instanceof AllEntriesGroup);</span>
+    }
+
+    public boolean canMoveRight() {
+<span class="nc bnc" id="L300" title="All 2 branches missed.">        return (getNode().getPreviousSibling() != null)</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">                &amp;&amp; !(getNode().getGroup() instanceof AllEntriesGroup);</span>
+    }
+
+    public void changeEntriesTo(List&lt;BibEntry&gt; entries, UndoManager undoManager) {
+<span class="nc" id="L305">        AbstractGroup group = node.getGroup();</span>
+<span class="nc" id="L306">        Optional&lt;EntriesGroupChange&gt; changesRemove = Optional.empty();</span>
+<span class="nc" id="L307">        Optional&lt;EntriesGroupChange&gt; changesAdd = Optional.empty();</span>
+
+        // Sort entries into current members and non-members of the group
+        // Current members will be removed
+        // Current non-members will be added
+<span class="nc" id="L312">        List&lt;BibEntry&gt; toRemove = new ArrayList&lt;&gt;(entries.size());</span>
+<span class="nc" id="L313">        List&lt;BibEntry&gt; toAdd = new ArrayList&lt;&gt;(entries.size());</span>
+
+<span class="nc bnc" id="L315" title="All 2 branches missed.">        for (BibEntry entry : entries) {</span>
+            // Sort according to current state of the entries
+<span class="nc bnc" id="L317" title="All 2 branches missed.">            if (group.contains(entry)) {</span>
+<span class="nc" id="L318">                toRemove.add(entry);</span>
+<span class="nc" id="L319">            } else {</span>
+<span class="nc" id="L320">                toAdd.add(entry);</span>
+            }
+        }
+
+        // If there are entries to remove
+<span class="nc bnc" id="L325" title="All 2 branches missed.">        if (!toRemove.isEmpty()) {</span>
+<span class="nc" id="L326">            changesRemove = removeEntriesFromGroup(toRemove);</span>
+        }
+        // If there are entries to add
+<span class="nc bnc" id="L329" title="All 2 branches missed.">        if (!toAdd.isEmpty()) {</span>
+<span class="nc" id="L330">            changesAdd = addEntriesToGroup(toAdd);</span>
+        }
+
+        // Remember undo information
+<span class="nc bnc" id="L334" title="All 2 branches missed.">        if (changesRemove.isPresent()) {</span>
+<span class="nc" id="L335">            AbstractUndoableEdit undoRemove = UndoableChangeEntriesOfGroup.getUndoableEdit(this, changesRemove.get());</span>
+<span class="nc bnc" id="L336" title="All 4 branches missed.">            if (changesAdd.isPresent() &amp;&amp; (undoRemove != null)) {</span>
+                // we removed and added entries
+<span class="nc" id="L338">                undoRemove.addEdit(UndoableChangeEntriesOfGroup.getUndoableEdit(this, changesAdd.get()));</span>
+            }
+<span class="nc" id="L340">            undoManager.addEdit(undoRemove);</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        } else if (changesAdd != null) {</span>
+<span class="nc" id="L342">            undoManager.addEdit(UndoableChangeEntriesOfGroup.getUndoableEdit(this, changesAdd.get()));</span>
+        }
+<span class="nc" id="L344">    }</span>
+
+    public boolean isAllEntriesGroup() {
+<span class="nc" id="L347">        return getNode().getGroup() instanceof AllEntriesGroup;</span>
+    }
+
+    public void addNewGroup(AbstractGroup newGroup, CountingUndoManager undoManager) {
+<span class="nc" id="L351">        GroupTreeNode newNode = new GroupTreeNode(newGroup);</span>
+<span class="nc" id="L352">        this.getNode().addChild(newNode);</span>
+
+<span class="nc" id="L354">        UndoableAddOrRemoveGroup undo = new UndoableAddOrRemoveGroup(this,</span>
+<span class="nc" id="L355">                new GroupTreeNodeViewModel(newNode), UndoableAddOrRemoveGroup.ADD_NODE);</span>
+<span class="nc" id="L356">        undoManager.addEdit(undo);</span>
+<span class="nc" id="L357">    }</span>
+
+    public Optional&lt;MoveGroupChange&gt; moveUp() {
+<span class="nc" id="L360">        final GroupTreeNode parent = node.getParent().get();</span>
+        // TODO: Null!
+<span class="nc" id="L362">        final int index = parent.getIndexOfChild(getNode()).get();</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">        if (index &gt; 0) {</span>
+<span class="nc" id="L364">            getNode().moveTo(parent, index - 1);</span>
+<span class="nc" id="L365">            return Optional.of(new MoveGroupChange(parent, index, parent, index - 1));</span>
+        }
+<span class="nc" id="L367">        return Optional.empty();</span>
+    }
+
+    public Optional&lt;MoveGroupChange&gt; moveDown() {
+<span class="nc" id="L371">        final GroupTreeNode parent = node.getParent().get();</span>
+        // TODO: Null!
+<span class="nc" id="L373">        final int index = parent.getIndexOfChild(node).get();</span>
+<span class="nc bnc" id="L374" title="All 2 branches missed.">        if (index &lt; (parent.getNumberOfChildren() - 1)) {</span>
+<span class="nc" id="L375">            node.moveTo(parent, index + 1);</span>
+<span class="nc" id="L376">            return Optional.of(new MoveGroupChange(parent, index, parent, index + 1));</span>
+        }
+<span class="nc" id="L378">        return Optional.empty();</span>
+    }
+
+    public Optional&lt;MoveGroupChange&gt; moveLeft() {
+<span class="nc" id="L382">        final GroupTreeNode parent = node.getParent().get(); // TODO: Null!</span>
+<span class="nc" id="L383">        final Optional&lt;GroupTreeNode&gt; grandParent = parent.getParent();</span>
+<span class="nc" id="L384">        final int index = node.getPositionInParent();</span>
+
+<span class="nc bnc" id="L386" title="All 2 branches missed.">        if (! grandParent.isPresent()) {</span>
+<span class="nc" id="L387">            return Optional.empty();</span>
+        }
+<span class="nc" id="L389">        final int indexOfParent = grandParent.get().getIndexOfChild(parent).get();</span>
+<span class="nc" id="L390">        node.moveTo(grandParent.get(), indexOfParent + 1);</span>
+<span class="nc" id="L391">        return Optional.of(new MoveGroupChange(parent, index, grandParent.get(), indexOfParent + 1));</span>
+    }
+
+    public Optional&lt;MoveGroupChange&gt; moveRight() {
+<span class="nc" id="L395">        final GroupTreeNode previousSibling = node.getPreviousSibling().get(); // TODO: Null</span>
+<span class="nc" id="L396">        final GroupTreeNode parent = node.getParent().get(); // TODO: Null!</span>
+<span class="nc" id="L397">        final int index = node.getPositionInParent();</span>
+
+<span class="nc bnc" id="L399" title="All 2 branches missed.">        if (previousSibling == null) {</span>
+<span class="nc" id="L400">            return Optional.empty();</span>
+        }
+
+<span class="nc" id="L403">        node.moveTo(previousSibling);</span>
+<span class="nc" id="L404">        return Optional.of(new MoveGroupChange(parent, index, previousSibling, previousSibling.getNumberOfChildren()));</span>
+    }
+
+    /**
+     * Adds the given entries to this node's group.
+     */
+    public Optional&lt;EntriesGroupChange&gt; addEntriesToGroup(List&lt;BibEntry&gt; entries) {
+<span class="nc bnc" id="L411" title="All 2 branches missed.">        if(node.getGroup().supportsAdd()) {</span>
+<span class="nc" id="L412">            return node.getGroup().add(entries);</span>
+        }
+        else {
+<span class="nc" id="L415">            return Optional.empty();</span>
+        }
+    }
+
+    /**
+     * Removes the given entries from this node's group.
+     */
+    public Optional&lt;EntriesGroupChange&gt; removeEntriesFromGroup(List&lt;BibEntry&gt; entries) {
+<span class="nc bnc" id="L423" title="All 2 branches missed.">        if(node.getGroup().supportsRemove()) {</span>
+<span class="nc" id="L424">            return node.getGroup().remove(entries);</span>
+        }
+        else {
+<span class="nc" id="L427">            return Optional.empty();</span>
+        }
+    }
+
+    public void subscribeToDescendantChanged(Consumer&lt;GroupTreeNodeViewModel&gt; subscriber) {
+<span class="pc" id="L432">        getNode().subscribeToDescendantChanged(node -&gt; subscriber.accept(new GroupTreeNodeViewModel(node)));</span>
+<span class="fc" id="L433">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>IntegrityCheck.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.integrity</a> &gt; <span class="el_source">IntegrityCheck.java</span></div><h1>IntegrityCheck.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.integrity;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Globals;
+import net.sf.jabref.bibtex.FieldProperties;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.FileField;
+import net.sf.jabref.model.entry.ParsedFileField;
+
+public class IntegrityCheck {
+
+    private final BibDatabaseContext bibDatabaseContext;
+
+<span class="nc" id="L29">    public IntegrityCheck(BibDatabaseContext bibDatabaseContext) {</span>
+<span class="nc" id="L30">        this.bibDatabaseContext = Objects.requireNonNull(bibDatabaseContext);</span>
+<span class="nc" id="L31">    }</span>
+
+    public List&lt;IntegrityMessage&gt; checkBibtexDatabase() {
+<span class="nc" id="L34">        List&lt;IntegrityMessage&gt; result = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        for (BibEntry entry : bibDatabaseContext.getDatabase().getEntries()) {</span>
+<span class="nc" id="L37">            result.addAll(checkBibtexEntry(entry));</span>
+        }
+
+<span class="nc" id="L40">        return result;</span>
+    }
+
+    private List&lt;IntegrityMessage&gt; checkBibtexEntry(BibEntry entry) {
+<span class="nc" id="L44">        List&lt;IntegrityMessage&gt; result = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (entry == null) {</span>
+<span class="nc" id="L47">            return result;</span>
+        }
+
+<span class="nc" id="L50">        result.addAll(new AuthorNameChecker().check(entry));</span>
+
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (!bibDatabaseContext.isBiblatexMode()) {</span>
+<span class="nc" id="L53">            result.addAll(new TitleChecker().check(entry));</span>
+        }
+
+<span class="nc" id="L56">        result.addAll(new BracketChecker(&quot;title&quot;).check(entry));</span>
+<span class="nc" id="L57">        result.addAll(new YearChecker().check(entry));</span>
+<span class="nc" id="L58">        result.addAll(new PagesChecker().check(entry));</span>
+<span class="nc" id="L59">        result.addAll(new UrlChecker().check(entry));</span>
+<span class="nc" id="L60">        result.addAll(new FileChecker(bibDatabaseContext).check(entry));</span>
+<span class="nc" id="L61">        result.addAll(new TypeChecker().check(entry));</span>
+<span class="nc" id="L62">        result.addAll(new AbbreviationChecker(&quot;journal&quot;).check(entry));</span>
+<span class="nc" id="L63">        result.addAll(new AbbreviationChecker(&quot;booktitle&quot;).check(entry));</span>
+<span class="nc" id="L64">        result.addAll(new BibStringChecker().check(entry));</span>
+<span class="nc" id="L65">        result.addAll(new HTMLCharacterChecker().check(entry));</span>
+<span class="nc" id="L66">        result.addAll(new ISSNChecker().check(entry));</span>
+
+<span class="nc" id="L68">        return result;</span>
+    }
+
+
+    @FunctionalInterface
+    public interface Checker {
+        List&lt;IntegrityMessage&gt; check(BibEntry entry);
+    }
+
+    private static class TypeChecker implements Checker {
+
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L81">            Optional&lt;String&gt; value = entry.getFieldOptional(&quot;pages&quot;);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            if (!value.isPresent()) {</span>
+<span class="nc" id="L83">                return Collections.emptyList();</span>
+            }
+
+<span class="nc bnc" id="L86" title="All 2 branches missed.">            if (&quot;proceedings&quot;.equalsIgnoreCase(entry.getType())) {</span>
+<span class="nc" id="L87">                return Collections.singletonList(new IntegrityMessage(Localization.lang(&quot;wrong entry type as proceedings has page numbers&quot;), entry, &quot;pages&quot;));</span>
+            }
+
+<span class="nc" id="L90">            return Collections.emptyList();</span>
+        }
+    }
+
+    private static class AbbreviationChecker implements Checker {
+
+        private final String field;
+
+<span class="nc" id="L98">        private AbbreviationChecker(String field) {</span>
+<span class="nc" id="L99">            this.field = field;</span>
+<span class="nc" id="L100">        }</span>
+
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L104">            Optional&lt;String&gt; value = entry.getFieldOptional(field);</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">            if (!value.isPresent()) {</span>
+<span class="nc" id="L106">                return Collections.emptyList();</span>
+            }
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            if (value.get().contains(&quot;.&quot;)) {</span>
+<span class="nc" id="L110">                return Collections.singletonList(new IntegrityMessage(Localization.lang(&quot;abbreviation detected&quot;), entry, field));</span>
+            }
+
+<span class="nc" id="L113">            return Collections.emptyList();</span>
+        }
+    }
+
+    private static class FileChecker implements Checker {
+
+        private final BibDatabaseContext context;
+
+<span class="nc" id="L121">        private FileChecker(BibDatabaseContext context) {</span>
+<span class="nc" id="L122">            this.context = context;</span>
+<span class="nc" id="L123">        }</span>
+
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L127">            Optional&lt;String&gt; value = entry.getFieldOptional(Globals.FILE_FIELD);</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (!value.isPresent()) {</span>
+<span class="nc" id="L129">                return Collections.emptyList();</span>
+            }
+
+<span class="nc" id="L132">            List&lt;ParsedFileField&gt; parsedFileFields = FileField.parse(value.get()).stream()</span>
+<span class="nc bnc" id="L133" title="All 4 branches missed.">                    .filter(p -&gt; !(p.getLink().startsWith(&quot;http://&quot;) || p.getLink().startsWith(&quot;https://&quot;)))</span>
+<span class="nc" id="L134">                    .collect(Collectors.toList());</span>
+
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            for (ParsedFileField p : parsedFileFields) {</span>
+<span class="nc" id="L137">                Optional&lt;File&gt; file = FileUtil.expandFilename(context, p.getLink());</span>
+<span class="nc bnc" id="L138" title="All 4 branches missed.">                if ((!file.isPresent()) || !file.get().exists()) {</span>
+<span class="nc" id="L139">                    return Collections.singletonList(</span>
+<span class="nc" id="L140">                            new IntegrityMessage(Localization.lang(&quot;link should refer to a correct file path&quot;), entry,</span>
+<span class="nc" id="L141">                                    Globals.FILE_FIELD));</span>
+                }
+            }
+
+<span class="nc" id="L145">            return Collections.emptyList();</span>
+        }
+    }
+
+    private static class UrlChecker implements Checker {
+
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L153">            Optional&lt;String&gt; value = entry.getFieldOptional(&quot;url&quot;);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">            if (!value.isPresent()) {</span>
+<span class="nc" id="L155">                return Collections.emptyList();</span>
+            }
+
+<span class="nc bnc" id="L158" title="All 2 branches missed.">            if (!value.get().contains(&quot;://&quot;)) {</span>
+<span class="nc" id="L159">                return Collections.singletonList(new IntegrityMessage(Localization.lang(&quot;should contain a protocol&quot;) + &quot;: http[s]://, file://, ftp://, ...&quot;, entry, &quot;url&quot;));</span>
+            }
+
+<span class="nc" id="L162">            return Collections.emptyList();</span>
+        }
+    }
+
+    private static class AuthorNameChecker implements Checker {
+
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L170">            List&lt;IntegrityMessage&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">            for (String field : entry.getFieldNames()) {</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                if (InternalBibtexFields.getFieldExtras(field).contains(FieldProperties.PERSON_NAMES)) {</span>
+<span class="nc" id="L173">                    Optional&lt;String&gt; value = entry.getFieldOptional(field);</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">                    if (!value.isPresent()) {</span>
+<span class="nc" id="L175">                        return Collections.emptyList();</span>
+                    }
+
+<span class="nc" id="L178">                    String valueTrimmedAndLowerCase = value.get().trim().toLowerCase();</span>
+<span class="nc bnc" id="L179" title="All 4 branches missed.">                    if (valueTrimmedAndLowerCase.startsWith(&quot;and &quot;) || valueTrimmedAndLowerCase.startsWith(&quot;,&quot;)) {</span>
+<span class="nc" id="L180">                        result.add(new IntegrityMessage(Localization.lang(&quot;should start with a name&quot;), entry, field));</span>
+<span class="nc bnc" id="L181" title="All 4 branches missed.">                    } else if (valueTrimmedAndLowerCase.endsWith(&quot; and&quot;) || valueTrimmedAndLowerCase.endsWith(&quot;,&quot;)) {</span>
+<span class="nc" id="L182">                        result.add(new IntegrityMessage(Localization.lang(&quot;should end with a name&quot;), entry, field));</span>
+                    }
+                }
+            }
+<span class="nc" id="L186">            return result;</span>
+        }
+    }
+
+    private static class BracketChecker implements Checker {
+
+        private final String field;
+
+<span class="nc" id="L194">        private BracketChecker(String field) {</span>
+<span class="nc" id="L195">            this.field = field;</span>
+<span class="nc" id="L196">        }</span>
+
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L200">            Optional&lt;String&gt; value = entry.getFieldOptional(field);</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">            if (!value.isPresent()) {</span>
+<span class="nc" id="L202">                return Collections.emptyList();</span>
+            }
+
+            // metaphor: integer-based stack (push + / pop -)
+<span class="nc" id="L206">            int counter = 0;</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">            for (char a : value.get().trim().toCharArray()) {</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">                if (a == '{') {</span>
+<span class="nc" id="L209">                    counter++;</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">                } else if (a == '}') {</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">                    if (counter == 0) {</span>
+<span class="nc" id="L212">                        return Collections.singletonList(new IntegrityMessage(Localization.lang(&quot;unexpected closing curly bracket&quot;), entry, field));</span>
+                    } else {
+<span class="nc" id="L214">                        counter--;</span>
+                    }
+                }
+            }
+
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            if (counter &gt; 0) {</span>
+<span class="nc" id="L220">                return Collections.singletonList(new IntegrityMessage(Localization.lang(&quot;unexpected opening curly bracket&quot;), entry, field));</span>
+            }
+
+<span class="nc" id="L223">            return Collections.emptyList();</span>
+        }
+
+    }
+
+    private static class TitleChecker implements Checker {
+
+<span class="nc" id="L230">        private static final Pattern INSIDE_CURLY_BRAKETS = Pattern.compile(&quot;\\{[^}\\{]*\\}&quot;);</span>
+<span class="nc" id="L231">        private static final Predicate&lt;String&gt; HAS_CAPITAL_LETTERS = Pattern.compile(&quot;[\\p{Lu}\\p{Lt}]&quot;).asPredicate();</span>
+
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L235">            Optional&lt;String&gt; value = entry.getFieldOptional(&quot;title&quot;);</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">            if (!value.isPresent()) {</span>
+<span class="nc" id="L237">                return Collections.emptyList();</span>
+            }
+
+
+            /*
+             * Algorithm:
+             * - remove trailing whitespaces
+             * - ignore first letter as this can always be written in caps
+             * - remove everything that is in brackets
+             * - check if at least one capital letter is in the title
+             */
+<span class="nc" id="L248">            String valueTrimmed = value.get().trim();</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">            String valueIgnoringFirstLetter = valueTrimmed.startsWith(&quot;{&quot;) ? valueTrimmed : valueTrimmed.substring(1);</span>
+<span class="nc" id="L250">            String valueOnlySpacesWithinCurlyBraces = valueIgnoringFirstLetter;</span>
+<span class="nc" id="L251">            while (true) {</span>
+<span class="nc" id="L252">                Matcher matcher = INSIDE_CURLY_BRAKETS.matcher(valueOnlySpacesWithinCurlyBraces);</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">                if (!matcher.find()) {</span>
+<span class="nc" id="L254">                    break;</span>
+                }
+<span class="nc" id="L256">                valueOnlySpacesWithinCurlyBraces = matcher.replaceAll(&quot;&quot;);</span>
+            }
+
+<span class="nc" id="L259">            boolean hasCapitalLettersThatBibtexWillConvertToSmallerOnes = HAS_CAPITAL_LETTERS.test(valueOnlySpacesWithinCurlyBraces);</span>
+
+<span class="nc bnc" id="L261" title="All 2 branches missed.">            if (hasCapitalLettersThatBibtexWillConvertToSmallerOnes) {</span>
+<span class="nc" id="L262">                return Collections.singletonList(new IntegrityMessage(Localization.lang(&quot;large capitals are not masked using curly brackets {}&quot;), entry, &quot;title&quot;));</span>
+            }
+
+<span class="nc" id="L265">            return Collections.emptyList();</span>
+        }
+    }
+
+    private static class YearChecker implements Checker {
+
+<span class="nc" id="L271">        private static final Predicate&lt;String&gt; CONTAINS_FOUR_DIGIT = Pattern.compile(&quot;([^0-9]|^)[0-9]{4}([^0-9]|$)&quot;).asPredicate();</span>
+
+        /**
+         * Checks, if the number String contains a four digit year
+         */
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L278">            Optional&lt;String&gt; value = entry.getFieldOptional(&quot;year&quot;);</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">            if (!value.isPresent()) {</span>
+<span class="nc" id="L280">                return Collections.emptyList();</span>
+            }
+
+<span class="nc bnc" id="L283" title="All 2 branches missed.">            if (!CONTAINS_FOUR_DIGIT.test(value.get().trim())) {</span>
+<span class="nc" id="L284">                return Collections.singletonList(new IntegrityMessage(Localization.lang(&quot;should contain a four digit number&quot;), entry, &quot;year&quot;));</span>
+            }
+
+<span class="nc" id="L287">            return Collections.emptyList();</span>
+        }
+    }
+
+    /**
+     * From BibTex manual:
+     * One or more page numbers or range of numbers, such as 42--111 or 7,41,73--97 or 43+
+     * (the '+' in this last example indicates pages following that don't form a simple range).
+     * To make it easier to maintain Scribe-compatible databases, the standard styles convert
+     * a single dash (as in 7-33) to the double dash used in TEX to denote number ranges (as in 7--33).
+     */
+    private static class PagesChecker implements Checker {
+
+        private static final String PAGES_EXP = &quot;&quot;
+                + &quot;\\A&quot;                       // begin String
+                + &quot;\\d+&quot;                      // number
+                + &quot;(?:&quot;                       // non-capture group
+                + &quot;\\+|\\-{2}\\d+&quot;            // + or --number (range)
+                + &quot;)?&quot;                        // optional group
+                + &quot;(?:&quot;                       // non-capture group
+                + &quot;,&quot;                         // comma
+                + &quot;\\d+(?:\\+|\\-{2}\\d+)?&quot;   // repeat former pattern
+                + &quot;)*&quot;                        // repeat group 0,*
+                + &quot;\\z&quot;;                      // end String
+
+<span class="nc" id="L312">        private static final Predicate&lt;String&gt; VALID_PAGE_NUMBER = Pattern.compile(PAGES_EXP).asPredicate();</span>
+
+        /**
+         * Checks, if the page numbers String conforms to the BibTex manual
+         */
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L319">            Optional&lt;String&gt; value = entry.getFieldOptional(&quot;pages&quot;);</span>
+<span class="nc bnc" id="L320" title="All 2 branches missed.">            if (!value.isPresent()) {</span>
+<span class="nc" id="L321">                return Collections.emptyList();</span>
+            }
+
+<span class="nc bnc" id="L324" title="All 2 branches missed.">            if (!VALID_PAGE_NUMBER.test(value.get().trim())) {</span>
+<span class="nc" id="L325">                return Collections.singletonList(new IntegrityMessage(Localization.lang(&quot;should contain a valid page number range&quot;), entry, &quot;pages&quot;));</span>
+            }
+
+<span class="nc" id="L328">            return Collections.emptyList();</span>
+        }
+    }
+
+    private static class BibStringChecker implements Checker {
+
+        // Detect # if it doesn't have a \ in front of it or if it starts the string
+<span class="nc" id="L335">        private static final Pattern UNESCAPED_HASH = Pattern.compile(&quot;(?&lt;!\\\\)#|^#&quot;);</span>
+
+
+        /**
+         * Checks, if there is an even number of unescaped #
+         */
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L343">            List&lt;IntegrityMessage&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">            for (Map.Entry&lt;String, String&gt; field : entry.getFieldMap().entrySet()) {</span>
+<span class="nc" id="L345">                Matcher hashMatcher = UNESCAPED_HASH.matcher(field.getValue());</span>
+<span class="nc" id="L346">                int hashCount = 0;</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">                while (hashMatcher.find()) {</span>
+<span class="nc" id="L348">                    hashCount++;</span>
+                }
+<span class="nc bnc" id="L350" title="All 2 branches missed.">                if ((hashCount % 2) == 1) {</span>
+<span class="nc" id="L351">                    results.add(</span>
+<span class="nc" id="L352">                            new IntegrityMessage(Localization.lang(&quot;odd number of unescaped '#'&quot;), entry,</span>
+<span class="nc" id="L353">                                    field.getKey()));</span>
+                }
+            }
+<span class="nc" id="L356">            return results;</span>
+        }
+    }
+
+    private static class HTMLCharacterChecker implements Checker {
+
+        // Detect any HTML encoded character,
+<span class="nc" id="L363">        private static final Pattern HTML_CHARACTER_PATTERN = Pattern.compile(&quot;&amp;[#\\p{Alnum}]+;&quot;);</span>
+
+
+        /**
+         * Checks, if there are any HTML encoded characters in the fields
+         */
+        @Override
+        public List&lt;IntegrityMessage&gt; check(BibEntry entry) {
+<span class="nc" id="L371">            List&lt;IntegrityMessage&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L372" title="All 2 branches missed.">            for (Map.Entry&lt;String, String&gt; field : entry.getFieldMap().entrySet()) {</span>
+<span class="nc" id="L373">                Matcher characterMatcher = HTML_CHARACTER_PATTERN.matcher(field.getValue());</span>
+<span class="nc bnc" id="L374" title="All 2 branches missed.">                if (characterMatcher.find()) {</span>
+<span class="nc" id="L375">                    results.add(new IntegrityMessage(Localization.lang(&quot;HTML encoded character found&quot;), entry,</span>
+<span class="nc" id="L376">                            field.getKey()));</span>
+                }
+            }
+<span class="nc" id="L379">            return results;</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

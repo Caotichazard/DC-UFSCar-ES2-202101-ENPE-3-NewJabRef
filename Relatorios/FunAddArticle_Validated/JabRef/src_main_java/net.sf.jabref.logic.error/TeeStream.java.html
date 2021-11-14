@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>TeeStream.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.error</a> &gt; <span class="el_source">TeeStream.java</span></div><h1>TeeStream.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+package net.sf.jabref.logic.error;
+
+import java.io.PrintStream;
+
+/**
+ * All writes to this print stream are copied to two print streams
+ * &lt;p/&gt;
+ * Is based on the command line tool tee
+ */
+public class TeeStream extends PrintStream {
+
+    private final PrintStream outStream;
+
+    public TeeStream(PrintStream out1, PrintStream out2) {
+<span class="fc" id="L31">        super(out1);</span>
+<span class="fc" id="L32">        this.outStream = out2;</span>
+<span class="fc" id="L33">    }</span>
+
+    @Override
+    public void write(byte[] buf, int off, int len) {
+        try {
+<span class="fc" id="L38">            super.write(buf, off, len);</span>
+<span class="fc" id="L39">            outStream.write(buf, off, len);</span>
+<span class="pc" id="L40">        } catch (Exception ignored) {</span>
+            // Ignored
+        }
+<span class="fc" id="L43">    }</span>
+
+    @Override
+    public void flush() {
+<span class="fc" id="L47">        super.flush();</span>
+<span class="fc" id="L48">        outStream.flush();</span>
+<span class="fc" id="L49">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

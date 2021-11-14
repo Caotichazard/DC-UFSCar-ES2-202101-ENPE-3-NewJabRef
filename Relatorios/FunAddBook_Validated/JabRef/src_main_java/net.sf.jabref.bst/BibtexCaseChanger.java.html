@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BibtexCaseChanger.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.bst</a> &gt; <span class="el_source">BibtexCaseChanger.java</span></div><h1>BibtexCaseChanger.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.bst;
+
+import java.util.Optional;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+public final class BibtexCaseChanger {
+
+<span class="nc" id="L25">    private static final Log LOGGER = LogFactory.getLog(BibtexCaseChanger.class);</span>
+
+    // stores whether the char before the current char was a colon
+<span class="nc" id="L28">    private boolean prevColon = true;</span>
+
+    // global variable to store the current brace level
+    private int braceLevel;
+
+<span class="nc" id="L33">    public enum FORMAT_MODE {</span>
+<span class="nc" id="L34">        // First character and character after a &quot;:&quot; as upper case - everything else in lower case. Obey {}.</span>
+<span class="nc" id="L35">        TITLE_LOWERS('t'),</span>
+
+<span class="nc" id="L37">        // All characters lower case - Obey {}</span>
+<span class="nc" id="L38">        ALL_LOWERS('l'),</span>
+
+<span class="nc" id="L40">        // all characters upper case - Obey {}</span>
+<span class="nc" id="L41">        ALL_UPPERS('u');</span>
+
+        // the following would have to be done if the functionality of CaseChangers would be included here
+        // However, we decided against it and will probably do the other way round: https://github.com/JabRef/jabref/pull/215#issuecomment-146981624
+
+        // Each word should start with a capital letter
+        //EACH_FIRST_UPPERS('f'),
+
+        // Converts all words to upper case, but converts articles, prepositions, and conjunctions to lower case
+        // Capitalizes first and last word
+        // Does not change words starting with &quot;{&quot;
+        // DIFFERENCE to old CaseChangers.TITLE: last word is NOT capitalized in all cases
+        //TITLE_UPPERS('T');
+
+        private final char asChar;
+
+<span class="nc" id="L57">        FORMAT_MODE(char asChar) {</span>
+<span class="nc" id="L58">            this.asChar = asChar;</span>
+<span class="nc" id="L59">        }</span>
+
+        public char asChar() {
+<span class="nc" id="L62">            return asChar;</span>
+        }
+
+
+        /**
+         * Convert bstFormat char into ENUM
+         *
+         * @throws IllegalArgumentException if char is not 't', 'l', 'u'
+         */
+        public static FORMAT_MODE getFormatModeForBSTFormat(final char bstFormat) {
+<span class="nc bnc" id="L72" title="All 2 branches missed.">            for (FORMAT_MODE mode : FORMAT_MODE.values()) {</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">                if (mode.asChar == bstFormat) {</span>
+<span class="nc" id="L74">                    return mode;</span>
+                }
+            }
+<span class="nc" id="L77">            throw new IllegalArgumentException();</span>
+        }
+    }
+
+<span class="nc" id="L81">    private BibtexCaseChanger() {</span>
+<span class="nc" id="L82">    }</span>
+
+    /**
+     * Changes case of the given string s
+     *
+     * @param s the string to handle
+     * @param format the format
+     * @return
+     */
+    public static String changeCase(String s, FORMAT_MODE format) {
+<span class="nc" id="L92">        return (new BibtexCaseChanger()).doChangeCase(s, format);</span>
+    }
+
+    private String doChangeCase(String s, FORMAT_MODE format) {
+<span class="nc" id="L96">        char[] c = s.toCharArray();</span>
+
+<span class="nc" id="L98">        StringBuilder sb = new StringBuilder();</span>
+
+<span class="nc" id="L100">        int i = 0;</span>
+<span class="nc" id="L101">        int n = s.length();</span>
+
+<span class="nc bnc" id="L103" title="All 2 branches missed.">        while (i &lt; n) {</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">            if (c[i] == '{') {</span>
+<span class="nc" id="L105">                braceLevel++;</span>
+<span class="nc bnc" id="L106" title="All 6 branches missed.">                if ((braceLevel != 1) || ((i + 4) &gt; n) || (c[i + 1] != '\\')) {</span>
+<span class="nc" id="L107">                    prevColon = false;</span>
+<span class="nc" id="L108">                    sb.append(c[i]);</span>
+<span class="nc" id="L109">                    i++;</span>
+<span class="nc" id="L110">                    continue;</span>
+                }
+<span class="nc bnc" id="L112" title="All 8 branches missed.">                if ((format == FORMAT_MODE.TITLE_LOWERS) &amp;&amp; ((i == 0) || (prevColon &amp;&amp; Character.isWhitespace(c[i - 1])))) {</span>
+<span class="nc" id="L113">                    sb.append('{');</span>
+<span class="nc" id="L114">                    i++;</span>
+<span class="nc" id="L115">                    prevColon = false;</span>
+<span class="nc" id="L116">                    continue;</span>
+                }
+<span class="nc" id="L118">                i = convertSpecialChar(sb, c, i, format);</span>
+<span class="nc" id="L119">                continue;</span>
+            }
+<span class="nc bnc" id="L121" title="All 2 branches missed.">            if (c[i] == '}') {</span>
+<span class="nc" id="L122">                sb.append(c[i]);</span>
+<span class="nc" id="L123">                i++;</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">                if (braceLevel == 0) {</span>
+<span class="nc" id="L125">                    LOGGER.warn(&quot;Too many closing braces in string: &quot; + s);</span>
+<span class="nc" id="L126">                } else {</span>
+<span class="nc" id="L127">                    braceLevel--;</span>
+                }
+<span class="nc" id="L129">                prevColon = false;</span>
+<span class="nc" id="L130">                continue;</span>
+            }
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            if (braceLevel == 0) {</span>
+<span class="nc" id="L133">                i = convertCharIfBraceLevelIsZero(c, i, sb, format);</span>
+<span class="nc" id="L134">                continue;</span>
+            }
+<span class="nc" id="L136">            sb.append(c[i]);</span>
+<span class="nc" id="L137">            i++;</span>
+        }
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (braceLevel &gt; 0) {</span>
+<span class="nc" id="L140">            LOGGER.warn(&quot;No enough closing braces in string: &quot; + s);</span>
+        }
+<span class="nc" id="L142">        return sb.toString();</span>
+    }
+
+    /**
+     * We're dealing with a special character (usually either an undotted `\i'
+     * or `\j', or an accent like one in Table~3.1 of the \LaTeX\ manual, or a
+     * foreign character like one in Table~3.2) if the first character after the
+     * |left_brace| is a |backslash|; the special character ends with the
+     * matching |right_brace|. How we handle what's in between depends on the
+     * special character. In general, this code will do reasonably well if there
+     * is other stuff, too, between braces, but it doesn't try to do anything
+     * special with |colon|s.
+     *
+     * @param c
+     * @param i the current position. It points to the opening brace
+     * @param format
+     * @return
+     */
+    private int convertSpecialChar(StringBuilder sb, char[] c, int start, FORMAT_MODE format) {
+<span class="nc" id="L161">        int i = start;</span>
+
+<span class="nc" id="L163">        sb.append(c[i]);</span>
+<span class="nc" id="L164">        i++; // skip over open brace</span>
+
+<span class="nc bnc" id="L166" title="All 4 branches missed.">        while ((i &lt; c.length) &amp;&amp; (braceLevel &gt; 0)) {</span>
+<span class="nc" id="L167">            sb.append(c[i]);</span>
+<span class="nc" id="L168">            i++;</span>
+            // skip over the |backslash|
+
+<span class="nc" id="L171">            Optional&lt;String&gt; s = BibtexCaseChanger.findSpecialChar(c, i);</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">            if (s.isPresent()) {</span>
+<span class="nc" id="L173">                i = convertAccented(c, i, s.get(), sb, format);</span>
+            }
+
+<span class="nc bnc" id="L176" title="All 6 branches missed.">            while ((i &lt; c.length) &amp;&amp; (braceLevel &gt; 0) &amp;&amp; (c[i] != '\\')) {</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">                if (c[i] == '}') {</span>
+<span class="nc" id="L178">                    braceLevel--;</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">                } else if (c[i] == '{') {</span>
+<span class="nc" id="L180">                    braceLevel++;</span>
+                }
+<span class="nc" id="L182">                i = convertNonControl(c, i, sb, format);</span>
+            }
+        }
+<span class="nc" id="L185">        return i;</span>
+    }
+
+    /**
+     * Convert the given string according to the format character (title, lower,
+     * up) and append the result to the stringBuffer, return the updated
+     * position.
+     *
+     * @param c
+     * @param start
+     * @param s
+     * @param sb
+     * @param format
+     * @return the new position
+     */
+    private int convertAccented(char[] c, int start, String s, StringBuilder sb, FORMAT_MODE format) {
+<span class="nc" id="L201">        int pos = start;</span>
+<span class="nc" id="L202">        pos += s.length();</span>
+
+<span class="nc bnc" id="L204" title="All 3 branches missed.">        switch (format) {</span>
+        case TITLE_LOWERS:
+        case ALL_LOWERS:
+<span class="nc bnc" id="L207" title="All 2 branches missed.">            if (&quot;L O OE AE AA&quot;.contains(s)) {</span>
+<span class="nc" id="L208">                sb.append(s.toLowerCase());</span>
+<span class="nc" id="L209">            } else {</span>
+<span class="nc" id="L210">                sb.append(s);</span>
+            }
+<span class="nc" id="L212">            break;</span>
+        case ALL_UPPERS:
+<span class="nc bnc" id="L214" title="All 2 branches missed.">            if (&quot;l o oe ae aa&quot;.contains(s)) {</span>
+<span class="nc" id="L215">                sb.append(s.toUpperCase());</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">            } else if (&quot;i j ss&quot;.contains(s)) {</span>
+<span class="nc" id="L217">                sb.deleteCharAt(sb.length() - 1); // Kill backslash</span>
+<span class="nc" id="L218">                sb.append(s.toUpperCase());</span>
+<span class="nc bnc" id="L219" title="All 4 branches missed.">                while ((pos &lt; c.length) &amp;&amp; Character.isWhitespace(c[pos])) {</span>
+<span class="nc" id="L220">                    pos++;</span>
+                }
+<span class="nc" id="L222">            } else {</span>
+<span class="nc" id="L223">                sb.append(s);</span>
+            }
+<span class="nc" id="L225">            break;</span>
+        default:
+<span class="nc" id="L227">            LOGGER.info(&quot;convertAccented - Unknown format: &quot; + format);</span>
+            break;
+        }
+<span class="nc" id="L230">        return pos;</span>
+    }
+
+    private int convertNonControl(char[] c, int start, StringBuilder sb, FORMAT_MODE format) {
+<span class="nc" id="L234">        int pos = start;</span>
+<span class="nc bnc" id="L235" title="All 3 branches missed.">        switch (format) {</span>
+        case TITLE_LOWERS:
+        case ALL_LOWERS:
+<span class="nc" id="L238">            sb.append(Character.toLowerCase(c[pos]));</span>
+<span class="nc" id="L239">            pos++;</span>
+<span class="nc" id="L240">            break;</span>
+        case ALL_UPPERS:
+<span class="nc" id="L242">            sb.append(Character.toUpperCase(c[pos]));</span>
+<span class="nc" id="L243">            pos++;</span>
+<span class="nc" id="L244">            break;</span>
+        default:
+<span class="nc" id="L246">            LOGGER.info(&quot;convertNonControl - Unknown format: &quot; + format);</span>
+            break;
+        }
+<span class="nc" id="L249">        return pos;</span>
+    }
+
+    private int convertCharIfBraceLevelIsZero(char[] c, int start, StringBuilder sb, FORMAT_MODE format) {
+<span class="nc" id="L253">        int i = start;</span>
+<span class="nc bnc" id="L254" title="All 4 branches missed.">        switch (format) {</span>
+        case TITLE_LOWERS:
+<span class="nc bnc" id="L256" title="All 6 branches missed.">            if ((i == 0) || (prevColon &amp;&amp; Character.isWhitespace(c[i - 1]))) {</span>
+<span class="nc" id="L257">                sb.append(c[i]);</span>
+<span class="nc" id="L258">            } else {</span>
+<span class="nc" id="L259">                sb.append(Character.toLowerCase(c[i]));</span>
+            }
+<span class="nc bnc" id="L261" title="All 2 branches missed.">            if (c[i] == ':') {</span>
+<span class="nc" id="L262">                prevColon = true;</span>
+<span class="nc bnc" id="L263" title="All 2 branches missed.">            } else if (!Character.isWhitespace(c[i])) {</span>
+<span class="nc" id="L264">                prevColon = false;</span>
+            }
+<span class="nc" id="L266">            break;</span>
+        case ALL_LOWERS:
+<span class="nc" id="L268">            sb.append(Character.toLowerCase(c[i]));</span>
+<span class="nc" id="L269">            break;</span>
+        case ALL_UPPERS:
+<span class="nc" id="L271">            sb.append(Character.toUpperCase(c[i]));</span>
+<span class="nc" id="L272">            break;</span>
+        default:
+<span class="nc" id="L274">            LOGGER.info(&quot;convertCharIfBraceLevelIsZero - Unknown format: &quot; + format);</span>
+            break;
+        }
+<span class="nc" id="L277">        i++;</span>
+<span class="nc" id="L278">        return i;</span>
+    }
+
+    /**
+     * Determine whether there starts a special char at pos (e.g., oe, AE). Return it as string.
+     * If nothing found, return null
+     *
+     * Also used by BibtexPurify
+     *
+     * @param c the current &quot;String&quot;
+     * @param pos the position
+     * @return the special LaTeX character or null
+     */
+    public static Optional&lt;String&gt; findSpecialChar(char[] c, int pos) {
+<span class="nc bnc" id="L292" title="All 2 branches missed.">        if ((pos + 1) &lt; c.length) {</span>
+<span class="nc bnc" id="L293" title="All 4 branches missed.">            if ((c[pos] == 'o') &amp;&amp; (c[pos + 1] == 'e')) {</span>
+<span class="nc" id="L294">                return Optional.of(&quot;oe&quot;);</span>
+            }
+<span class="nc bnc" id="L296" title="All 4 branches missed.">            if ((c[pos] == 'O') &amp;&amp; (c[pos + 1] == 'E')) {</span>
+<span class="nc" id="L297">                return Optional.of(&quot;OE&quot;);</span>
+            }
+<span class="nc bnc" id="L299" title="All 4 branches missed.">            if ((c[pos] == 'a') &amp;&amp; (c[pos + 1] == 'e')) {</span>
+<span class="nc" id="L300">                return Optional.of(&quot;ae&quot;);</span>
+            }
+<span class="nc bnc" id="L302" title="All 4 branches missed.">            if ((c[pos] == 'A') &amp;&amp; (c[pos + 1] == 'E')) {</span>
+<span class="nc" id="L303">                return Optional.of(&quot;AE&quot;);</span>
+            }
+<span class="nc bnc" id="L305" title="All 4 branches missed.">            if ((c[pos] == 's') &amp;&amp; (c[pos + 1] == 's')) {</span>
+<span class="nc" id="L306">                return Optional.of(&quot;ss&quot;);</span>
+            }
+<span class="nc bnc" id="L308" title="All 4 branches missed.">            if ((c[pos] == 'A') &amp;&amp; (c[pos + 1] == 'A')) {</span>
+<span class="nc" id="L309">                return Optional.of(&quot;AA&quot;);</span>
+            }
+<span class="nc bnc" id="L311" title="All 4 branches missed.">            if ((c[pos] == 'a') &amp;&amp; (c[pos + 1] == 'a')) {</span>
+<span class="nc" id="L312">                return Optional.of(&quot;aa&quot;);</span>
+            }
+        }
+<span class="nc bnc" id="L315" title="All 2 branches missed.">        if (&quot;ijoOlL&quot;.indexOf(c[pos]) &gt;= 0) {</span>
+<span class="nc" id="L316">            return Optional.of(String.valueOf(c[pos]));</span>
+        }
+<span class="nc" id="L318">        return Optional.empty();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

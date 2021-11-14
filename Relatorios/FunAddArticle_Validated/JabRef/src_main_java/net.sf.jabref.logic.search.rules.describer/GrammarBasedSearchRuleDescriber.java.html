@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GrammarBasedSearchRuleDescriber.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.search.rules.describer</a> &gt; <span class="el_source">GrammarBasedSearchRuleDescriber.java</span></div><h1>GrammarBasedSearchRuleDescriber.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.search.rules.describer;
+
+import java.util.Objects;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.search.rules.GrammarBasedSearchRule;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.search.SearchBaseVisitor;
+import net.sf.jabref.search.SearchParser;
+
+import org.antlr.v4.runtime.tree.ParseTree;
+
+public class GrammarBasedSearchRuleDescriber implements SearchDescriber {
+
+    private final boolean caseSensitive;
+    private final boolean regExp;
+    private final ParseTree parseTree;
+
+<span class="nc" id="L35">    public GrammarBasedSearchRuleDescriber(boolean caseSensitive, boolean regExp, ParseTree parseTree) {</span>
+<span class="nc" id="L36">        this.caseSensitive = caseSensitive;</span>
+<span class="nc" id="L37">        this.regExp = regExp;</span>
+<span class="nc" id="L38">        this.parseTree = Objects.requireNonNull(parseTree);</span>
+<span class="nc" id="L39">    }</span>
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L43">        StringBuilder stringBuilder = new StringBuilder();</span>
+        // describe advanced search expression
+<span class="nc" id="L45">        stringBuilder.append(Localization.lang(&quot;This search contains entries in which&quot;)).append(' ')</span>
+<span class="nc" id="L46">                .append(new SearchBaseVisitor&lt;String&gt;() {</span>
+
+            @Override
+            public String visitStart(SearchParser.StartContext context) {
+<span class="nc" id="L50">                return visit(context.expression());</span>
+            }
+
+            @Override
+            public String visitUnaryExpression(SearchParser.UnaryExpressionContext context) {
+<span class="nc" id="L55">                return String.format(&quot;%s %s&quot;, Localization.lang(&quot;not&quot;), visit(context.expression()));</span>
+            }
+
+            @Override
+            public String visitParenExpression(SearchParser.ParenExpressionContext context) {
+<span class="nc" id="L60">                return String.format(&quot;%s&quot;, context.expression());</span>
+            }
+
+            @Override
+            public String visitBinaryExpression(SearchParser.BinaryExpressionContext context) {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">                if (&quot;AND&quot;.equalsIgnoreCase(context.operator.getText())) {</span>
+<span class="nc" id="L66">                    return String.format(&quot;(%s %s %s)&quot;, visit(context.left), Localization.lang(&quot;and&quot;), visit(context.right));</span>
+                } else {
+<span class="nc" id="L68">                    return String.format(&quot;(%s %s %s)&quot;, visit(context.left), Localization.lang(&quot;or&quot;), visit(context.right));</span>
+                }
+            }
+
+            @Override
+            public String visitComparison(SearchParser.ComparisonContext context) {
+
+<span class="nc" id="L75">                final String field = StringUtil.unquote(context.left.getText(), '&quot;');</span>
+<span class="nc" id="L76">                final String value = StringUtil.unquote(context.right.getText(), '&quot;');</span>
+<span class="nc" id="L77">                final GrammarBasedSearchRule.ComparisonOperator operator = GrammarBasedSearchRule.ComparisonOperator.build(context.operator.getText());</span>
+
+<span class="nc bnc" id="L79" title="All 2 branches missed.">                final boolean regExpFieldSpec = !Pattern.matches(&quot;\\w+&quot;, field);</span>
+<span class="nc" id="L80">                final String termQuoted = StringUtil.quoteForHTML(value);</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">                final String fieldSpecQuoted = regExpFieldSpec ? Localization.lang(</span>
+<span class="nc" id="L82">                        &quot;any field that matches the regular expression &lt;b&gt;%0&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L83">                        StringUtil.quoteForHTML(field)) : Localization.lang(&quot;the field &lt;b&gt;%0&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L84">                        StringUtil.quoteForHTML(field));</span>
+
+<span class="nc bnc" id="L86" title="All 2 branches missed.">                if (operator == GrammarBasedSearchRule.ComparisonOperator.CONTAINS) {</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">                    if (regExp) {</span>
+<span class="nc" id="L88">                        return Localization.lang(&quot;%0 contains the regular expression &lt;b&gt;%1&lt;/b&gt;&quot;, fieldSpecQuoted,</span>
+<span class="nc" id="L89">                                termQuoted);</span>
+                    }
+<span class="nc" id="L91">                    return Localization.lang(&quot;%0 contains the term &lt;b&gt;%1&lt;/b&gt;&quot;, fieldSpecQuoted, termQuoted);</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">                } else if (operator == GrammarBasedSearchRule.ComparisonOperator.EXACT) {</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">                    if (regExp) {</span>
+<span class="nc" id="L94">                        return Localization.lang(&quot;%0 matches the regular expression &lt;b&gt;%1&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L95">                                fieldSpecQuoted, termQuoted);</span>
+                    }
+<span class="nc" id="L97">                    return Localization.lang(&quot;%0 matches the term &lt;b&gt;%1&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L98">                            fieldSpecQuoted,</span>
+<span class="nc" id="L99">                            termQuoted);</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                } else if (operator == GrammarBasedSearchRule.ComparisonOperator.DOES_NOT_CONTAIN) {</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                    if (regExp) {</span>
+<span class="nc" id="L102">                        return Localization.lang(&quot;%0 doesn't contain the regular expression &lt;b&gt;%1&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L103">                                fieldSpecQuoted, termQuoted);</span>
+                    }
+<span class="nc" id="L105">                    return Localization.lang(&quot;%0 doesn't contain the term &lt;b&gt;%1&lt;/b&gt;&quot;, fieldSpecQuoted,</span>
+<span class="nc" id="L106">                            termQuoted);</span>
+                } else {
+<span class="nc" id="L108">                    throw new IllegalStateException(&quot;CANNOT HAPPEN!&quot;);</span>
+                }
+            }
+
+<span class="nc" id="L112">        }.visit(parseTree));</span>
+<span class="nc" id="L113">        stringBuilder.append(&quot;. &quot;);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        stringBuilder.append(caseSensitive ? Localization</span>
+<span class="nc" id="L115">                .lang(&quot;The search is case sensitive.&quot;) :</span>
+<span class="nc" id="L116">            Localization.lang(&quot;The search is case insensitive.&quot;));</span>
+<span class="nc" id="L117">        return stringBuilder.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

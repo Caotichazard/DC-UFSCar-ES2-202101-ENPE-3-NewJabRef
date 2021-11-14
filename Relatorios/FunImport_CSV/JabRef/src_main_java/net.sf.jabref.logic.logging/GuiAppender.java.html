@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GuiAppender.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.logging</a> &gt; <span class="el_source">GuiAppender.java</span></div><h1>GuiAppender.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.logging;
+
+import java.io.Serializable;
+
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginElement;
+import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+import org.apache.logging.log4j.core.layout.PatternLayout;
+
+@Plugin(name = &quot;GuiAppender&quot;, category = &quot;Core&quot;, elementType = &quot;appender&quot;, printObject = true)
+public class GuiAppender extends AbstractAppender {
+
+<span class="fc" id="L18">    public static final Cache CACHE = new Cache();</span>
+
+    protected GuiAppender(String name, Filter filter, Layout&lt;? extends Serializable&gt; layout) {
+<span class="nc" id="L21">        super(name, filter, layout);</span>
+<span class="nc" id="L22">    }</span>
+
+    @PluginFactory
+    public static GuiAppender createAppender(@PluginAttribute(&quot;name&quot;) String name,
+            @PluginElement(&quot;Layout&quot;) Layout&lt;?&gt; layout,
+            @PluginElement(&quot;Filters&quot;) Filter filter) {
+
+<span class="nc bnc" id="L29" title="All 2 branches missed.">        if (name == null) {</span>
+<span class="nc" id="L30">            LOGGER.error(&quot;No name provided for GuiAppender&quot;);</span>
+<span class="nc" id="L31">            return null;</span>
+        }
+
+<span class="nc bnc" id="L34" title="All 2 branches missed.">        if (layout == null) {</span>
+<span class="nc" id="L35">            layout = PatternLayout.createDefaultLayout();</span>
+        }
+<span class="nc" id="L37">        return new GuiAppender(name, filter, layout);</span>
+    }
+
+
+    @Override
+    public void append(LogEvent event) {
+<span class="nc" id="L43">        CACHE.add(new String(this.getLayout().toByteArray(event)));</span>
+<span class="nc" id="L44">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

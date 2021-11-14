@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CreateDocBookAuthors.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.layout.format</a> &gt; <span class="el_source">CreateDocBookAuthors.java</span></div><h1>CreateDocBookAuthors.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+///////////////////////////////////////////////////////////////////////////////
+//  Filename: $RCSfile$
+//  Purpose:  Atom representation.
+//  Language: Java
+//  Compiler: JDK 1.4
+//  Authors:  Joerg K. Wegner
+//  Version:  $Revision$
+//            $Date$
+//            $Author$
+//
+//  Copyright (c) Dept. Computer Architecture, University of Tuebingen, Germany
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation version 2 of the License.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+///////////////////////////////////////////////////////////////////////////////
+package net.sf.jabref.logic.layout.format;
+
+import net.sf.jabref.logic.layout.LayoutFormatter;
+import net.sf.jabref.model.entry.Author;
+import net.sf.jabref.model.entry.AuthorList;
+
+/**
+ * Create DocBook authors formatter.
+ */
+<span class="nc" id="L46">public class CreateDocBookAuthors implements LayoutFormatter {</span>
+
+<span class="nc" id="L48">    private static final XMLChars XML_CHARS = new XMLChars();</span>
+
+
+    @Override
+    public String format(String fieldText) {
+
+<span class="nc" id="L54">        StringBuilder sb = new StringBuilder(100);</span>
+
+<span class="nc" id="L56">        AuthorList al = AuthorList.parse(fieldText);</span>
+
+<span class="nc" id="L58">        addBody(sb, al, &quot;author&quot;);</span>
+<span class="nc" id="L59">        return sb.toString();</span>
+
+    }
+
+    public void addBody(StringBuilder sb, AuthorList al, String tagName) {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        for (int i = 0; i &lt; al.getNumberOfAuthors(); i++) {</span>
+<span class="nc" id="L65">            sb.append('&lt;').append(tagName).append('&gt;');</span>
+<span class="nc" id="L66">            Author a = al.getAuthor(i);</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">            if ((a.getFirst() != null) &amp;&amp; !a.getFirst().isEmpty()) {</span>
+<span class="nc" id="L68">                sb.append(&quot;&lt;firstname&gt;&quot;).append(CreateDocBookAuthors.XML_CHARS.format(a.getFirst()))</span>
+<span class="nc" id="L69">                        .append(&quot;&lt;/firstname&gt;&quot;);</span>
+            }
+<span class="nc bnc" id="L71" title="All 4 branches missed.">            if ((a.getVon() != null) &amp;&amp; !a.getVon().isEmpty()) {</span>
+<span class="nc" id="L72">                sb.append(&quot;&lt;othername&gt;&quot;).append(CreateDocBookAuthors.XML_CHARS.format(a.getVon()))</span>
+<span class="nc" id="L73">                        .append(&quot;&lt;/othername&gt;&quot;);</span>
+            }
+<span class="nc bnc" id="L75" title="All 4 branches missed.">            if ((a.getLast() != null) &amp;&amp; !a.getLast().isEmpty()) {</span>
+<span class="nc" id="L76">                sb.append(&quot;&lt;surname&gt;&quot;).append(CreateDocBookAuthors.XML_CHARS.format(a.getLast()));</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">                if ((a.getJr() != null) &amp;&amp; !a.getJr().isEmpty()) {</span>
+<span class="nc" id="L78">                    sb.append(' ').append(CreateDocBookAuthors.XML_CHARS.format(a.getJr()));</span>
+                }
+<span class="nc" id="L80">                sb.append(&quot;&lt;/surname&gt;&quot;);</span>
+            }
+
+<span class="nc bnc" id="L83" title="All 2 branches missed.">            if (i &lt; (al.getNumberOfAuthors() - 1)) {</span>
+<span class="nc" id="L84">                sb.append(&quot;&lt;/&quot;).append(tagName).append(&quot;&gt;\n       &quot;);</span>
+<span class="nc" id="L85">            } else {</span>
+<span class="nc" id="L86">                sb.append(&quot;&lt;/&quot;).append(tagName).append('&gt;');</span>
+            }
+        }
+<span class="nc" id="L89">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

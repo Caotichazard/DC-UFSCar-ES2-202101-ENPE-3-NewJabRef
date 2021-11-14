@@ -1,0 +1,550 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MedlineHandler.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">MedlineHandler.java</span></div><h1>MedlineHandler.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer.fileformat;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+
+import net.sf.jabref.logic.formatter.bibtexfields.UnicodeToLatexFormatter;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.IdGenerator;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.helpers.DefaultHandler;
+
+<span class="nc" id="L32">class MedlineHandler extends DefaultHandler {</span>
+
+<span class="nc" id="L34">    private static final UnicodeToLatexFormatter UNICODE_CONVERTER = new UnicodeToLatexFormatter();</span>
+<span class="nc" id="L35">    private final List&lt;BibEntry&gt; bibitems = new ArrayList&lt;&gt;();</span>
+    private boolean inTitle;
+    private boolean inYear;
+    private boolean inJournal;
+    private boolean inMonth;
+    private boolean inVolume;
+    private boolean inAuthorList;
+    private boolean inAuthor;
+    private boolean inLastName;
+    private boolean inSuffix;
+    private boolean inInitials;
+    private boolean inMedlinePgn;
+    private boolean inIssue;
+    private boolean inPubDate;
+    private boolean inUrl;
+    private boolean inForename;
+    private boolean inAbstractText;
+    private boolean inMedlineDate;
+    private boolean inPubMedID;
+    private boolean inDescriptorName;
+    private boolean inDoi;
+    private boolean inPii;
+    private boolean inPmc;
+    private boolean inAffiliation;
+    private boolean inMeshHeader;
+    private boolean inQualifierName;
+    private boolean inLanguage;
+    private boolean inPst;
+<span class="nc" id="L63">    private String title = &quot;&quot;;</span>
+<span class="nc" id="L64">    private String journal = &quot;&quot;;</span>
+<span class="nc" id="L65">    private String author = &quot;&quot;;</span>
+<span class="nc" id="L66">    private String lastName = &quot;&quot;;</span>
+<span class="nc" id="L67">    private String suffix = &quot;&quot;;</span>
+<span class="nc" id="L68">    private String year = &quot;&quot;;</span>
+<span class="nc" id="L69">    private String forename = &quot;&quot;;</span>
+<span class="nc" id="L70">    private String abstractText = &quot;&quot;;</span>
+<span class="nc" id="L71">    private String affiliation = &quot;&quot;;</span>
+<span class="nc" id="L72">    private String month = &quot;&quot;;</span>
+<span class="nc" id="L73">    private String volume = &quot;&quot;;</span>
+<span class="nc" id="L74">    private String lastname = &quot;&quot;;</span>
+<span class="nc" id="L75">    private String initials = &quot;&quot;;</span>
+<span class="nc" id="L76">    private String number = &quot;&quot;;</span>
+<span class="nc" id="L77">    private String page = &quot;&quot;;</span>
+<span class="nc" id="L78">    private String medlineDate = &quot;&quot;;</span>
+<span class="nc" id="L79">    private final String series = &quot;&quot;;</span>
+<span class="nc" id="L80">    private final String editor = &quot;&quot;;</span>
+<span class="nc" id="L81">    private final String booktitle = &quot;&quot;;</span>
+<span class="nc" id="L82">    private final String type = &quot;article&quot;;</span>
+<span class="nc" id="L83">    private final String key = &quot;&quot;;</span>
+<span class="nc" id="L84">    private final String address = &quot;&quot;;</span>
+<span class="nc" id="L85">    private String pubmedid = &quot;&quot;;</span>
+<span class="nc" id="L86">    private String doi = &quot;&quot;;</span>
+<span class="nc" id="L87">    private String pii = &quot;&quot;;</span>
+<span class="nc" id="L88">    private String pmc = &quot;&quot;;</span>
+<span class="nc" id="L89">    private String majorTopic = &quot;&quot;;</span>
+<span class="nc" id="L90">    private String minorTopics = &quot;&quot;;</span>
+<span class="nc" id="L91">    private String language = &quot;&quot;;</span>
+<span class="nc" id="L92">    private String pst = &quot;&quot;;</span>
+<span class="nc" id="L93">    private final List&lt;String&gt; authors = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L94">    private final Set&lt;String&gt; descriptors = new TreeSet&lt;&gt;(); // To gather keywords</span>
+
+<span class="nc" id="L96">    private static final String KEYWORD_SEPARATOR = &quot;; &quot;;</span>
+
+
+    public List&lt;BibEntry&gt; getItems() {
+<span class="nc" id="L100">        return bibitems;</span>
+    }
+
+    @Override
+    public void startElement(String uri, String localName, String qName, Attributes atts) {
+        // Get the number of attribute
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (&quot;PubmedArticle&quot;.equals(localName)) {</span>
+            // Do nothing
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        } else if (&quot;ArticleTitle&quot;.equals(localName)) {</span>
+<span class="nc" id="L109">            inTitle = true;</span>
+<span class="nc" id="L110">            title = &quot;&quot;;</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        } else if (&quot;PubDate&quot;.equals(localName)) {</span>
+<span class="nc" id="L112">            inPubDate = true;</span>
+<span class="nc bnc" id="L113" title="All 4 branches missed.">        } else if (&quot;Year&quot;.equals(localName) &amp;&amp; inPubDate) {</span>
+<span class="nc" id="L114">            inYear = true;</span>
+<span class="nc bnc" id="L115" title="All 4 branches missed.">        } else if (&quot;MedlineDate&quot;.equals(localName) &amp;&amp; inPubDate) {</span>
+<span class="nc" id="L116">            inMedlineDate = true;</span>
+<span class="nc" id="L117">        } // medline date does not have 4 digit dates instead it has multiyear etc</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        else if (&quot;MedlineTA&quot;.equals(localName)) {</span>
+<span class="nc" id="L119">            inJournal = true;</span>
+<span class="nc" id="L120">            journal = &quot;&quot;;</span>
+<span class="nc" id="L121">        } //journal name</span>
+<span class="nc bnc" id="L122" title="All 4 branches missed.">        else if (&quot;Month&quot;.equals(localName) &amp;&amp; inPubDate) {</span>
+<span class="nc" id="L123">            inMonth = true;</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        } else if (&quot;Volume&quot;.equals(localName)) {</span>
+<span class="nc" id="L125">            inVolume = true;</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        } else if (&quot;Language&quot;.equals(localName)) {</span>
+<span class="nc" id="L127">            inLanguage = true;</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        } else if (&quot;PublicationStatus&quot;.equals(localName)) {</span>
+<span class="nc" id="L129">            inPst = true;</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        } else if (&quot;AuthorList&quot;.equals(localName)) {</span>
+<span class="nc" id="L131">            inAuthorList = true;</span>
+<span class="nc" id="L132">            authors.clear();</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        } else if (&quot;MeshHeading&quot;.equals(localName)) {</span>
+<span class="nc" id="L134">            inMeshHeader = true;</span>
+<span class="nc" id="L135">            majorTopic = &quot;&quot;;</span>
+<span class="nc" id="L136">            minorTopics = &quot;&quot;;</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        } else if (&quot;DescriptorName&quot;.equals(localName)) {</span>
+<span class="nc" id="L138">            inDescriptorName = true;</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        } else if (&quot;QualifierName&quot;.equals(localName)) {</span>
+<span class="nc" id="L140">            inQualifierName = true;</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        } else if (&quot;Author&quot;.equals(localName)) {</span>
+<span class="nc" id="L142">            inAuthor = true;</span>
+<span class="nc" id="L143">            author = &quot;&quot;;</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        } else if (&quot;CollectiveName&quot;.equals(localName)) {</span>
+<span class="nc" id="L145">            inForename = true;</span>
+<span class="nc" id="L146">            forename = &quot;&quot;;</span>
+<span class="nc" id="L147">        } // Morten A. 20040513.</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        else if (&quot;PMID&quot;.equals(localName)) {</span>
+            // Set PMID only once, because there can be &lt;CommentIn&gt; tags later on that
+            // contain IDs of different articles.
+<span class="nc bnc" id="L151" title="All 2 branches missed.">            if (pubmedid.isEmpty()) {</span>
+<span class="nc" id="L152">                inPubMedID = true;</span>
+<span class="nc" id="L153">                pubmedid = &quot;&quot;;</span>
+            }
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        } else if (&quot;LastName&quot;.equals(localName)) {</span>
+<span class="nc" id="L156">            inLastName = true;</span>
+<span class="nc" id="L157">            lastName = &quot;&quot;;</span>
+<span class="nc bnc" id="L158" title="All 4 branches missed.">        } else if (&quot;ForeName&quot;.equals(localName) || &quot;FirstName&quot;.equals(localName)) {</span>
+<span class="nc" id="L159">            inForename = true;</span>
+<span class="nc" id="L160">            forename = &quot;&quot;;</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        } else if (&quot;Suffix&quot;.equals(localName)) {</span>
+<span class="nc" id="L162">            inSuffix = true;</span>
+<span class="nc" id="L163">            suffix = &quot;&quot;;</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        } else if (&quot;Issue&quot;.equals(localName)) {</span>
+<span class="nc" id="L165">            inIssue = true;</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        } else if (&quot;MedlinePgn&quot;.equals(localName)) {</span>
+<span class="nc" id="L167">            inMedlinePgn = true;</span>
+<span class="nc" id="L168">        } //pagenumber</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        else if (&quot;URL&quot;.equals(localName)) {</span>
+<span class="nc" id="L170">            inUrl = true;</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        } else if (&quot;Initials&quot;.equals(localName)) {</span>
+<span class="nc" id="L172">            inInitials = true;</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        } else if (&quot;AbstractText&quot;.equals(localName)) {</span>
+<span class="nc" id="L174">            inAbstractText = true;</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        } else if (&quot;ArticleId&quot;.equals(localName)) {</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">            for (int i = 0; i &lt; atts.getLength(); i++) {</span>
+<span class="nc" id="L177">                String value = atts.getValue(i);</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                if (&quot;doi&quot;.equals(value)) {</span>
+<span class="nc" id="L179">                    inDoi = true;</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">                } else if (&quot;pii&quot;.equals(value)) {</span>
+<span class="nc" id="L181">                    inPii = true;</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">                } else if (&quot;pmc&quot;.equals(value)) {</span>
+<span class="nc" id="L183">                    inPmc = true;</span>
+                }
+
+            }
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        } else if (&quot;Affiliation&quot;.equals(localName)) {</span>
+<span class="nc" id="L188">            inAffiliation = true;</span>
+        }
+
+<span class="nc" id="L191">    }</span>
+
+    private String join(Object[] sa, String delim) {
+<span class="nc" id="L194">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L195">        sb.append(sa[0]);</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">        for (int i = 1; i &lt; sa.length; i++)</span>
+        {
+<span class="nc" id="L198">            sb.append(delim);</span>
+<span class="nc" id="L199">            sb.append(sa[i]);</span>
+        }
+<span class="nc" id="L201">        return sb.toString();</span>
+    }
+
+    @Override
+    public void endElement(String uri, String localName, String qName) {
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        if (&quot;PubmedArticle&quot;.equals(localName)) {</span>
+            //bibitems.add( new Bibitem(null, makeBibtexString(), Globals.nextKey(),&quot;-1&quot; )	 );
+            // check if year =&quot;&quot; then give medline date instead
+<span class="nc bnc" id="L209" title="All 4 branches missed.">            if (&quot;&quot;.equals(year) &amp;&amp; !&quot;&quot;.equals(medlineDate)) {</span>
+                    // multi-year date format
+                    //System.out.println(MedlineDate);
+<span class="nc" id="L212">                    year = medlineDate.substring(0, 4);</span>
+                    //Matcher m = Pattern.compile(&quot;\\b[0-9]{4}\\b&quot;).matcher(MedlineDate);
+                    //if(m.matches())
+                    //year = m.group();
+            }
+
+            // Build a string from the collected keywords:
+<span class="nc" id="L219">            StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">            for (Iterator&lt;String&gt; iterator = descriptors.iterator(); iterator.hasNext();) {</span>
+<span class="nc" id="L221">                String s = iterator.next();</span>
+<span class="nc" id="L222">                sb.append(s);</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">                if (iterator.hasNext()) {</span>
+<span class="nc" id="L224">                    sb.append(MedlineHandler.KEYWORD_SEPARATOR);</span>
+                }
+            }
+<span class="nc" id="L227">            String keywords = sb.toString();</span>
+
+<span class="nc" id="L229">            BibEntry b = new BibEntry(IdGenerator.next(), &quot;article&quot;); // id assumes an existing database so don't create one here</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">            if (!&quot;&quot;.equals(author)) {</span>
+<span class="nc" id="L231">                b.setField(&quot;author&quot;,</span>
+<span class="nc" id="L232">                        MedlineHandler.UNICODE_CONVERTER.format(StringUtil.expandAuthorInitials(author)));</span>
+                // b.setField(&quot;author&quot;,Util.replaceSpecialCharacters(ImportFormatReader.expandAuthorInitials(author)));
+<span class="nc" id="L234">                author = &quot;&quot;;</span>
+            }
+<span class="nc bnc" id="L236" title="All 2 branches missed.">            if (!&quot;&quot;.equals(title)) {</span>
+<span class="nc" id="L237">                b.setField(&quot;title&quot;, MedlineHandler.UNICODE_CONVERTER.format(title));</span>
+            }
+            // if (!title.equals(&quot;&quot;)) b.setField(&quot;title&quot;,Util.replaceSpecialCharacters(title));
+<span class="nc bnc" id="L240" title="All 2 branches missed.">            if (!&quot;&quot;.equals(journal)) {</span>
+<span class="nc" id="L241">                b.setField(&quot;journal&quot;, journal);</span>
+            }
+<span class="nc bnc" id="L243" title="All 2 branches missed.">            if (!&quot;&quot;.equals(year)) {</span>
+<span class="nc" id="L244">                b.setField(&quot;year&quot;, year);</span>
+            }
+            // PENDING jeffrey.kuhn@yale.edu 2005-05-27 : added call to fixPageRange
+<span class="nc bnc" id="L247" title="All 2 branches missed.">            if (!&quot;&quot;.equals(page)) {</span>
+<span class="nc" id="L248">                b.setField(&quot;pages&quot;, fixPageRange(page));</span>
+            }
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            if (!&quot;&quot;.equals(volume)) {</span>
+<span class="nc" id="L251">                b.setField(&quot;volume&quot;, volume);</span>
+            }
+<span class="nc bnc" id="L253" title="All 2 branches missed.">            if (!&quot;&quot;.equals(language)) {</span>
+<span class="nc" id="L254">                b.setField(&quot;language&quot;, language);</span>
+            }
+<span class="nc bnc" id="L256" title="All 2 branches missed.">            if (!&quot;&quot;.equals(pst)) {</span>
+<span class="nc" id="L257">                b.setField(&quot;medline-pst&quot;, pst);</span>
+            }
+<span class="nc bnc" id="L259" title="All 2 branches missed.">            if (!&quot;&quot;.equals(abstractText)) {</span>
+<span class="nc" id="L260">                b.setField(&quot;abstract&quot;, abstractText.replace(&quot;%&quot;, &quot;\\%&quot;));</span>
+            }
+<span class="nc bnc" id="L262" title="All 2 branches missed.">            if (!&quot;&quot;.equals(keywords)) {</span>
+<span class="nc" id="L263">                b.setField(&quot;keywords&quot;, keywords);</span>
+            }
+<span class="nc bnc" id="L265" title="All 2 branches missed.">            if (!&quot;&quot;.equals(month)) {</span>
+<span class="nc" id="L266">                b.setField(&quot;month&quot;, month);</span>
+            }
+            //if (!url.equals(&quot;&quot;)) b.setField(&quot;url&quot;,url);
+<span class="nc bnc" id="L269" title="All 2 branches missed.">            if (!&quot;&quot;.equals(number)) {</span>
+<span class="nc" id="L270">                b.setField(&quot;number&quot;, number);</span>
+            }
+
+<span class="nc bnc" id="L273" title="All 2 branches missed.">            if (!&quot;&quot;.equals(doi)) {</span>
+<span class="nc" id="L274">                b.setField(&quot;doi&quot;, doi);</span>
+<span class="nc" id="L275">                b.setField(&quot;url&quot;, &quot;http://dx.doi.org/&quot; + doi);</span>
+            }
+<span class="nc bnc" id="L277" title="All 2 branches missed.">            if (!&quot;&quot;.equals(pii)) {</span>
+<span class="nc" id="L278">                b.setField(&quot;pii&quot;, pii);</span>
+            }
+<span class="nc bnc" id="L280" title="All 2 branches missed.">            if (!&quot;&quot;.equals(pmc)) {</span>
+<span class="nc" id="L281">                b.setField(&quot;pmc&quot;, pmc);</span>
+            }
+<span class="nc bnc" id="L283" title="All 2 branches missed.">            if (!&quot;&quot;.equals(affiliation)) {</span>
+<span class="nc" id="L284">                b.setField(&quot;institution&quot;, affiliation.replace(&quot;#&quot;, &quot;\\#&quot;));</span>
+            }
+
+            // PENDING jeffrey.kuhn@yale.edu 2005-05-27 : added &quot;pmid&quot; bibtex field
+            // Older references do not have doi entries, but every
+            // medline entry has a unique pubmed ID (aka primary ID).
+            // Add a bibtex field for the pubmed ID for future use.
+<span class="nc bnc" id="L291" title="All 2 branches missed.">            if (!&quot;&quot;.equals(pubmedid)) {</span>
+<span class="nc" id="L292">                b.setField(&quot;pmid&quot;, pubmedid);</span>
+            }
+
+<span class="nc" id="L295">            bibitems.add(b);</span>
+
+<span class="nc" id="L297">            abstractText = &quot;&quot;;</span>
+<span class="nc" id="L298">            author = &quot;&quot;;</span>
+<span class="nc" id="L299">            title = &quot;&quot;;</span>
+<span class="nc" id="L300">            journal = &quot;&quot;;</span>
+<span class="nc" id="L301">            keywords = &quot;&quot;;</span>
+<span class="nc" id="L302">            doi = &quot;&quot;;</span>
+<span class="nc" id="L303">            pii = &quot;&quot;;</span>
+<span class="nc" id="L304">            pmc = &quot;&quot;;</span>
+<span class="nc" id="L305">            year = &quot;&quot;;</span>
+<span class="nc" id="L306">            forename = &quot;&quot;;</span>
+<span class="nc" id="L307">            lastName = &quot;&quot;;</span>
+<span class="nc" id="L308">            suffix = &quot;&quot;;</span>
+<span class="nc" id="L309">            abstractText = &quot;&quot;;</span>
+<span class="nc" id="L310">            affiliation = &quot;&quot;;</span>
+<span class="nc" id="L311">            pubmedid = &quot;&quot;;</span>
+<span class="nc" id="L312">            majorTopic = &quot;&quot;;</span>
+<span class="nc" id="L313">            minorTopics = &quot;&quot;;</span>
+<span class="nc" id="L314">            month = &quot;&quot;;</span>
+<span class="nc" id="L315">            volume = &quot;&quot;;</span>
+<span class="nc" id="L316">            language = &quot;&quot;;</span>
+<span class="nc" id="L317">            pst = &quot;&quot;;</span>
+<span class="nc" id="L318">            lastname = &quot;&quot;;</span>
+<span class="nc" id="L319">            suffix = &quot;&quot;;</span>
+<span class="nc" id="L320">            initials = &quot;&quot;;</span>
+<span class="nc" id="L321">            number = &quot;&quot;;</span>
+<span class="nc" id="L322">            page = &quot;&quot;;</span>
+<span class="nc" id="L323">            String medlineID = &quot;&quot;;</span>
+<span class="nc" id="L324">            String url = &quot;&quot;;</span>
+<span class="nc" id="L325">            medlineDate = &quot;&quot;;</span>
+<span class="nc" id="L326">            descriptors.clear();</span>
+<span class="nc" id="L327">        }</span>
+
+<span class="nc bnc" id="L329" title="All 2 branches missed.">        else if (&quot;ArticleTitle&quot;.equals(localName)) {</span>
+<span class="nc" id="L330">            inTitle = false;</span>
+<span class="nc" id="L331">        }</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">        else if (&quot;PubDate&quot;.equals(localName)) {</span>
+<span class="nc" id="L333">            inPubDate = false;</span>
+<span class="nc" id="L334">        }</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        else if (&quot;Year&quot;.equals(localName)) {</span>
+<span class="nc" id="L336">            inYear = false;</span>
+<span class="nc" id="L337">        }</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">        else if (&quot;PMID&quot;.equals(localName)) {</span>
+<span class="nc" id="L339">            inPubMedID = false;</span>
+<span class="nc" id="L340">        }</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        else if (&quot;MedlineDate&quot;.equals(localName)) {</span>
+<span class="nc" id="L342">            inMedlineDate = false;</span>
+<span class="nc" id="L343">        }</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">        else if (&quot;MedlineTA&quot;.equals(localName)) {</span>
+<span class="nc" id="L345">            inJournal = false;</span>
+<span class="nc" id="L346">        } //journal name</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">        else if (&quot;Month&quot;.equals(localName)) {</span>
+<span class="nc" id="L348">            inMonth = false;</span>
+<span class="nc" id="L349">        }</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">        else if (&quot;Volume&quot;.equals(localName)) {</span>
+<span class="nc" id="L351">            inVolume = false;</span>
+<span class="nc" id="L352">        }</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">        else if (&quot;Language&quot;.equals(localName)) {</span>
+<span class="nc" id="L354">            inLanguage = false;</span>
+<span class="nc" id="L355">        }</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">        else if (&quot;PublicationStatus&quot;.equals(localName)) {</span>
+<span class="nc" id="L357">            inPst = false;</span>
+<span class="nc" id="L358">        }</span>
+<span class="nc bnc" id="L359" title="All 2 branches missed.">        else if (&quot;AuthorList&quot;.equals(localName)) {</span>
+<span class="nc" id="L360">            author = join(authors.toArray(), &quot; and &quot;);</span>
+<span class="nc" id="L361">            inAuthorList = false;</span>
+<span class="nc" id="L362">        }</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">        else if (&quot;Author&quot;.equals(localName)) {</span>
+            // forename sometimes has initials with &quot; &quot; in middle: is pattern [A-Z] [A-Z]
+            // when above is the case replace it with initials
+<span class="nc bnc" id="L366" title="All 4 branches missed.">            if ((forename.length() == 3) &amp;&amp; (forename.charAt(1) == ' ')) {</span>
+<span class="nc" id="L367">                forename = initials;</span>
+            }
+
+            // Put together name with last name first, and enter suffix in between if present:
+<span class="nc bnc" id="L371" title="All 2 branches missed.">            if (lastname.indexOf(' ') &gt; 0) {</span>
+<span class="nc" id="L372">                author = &quot;{&quot; + lastname + &quot;}&quot;;</span>
+<span class="nc" id="L373">            } else {</span>
+<span class="nc" id="L374">                author = lastname;</span>
+            }
+
+<span class="nc bnc" id="L377" title="All 2 branches missed.">            if (!suffix.isEmpty()) {</span>
+<span class="nc" id="L378">                author = author + &quot;, &quot; + suffix;</span>
+            }
+<span class="nc bnc" id="L380" title="All 2 branches missed.">            if (!forename.isEmpty()) {</span>
+<span class="nc" id="L381">                author = author + &quot;, &quot; + forename;</span>
+            }
+
+            //author = initials + &quot; &quot; + lastname;
+<span class="nc" id="L385">            authors.add(author);</span>
+<span class="nc" id="L386">            inAuthor = false;</span>
+<span class="nc" id="L387">            forename = &quot;&quot;;</span>
+<span class="nc" id="L388">            initials = &quot;&quot;;</span>
+<span class="nc" id="L389">            lastname = &quot;&quot;;</span>
+<span class="nc" id="L390">            suffix = &quot;&quot;;</span>
+<span class="nc" id="L391">        }</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">        else if (&quot;DescriptorName&quot;.equals(localName)) {</span>
+<span class="nc" id="L393">            inDescriptorName = false;</span>
+<span class="nc bnc" id="L394" title="All 2 branches missed.">        } else if (&quot;QualifierName&quot;.equals(localName)) {</span>
+<span class="nc" id="L395">            inQualifierName = false;</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">        } else if (&quot;MeshHeading&quot;.equals(localName)) {</span>
+<span class="nc" id="L397">            inMeshHeader = false;</span>
+<span class="nc bnc" id="L398" title="All 2 branches missed.">            if (&quot;&quot;.equals(minorTopics)) {</span>
+<span class="nc" id="L399">                descriptors.add(majorTopic);</span>
+<span class="nc" id="L400">            } else {</span>
+<span class="nc" id="L401">                descriptors.add(majorTopic + &quot;, &quot; + minorTopics);</span>
+            }
+<span class="nc" id="L403">        }</span>
+<span class="nc bnc" id="L404" title="All 2 branches missed.">        else if (&quot;LastName&quot;.equals(localName)) {</span>
+<span class="nc" id="L405">            inLastName = false;</span>
+<span class="nc" id="L406">        }</span>
+<span class="nc bnc" id="L407" title="All 2 branches missed.">        else if (&quot;Suffix&quot;.equals(localName)) {</span>
+<span class="nc" id="L408">            inSuffix = false;</span>
+<span class="nc" id="L409">        }</span>
+<span class="nc bnc" id="L410" title="All 4 branches missed.">        else if (&quot;ForeName&quot;.equals(localName) || &quot;FirstName&quot;.equals(localName)) {</span>
+<span class="nc" id="L411">            inForename = false;</span>
+<span class="nc" id="L412">        }</span>
+<span class="nc bnc" id="L413" title="All 2 branches missed.">        else if (&quot;Issue&quot;.equals(localName)) {</span>
+<span class="nc" id="L414">            inIssue = false;</span>
+<span class="nc" id="L415">        }</span>
+<span class="nc bnc" id="L416" title="All 2 branches missed.">        else if (&quot;MedlinePgn&quot;.equals(localName)) {</span>
+<span class="nc" id="L417">            inMedlinePgn = false;</span>
+<span class="nc" id="L418">        }//pagenumber</span>
+<span class="nc bnc" id="L419" title="All 2 branches missed.">        else if (&quot;URL&quot;.equals(localName)) {</span>
+<span class="nc" id="L420">            inUrl = false;</span>
+<span class="nc" id="L421">        }</span>
+<span class="nc bnc" id="L422" title="All 2 branches missed.">        else if (&quot;Initials&quot;.equals(localName)) {</span>
+            //initials= '.' + initials + '.';
+<span class="nc" id="L424">            inInitials = false;</span>
+<span class="nc" id="L425">        }</span>
+<span class="nc bnc" id="L426" title="All 2 branches missed.">        else if (&quot;AbstractText&quot;.equals(localName)) {</span>
+<span class="nc" id="L427">            inAbstractText = false;</span>
+<span class="nc" id="L428">        }</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">        else if (&quot;Affiliation&quot;.equals(localName)) {</span>
+<span class="nc" id="L430">            inAffiliation = false;</span>
+<span class="nc" id="L431">        }</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">        else if (&quot;ArticleId&quot;.equals(localName)) {</span>
+<span class="nc bnc" id="L433" title="All 2 branches missed.">            if (inDoi) {</span>
+<span class="nc" id="L434">                inDoi = false;</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">            } else if (inPii) {</span>
+<span class="nc" id="L436">                inPii = false;</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">            } else if (inPmc) {</span>
+<span class="nc" id="L438">                inPmc = false;</span>
+            }
+        }
+<span class="nc" id="L441">    }</span>
+
+    @Override
+    public void characters(char[] data, int start, int length) {
+
+        // if stack is not ready, data is not content of recognized element
+<span class="nc" id="L447">        boolean inURL = false;</span>
+<span class="nc" id="L448">        boolean inMedlineID = false;</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">        if (inTitle) {</span>
+<span class="nc" id="L450">            title += new String(data, start, length);</span>
+<span class="nc" id="L451">        }</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">        else if (inYear) {</span>
+<span class="nc" id="L453">            year += new String(data, start, length);</span>
+<span class="nc" id="L454">        }</span>
+<span class="nc bnc" id="L455" title="All 2 branches missed.">        else if (inJournal) {</span>
+<span class="nc" id="L456">            journal += new String(data, start, length);</span>
+<span class="nc" id="L457">        }</span>
+<span class="nc bnc" id="L458" title="All 2 branches missed.">        else if (inMonth) {</span>
+<span class="nc" id="L459">            month += new String(data, start, length);</span>
+<span class="nc" id="L460">        }</span>
+<span class="nc bnc" id="L461" title="All 2 branches missed.">        else if (inVolume) {</span>
+<span class="nc" id="L462">            volume += new String(data, start, length);</span>
+<span class="nc" id="L463">        }</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">        else if (inLanguage) {</span>
+<span class="nc" id="L465">            language += new String(data, start, length).toLowerCase();</span>
+<span class="nc" id="L466">        }</span>
+<span class="nc bnc" id="L467" title="All 2 branches missed.">        else if (inPst) {</span>
+<span class="nc" id="L468">            pst += new String(data, start, length);</span>
+<span class="nc" id="L469">        }</span>
+<span class="nc bnc" id="L470" title="All 2 branches missed.">        else if (inLastName) {</span>
+<span class="nc" id="L471">            lastname += new String(data, start, length);</span>
+<span class="nc" id="L472">        }</span>
+<span class="nc bnc" id="L473" title="All 2 branches missed.">        else if (inSuffix) {</span>
+<span class="nc" id="L474">            suffix += new String(data, start, length);</span>
+<span class="nc" id="L475">        }</span>
+<span class="nc bnc" id="L476" title="All 2 branches missed.">        else if (inInitials) {</span>
+<span class="nc" id="L477">            initials += new String(data, start, length);</span>
+<span class="nc" id="L478">        }</span>
+<span class="nc bnc" id="L479" title="All 2 branches missed.">        else if (inIssue) {</span>
+<span class="nc" id="L480">            number += new String(data, start, length);</span>
+<span class="nc" id="L481">        }</span>
+<span class="nc bnc" id="L482" title="All 2 branches missed.">        else if (inMedlinePgn) {</span>
+<span class="nc" id="L483">            page += new String(data, start, length);</span>
+<span class="nc" id="L484">        }</span>
+<span class="nc bnc" id="L485" title="All 2 branches missed.">        else if (inMedlineID) {</span>
+<span class="nc" id="L486">            String medlineID = new String(data, start, length);</span>
+<span class="nc" id="L487">        }</span>
+<span class="nc bnc" id="L488" title="All 2 branches missed.">        else if (inURL) {</span>
+<span class="nc" id="L489">            String url = new String(data, start, length);</span>
+<span class="nc" id="L490">        }</span>
+<span class="nc bnc" id="L491" title="All 2 branches missed.">        else if (inPubMedID) {</span>
+<span class="nc" id="L492">            pubmedid = new String(data, start, length);</span>
+<span class="nc" id="L493">        }</span>
+<span class="nc bnc" id="L494" title="All 2 branches missed.">        else if (inQualifierName) {</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">            if (!&quot;&quot;.equals(minorTopics)) {</span>
+<span class="nc" id="L496">                minorTopics = minorTopics + &quot;/&quot;;</span>
+            }
+<span class="nc" id="L498">            minorTopics = minorTopics + new String(data, start, length);</span>
+<span class="nc" id="L499">        }</span>
+<span class="nc bnc" id="L500" title="All 2 branches missed.">        else if (inDescriptorName) {</span>
+<span class="nc" id="L501">            majorTopic = new String(data, start, length);</span>
+<span class="nc" id="L502">        }</span>
+
+        //keywords += new String(data,start,length) + &quot;, &quot;;
+<span class="nc bnc" id="L505" title="All 2 branches missed.">        else if (inForename) {</span>
+<span class="nc" id="L506">            forename += new String(data, start, length);</span>
+            //System.out.println(&quot;IN FORENAME: &quot; + forename);
+<span class="nc" id="L508">        }</span>
+<span class="nc bnc" id="L509" title="All 2 branches missed.">        else if (inAbstractText) {</span>
+<span class="nc" id="L510">            abstractText += new String(data, start, length);</span>
+<span class="nc" id="L511">        }</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">        else if (inMedlineDate) {</span>
+<span class="nc" id="L513">            medlineDate += new String(data, start, length);</span>
+<span class="nc" id="L514">        }</span>
+<span class="nc bnc" id="L515" title="All 2 branches missed.">        else if (inDoi) {</span>
+<span class="nc" id="L516">            doi = new String(data, start, length);</span>
+<span class="nc" id="L517">        }</span>
+<span class="nc bnc" id="L518" title="All 2 branches missed.">        else if (inPii) {</span>
+<span class="nc" id="L519">            pii = new String(data, start, length);</span>
+<span class="nc" id="L520">        }</span>
+<span class="nc bnc" id="L521" title="All 2 branches missed.">        else if (inPmc) {</span>
+<span class="nc" id="L522">            pmc = new String(data, start, length);</span>
+<span class="nc" id="L523">        }</span>
+<span class="nc bnc" id="L524" title="All 2 branches missed.">        else if (inAffiliation) {</span>
+<span class="nc" id="L525">            affiliation = new String(data, start, length);</span>
+        }
+<span class="nc" id="L527">    }</span>
+
+    // PENDING jeffrey.kuhn@yale.edu 2005-05-27 : added fixPageRange method
+    //   Convert medline page ranges from short form to full form.
+    //   Medline reports page ranges in a shorthand format.
+    //   The last page is reported using only the digits which
+    //   differ from the first page.
+    //      i.e. 12345-51 refers to the actual range 12345-12351
+    private String fixPageRange(String pageRange) {
+<span class="nc" id="L536">        int minusPos = pageRange.indexOf('-');</span>
+<span class="nc bnc" id="L537" title="All 2 branches missed.">        if (minusPos &lt; 0) {</span>
+<span class="nc" id="L538">            return pageRange;</span>
+        }
+<span class="nc" id="L540">        String first = pageRange.substring(0, minusPos).trim();</span>
+<span class="nc" id="L541">        String last = pageRange.substring(minusPos + 1).trim();</span>
+<span class="nc" id="L542">        int llast = last.length();</span>
+<span class="nc" id="L543">        int lfirst = first.length();</span>
+<span class="nc bnc" id="L544" title="All 2 branches missed.">        if (llast &lt; lfirst) {</span>
+<span class="nc" id="L545">            last = first.substring(0, lfirst - llast) + last;</span>
+        }
+<span class="nc" id="L547">        return first + &quot;--&quot; + last;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

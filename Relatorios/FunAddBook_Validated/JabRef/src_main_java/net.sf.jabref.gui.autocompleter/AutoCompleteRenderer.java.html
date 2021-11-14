@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AutoCompleteRenderer.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.autocompleter</a> &gt; <span class="el_source">AutoCompleteRenderer.java</span></div><h1>AutoCompleteRenderer.java</h1><pre class="source lang-java linenums">package net.sf.jabref.gui.autocompleter;
+
+import java.awt.Component;
+import java.awt.event.ActionListener;
+import java.util.List;
+
+/**
+ * Renders the list of possible autocomplete items. Also takes care of the currently selected item.
+ *
+ * @param &lt;E&gt; the type of the items
+ */
+<span class="fc" id="L12">public abstract class AutoCompleteRenderer&lt;E&gt; {</span>
+
+    /**
+     * Refreshes the list of possible autocomplete items. Clears the currently selected item.
+     *
+     * @param items list of possible autocomplete items
+     */
+    public abstract void update(List&lt;E&gt; items);
+
+    /**
+     * Creates the control which will be shown in the autocomplete popup.
+     *
+     * @param acceptAction the action to be performed if the current selection is chosen as the autocompletion
+     * @return the control to be added to the autocomplete popup
+     */
+    public abstract Component init(ActionListener acceptAction);
+
+    /**
+     * Selects the item at the given position. If the specified index is not valid, then the selection will be cleared.
+     *
+     * @param index position of the item
+     */
+    public abstract void selectItem(int index);
+
+    /**
+     * Selects the item relative to the currently selected item. If the specified offset is not valid, then the
+     * selection will be cleared.
+     *
+     * @param offset offset of the item
+     */
+    public void selectItemRelative(int offset) {
+<span class="nc" id="L43">        int newIndex = getSelectedIndex() + offset;</span>
+<span class="nc" id="L44">        selectItem(newIndex);</span>
+<span class="nc" id="L45">    }</span>
+
+    /**
+     * Returns the index of the currently selected item.
+     *
+     * @return index of the selected item
+     */
+    public abstract int getSelectedIndex();
+
+    /**
+     * Returns the currently selected item.
+     *
+     * @return selected item
+     */
+    public abstract E getSelectedItem();
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

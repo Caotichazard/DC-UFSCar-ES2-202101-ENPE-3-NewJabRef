@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SearchFixDuplicateLabels.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.labelpattern</a> &gt; <span class="el_source">SearchFixDuplicateLabels.java</span></div><h1>SearchFixDuplicateLabels.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.labelpattern;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.JCheckBox;
+
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.gui.undo.UndoableKeyChange;
+import net.sf.jabref.gui.worker.AbstractWorker;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.labelpattern.LabelPatternUtil;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Function for resolving duplicate BibTeX keys.
+ */
+public class SearchFixDuplicateLabels extends AbstractWorker {
+
+    private final BasePanel panel;
+    private Map&lt;String, List&lt;BibEntry&gt;&gt; dupes;
+
+
+<span class="fc" id="L43">    public SearchFixDuplicateLabels(BasePanel panel) {</span>
+
+<span class="fc" id="L45">        this.panel = panel;</span>
+<span class="fc" id="L46">    }</span>
+
+    @Override
+    public void run() {
+        // Find all multiple occurences of BibTeX keys.
+<span class="nc" id="L51">        dupes = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L53">        Map&lt;String, BibEntry&gt; foundKeys = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L54">        BibDatabase db = panel.getDatabase();</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        for (BibEntry entry : db.getEntries()) {</span>
+<span class="nc" id="L56">            String key = entry.getCiteKey();</span>
+            // Only handle keys that are actually set:
+<span class="nc bnc" id="L58" title="All 4 branches missed.">            if ((key != null) &amp;&amp; !key.isEmpty()) {</span>
+                // See whether this entry's key is already known:
+<span class="nc bnc" id="L60" title="All 2 branches missed.">                if (foundKeys.containsKey(key)) {</span>
+                    // Already known, so we have found a dupe. See if it was already found as a dupe:
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                    if (dupes.containsKey(key)) {</span>
+                        // Already in the dupe map. Add this entry as well:
+<span class="nc" id="L64">                        dupes.get(key).add(entry);</span>
+<span class="nc" id="L65">                    } else {</span>
+                        // Construct a list of entries for this key:
+<span class="nc" id="L67">                        List&lt;BibEntry&gt; al = new ArrayList&lt;&gt;();</span>
+                        // Add both the first one we found, and the one we found just now:
+<span class="nc" id="L69">                        al.add(foundKeys.get(key));</span>
+<span class="nc" id="L70">                        al.add(entry);</span>
+                        // Add the list to the dupe map:
+<span class="nc" id="L72">                        dupes.put(key, al);</span>
+                    }
+<span class="nc" id="L74">                } else {</span>
+                    // Not already known. Add key and entry to map:
+<span class="nc" id="L76">                    foundKeys.put(key, entry);</span>
+                }
+            }
+        }
+<span class="nc" id="L80">    }</span>
+
+    @Override
+    public void init() throws Throwable {
+<span class="nc" id="L84">        panel.output(Localization.lang(&quot;Resolving duplicate BibTeX keys...&quot;));</span>
+
+<span class="nc" id="L86">    }</span>
+
+    @Override
+    public void update() {
+<span class="nc" id="L90">        List&lt;BibEntry&gt; toGenerateFor = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        for (Map.Entry&lt;String, List&lt;BibEntry&gt;&gt; dupeEntry : dupes.entrySet()) {</span>
+<span class="nc" id="L92">            ResolveDuplicateLabelDialog rdld = new ResolveDuplicateLabelDialog(panel, dupeEntry.getKey(), dupeEntry.getValue());</span>
+<span class="nc" id="L93">            rdld.show();</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">            if (rdld.isOkPressed()) {</span>
+<span class="nc" id="L95">                List&lt;JCheckBox&gt; cbs = rdld.getCheckBoxes();</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                for (int i = 0; i &lt; cbs.size(); i++) {</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">                    if (cbs.get(i).isSelected()) {</span>
+                        // The checkbox for entry i has been selected, so we should generate a new key for it:
+<span class="nc" id="L99">                        toGenerateFor.add(dupeEntry.getValue().get(i));</span>
+                    }
+                }
+            }
+        }
+
+        // Do the actual generation:
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (!toGenerateFor.isEmpty()) {</span>
+<span class="nc" id="L107">            NamedCompound ce = new NamedCompound(Localization.lang(&quot;Resolve duplicate BibTeX keys&quot;));</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            for (BibEntry entry : toGenerateFor) {</span>
+<span class="nc" id="L109">                String oldKey = entry.getCiteKey();</span>
+<span class="nc" id="L110">                LabelPatternUtil.makeLabel(panel.getBibDatabaseContext().getMetaData(), panel.getDatabase(), entry);</span>
+<span class="nc" id="L111">                ce.addEdit(new UndoableKeyChange(panel.getDatabase(), entry, oldKey, entry.getCiteKey()));</span>
+            }
+<span class="nc" id="L113">            ce.end();</span>
+<span class="nc" id="L114">            panel.undoManager.addEdit(ce);</span>
+<span class="nc" id="L115">            panel.markBaseChanged();</span>
+        }
+<span class="nc" id="L117">        panel.output(Localization.lang(&quot;Finished resolving duplicate BibTeX keys. %0 entries modified.&quot;,</span>
+<span class="nc" id="L118">                String.valueOf(toGenerateFor.size())));</span>
+<span class="nc" id="L119">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

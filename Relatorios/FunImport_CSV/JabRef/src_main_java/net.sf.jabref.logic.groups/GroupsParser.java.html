@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GroupsParser.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.groups</a> &gt; <span class="el_source">GroupsParser.java</span></div><h1>GroupsParser.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2003-2016 JabRef contributors.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+package net.sf.jabref.logic.groups;
+
+import java.util.List;
+
+import net.sf.jabref.importer.fileformat.ParseException;
+import net.sf.jabref.logic.l10n.Localization;
+
+/**
+ * Converts string representation of groups to a parsed {@link GroupTreeNode}.
+ */
+<span class="nc" id="L28">public class GroupsParser {</span>
+
+    public static GroupTreeNode importGroups(List&lt;String&gt; orderedData) throws ParseException {
+<span class="nc" id="L31">        GroupTreeNode cursor = null;</span>
+<span class="nc" id="L32">        GroupTreeNode root = null;</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        for (String string : orderedData) {</span>
+            // This allows to read databases that have been modified by, e.g., BibDesk
+<span class="nc" id="L35">            string = string.trim();</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">            if (string.isEmpty()) {</span>
+<span class="nc" id="L37">                continue;</span>
+            }
+
+<span class="nc" id="L40">            int spaceIndex = string.indexOf(' ');</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">            if (spaceIndex &lt;= 0) {</span>
+<span class="nc" id="L42">                throw new ParseException(Localization.lang(&quot;Expected \&quot;%0\&quot; to contain whitespace&quot;, string));</span>
+            }
+<span class="nc" id="L44">            int level = Integer.parseInt(string.substring(0, spaceIndex));</span>
+<span class="nc" id="L45">            AbstractGroup group = AbstractGroup.fromString(string.substring(spaceIndex + 1));</span>
+<span class="nc" id="L46">            GroupTreeNode newNode = new GroupTreeNode(group);</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">            if (cursor == null) {</span>
+                // create new root
+<span class="nc" id="L49">                cursor = newNode;</span>
+<span class="nc" id="L50">                root = cursor;</span>
+<span class="nc" id="L51">            } else {</span>
+                // insert at desired location
+<span class="nc bnc" id="L53" title="All 2 branches missed.">                while (level &lt;= cursor.getLevel()) {</span>
+<span class="nc" id="L54">                    cursor = cursor.getParent().get();</span>
+                }
+<span class="nc" id="L56">                cursor.addChild(newNode);</span>
+<span class="nc" id="L57">                cursor = newNode;</span>
+            }
+        }
+<span class="nc" id="L60">        return root;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ISBNtoBibTeXFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">ISBNtoBibTeXFetcher.java</span></div><h1>ISBNtoBibTeXFetcher.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012, 2015 JabRef contributors.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+*/
+package net.sf.jabref.importer.fetcher;
+
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.util.Scanner;
+
+import javax.swing.JPanel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.importer.fileformat.BibtexParser;
+import net.sf.jabref.logic.formatter.bibtexfields.UnitsToLatexFormatter;
+import net.sf.jabref.logic.formatter.casechanger.ProtectTermsFormatter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * This class uses ebook.de's ISBN to BibTeX Converter to convert an ISBN to a BibTeX entry &lt;br /&gt;
+ * There is no separate web-based converter available, just that API
+ */
+<span class="fc" id="L47">public class ISBNtoBibTeXFetcher implements EntryFetcher {</span>
+
+<span class="fc" id="L49">    private static final Log LOGGER = LogFactory.getLog(ISBNtoBibTeXFetcher.class);</span>
+
+<span class="fc" id="L51">    private static final String URL_PATTERN = &quot;http://www.ebook.de/de/tools/isbn2bibtex?isbn=%s&quot;;</span>
+<span class="fc" id="L52">    private final ProtectTermsFormatter protectTermsFormatter = new ProtectTermsFormatter();</span>
+<span class="fc" id="L53">    private final UnitsToLatexFormatter unitsToLatexFormatter = new UnitsToLatexFormatter();</span>
+
+
+    @Override
+    public void stopFetching() {
+        // nothing needed as the fetching is a single HTTP GET
+<span class="nc" id="L59">    }</span>
+
+    @Override
+    public boolean processQuery(String query, ImportInspector inspector, OutputPrinter status) {
+        String q;
+        try {
+<span class="nc" id="L65">            q = URLEncoder.encode(query, StandardCharsets.UTF_8.name());</span>
+<span class="nc" id="L66">        } catch (UnsupportedEncodingException e) {</span>
+            // this should never happen
+<span class="nc" id="L68">            status.setStatus(Localization.lang(&quot;Error&quot;));</span>
+<span class="nc" id="L69">            LOGGER.warn(&quot;Shouldn't happen...&quot;, e);</span>
+<span class="nc" id="L70">            return false;</span>
+        }
+
+<span class="nc" id="L73">        String urlString = String.format(ISBNtoBibTeXFetcher.URL_PATTERN, q);</span>
+
+        // Send the request
+        URL url;
+        try {
+<span class="nc" id="L78">            url = new URL(urlString);</span>
+<span class="nc" id="L79">        } catch (MalformedURLException e) {</span>
+<span class="nc" id="L80">            LOGGER.warn(&quot;Bad URL when fetching ISBN info&quot;, e);</span>
+<span class="nc" id="L81">            return false;</span>
+        }
+
+<span class="nc" id="L84">        try(InputStream source = url.openStream()) {</span>
+            String bibtexString;
+<span class="nc" id="L86">            try(Scanner scan = new Scanner(source)) {</span>
+<span class="nc" id="L87">                bibtexString = scan.useDelimiter(&quot;\\A&quot;).next();</span>
+            }
+
+<span class="nc" id="L90">            BibEntry entry = BibtexParser.singleFromString(bibtexString);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">            if (entry != null) {</span>
+                // Optionally add curly brackets around key words to keep the case
+<span class="nc" id="L93">                String title = entry.getField(&quot;title&quot;);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                if (title != null) {</span>
+                    // Unit formatting
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                    if (Globals.prefs.getBoolean(JabRefPreferences.USE_UNIT_FORMATTER_ON_SEARCH)) {</span>
+<span class="nc" id="L97">                        title = unitsToLatexFormatter.format(title);</span>
+                    }
+
+                    // Case keeping
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                    if (Globals.prefs.getBoolean(JabRefPreferences.USE_CASE_KEEPER_ON_SEARCH)) {</span>
+<span class="nc" id="L102">                        title = protectTermsFormatter.format(title);</span>
+                    }
+<span class="nc" id="L104">                    entry.setField(&quot;title&quot;, title);</span>
+                }
+
+<span class="nc" id="L107">                inspector.addEntry(entry);</span>
+<span class="nc" id="L108">                return true;</span>
+            }
+<span class="nc" id="L110">            return false;</span>
+<span class="nc" id="L111">        } catch (FileNotFoundException e) {</span>
+            // invalid ISBN --&gt; 404--&gt; FileNotFoundException
+<span class="nc" id="L113">            status.showMessage(Localization.lang(&quot;No entry found for ISBN %0 at www.ebook.de&quot;, query));</span>
+<span class="nc" id="L114">            LOGGER.debug(&quot;No ISBN info found&quot;, e);</span>
+<span class="nc" id="L115">            return false;</span>
+<span class="nc" id="L116">        } catch (UnknownHostException e) {</span>
+            // It is very unlikely that ebook.de is an unknown host
+            // It is more likely that we don't have an internet connection
+<span class="nc" id="L119">            status.showMessage(Localization.lang(&quot;No_internet_connection.&quot;));</span>
+<span class="nc" id="L120">            LOGGER.debug(&quot;No internet connection&quot;, e);</span>
+<span class="nc" id="L121">            return false;</span>
+<span class="nc" id="L122">        } catch (Exception e) {</span>
+<span class="nc" id="L123">            status.showMessage(e.toString());</span>
+<span class="nc" id="L124">            LOGGER.warn(&quot;Problem getting info for ISBN&quot;, e);</span>
+<span class="nc" id="L125">            return false;</span>
+        }
+
+    }
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L132">        return &quot;ISBN to BibTeX&quot;;</span>
+
+    }
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L138">        return HelpFiles.FETCHER_ISBN_TO_BIBTEX;</span>
+    }
+
+    @Override
+    public JPanel getOptionsPanel() {
+        // no additional options available
+<span class="nc" id="L144">        return null;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

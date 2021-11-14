@@ -1,0 +1,1492 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryEditor.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.entryeditor</a> &gt; <span class="el_source">EntryEditor.java</span></div><h1>EntryEditor.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.entryeditor;
+
+import java.awt.AWTKeyStroke;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Insets;
+import java.awt.KeyboardFocusManager;
+import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.VetoableChangeListener;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+import javax.swing.JToolBar;
+import javax.swing.KeyStroke;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.text.JTextComponent;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.bibtex.BibEntryWriter;
+import net.sf.jabref.bibtex.FieldProperties;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.exporter.LatexFieldFormatter;
+import net.sf.jabref.external.WriteXMPEntryEditorAction;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.EntryContainer;
+import net.sf.jabref.gui.FieldContentSelector;
+import net.sf.jabref.gui.GUIGlobals;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.OSXCompatibleToolbar;
+import net.sf.jabref.gui.actions.Actions;
+import net.sf.jabref.gui.fieldeditors.FieldEditor;
+import net.sf.jabref.gui.fieldeditors.FieldEditorFocusListener;
+import net.sf.jabref.gui.fieldeditors.FileListEditor;
+import net.sf.jabref.gui.fieldeditors.JTextAreaWithHighlighting;
+import net.sf.jabref.gui.fieldeditors.TextField;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.gui.menus.ChangeEntryTypeMenu;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.gui.undo.UndoableChangeType;
+import net.sf.jabref.gui.undo.UndoableFieldChange;
+import net.sf.jabref.gui.undo.UndoableKeyChange;
+import net.sf.jabref.gui.undo.UndoableRemoveEntry;
+import net.sf.jabref.gui.util.FocusRequester;
+import net.sf.jabref.gui.util.component.CheckBoxMessage;
+import net.sf.jabref.gui.util.component.VerticalLabelUI;
+import net.sf.jabref.importer.ParserResult;
+import net.sf.jabref.importer.fileformat.BibtexParser;
+import net.sf.jabref.logic.TypedBibEntry;
+import net.sf.jabref.logic.autocompleter.AutoCompleter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.labelpattern.LabelPatternUtil;
+import net.sf.jabref.logic.search.SearchQueryHighlightListener;
+import net.sf.jabref.logic.util.date.TimeStamp;
+import net.sf.jabref.model.EntryTypes;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.EntryConverter;
+import net.sf.jabref.model.entry.EntryType;
+import net.sf.jabref.specialfields.SpecialFieldUpdateListener;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * GUI component that allows editing of the fields of a BibEntry (i.e. the
+ * one that shows up, when you double click on an entry in the table)
+ * &lt;p&gt;
+ * It hosts the tabs (required, general, optional) and the buttons to the left.
+ * &lt;p&gt;
+ * EntryEditor also registers itself as a VetoableChangeListener, receiving
+ * events whenever a field of the entry changes, enabling the text fields to
+ * update themselves if the change is made from somewhere else.
+ */
+public class EntryEditor extends JPanel implements VetoableChangeListener, EntryContainer {
+<span class="fc" id="L131">    private static final Log LOGGER = LogFactory.getLog(EntryEditor.class);</span>
+
+    // A reference to the entry this object works on.
+    private BibEntry entry;
+    // The currently displayed type
+    private final String displayedBibEntryType;
+
+    // The action concerned with closing the window.
+    private final CloseAction closeAction;
+
+    // The action that deletes the current entry, and closes the editor.
+<span class="fc" id="L142">    private final DeleteAction deleteAction = new DeleteAction();</span>
+
+    // Actions for switching to next/previous entry.
+<span class="fc" id="L145">    private final AbstractAction nextEntryAction = new NextEntryAction();</span>
+<span class="fc" id="L146">    private final AbstractAction prevEntryAction = new PrevEntryAction();</span>
+
+    // The action concerned with storing a field value.
+    private final StoreFieldAction storeFieldAction;
+
+    // The actions concerned with switching the panels.
+<span class="fc" id="L152">    private final SwitchLeftAction switchLeftAction = new SwitchLeftAction();</span>
+<span class="fc" id="L153">    private final SwitchRightAction switchRightAction = new SwitchRightAction();</span>
+
+    // The action which generates a bibtexkey for this entry.
+    private final GenerateKeyAction generateKeyAction;
+
+    // UGLY HACK to have a pointer to the fileListEditor to call autoSetLinks()
+    private FileListEditor fileListEditor;
+<span class="fc" id="L160">    private final AutoLinkAction autoLinkAction = new AutoLinkAction();</span>
+
+    private final AbstractAction writeXmp;
+
+<span class="fc" id="L164">    private final SaveDatabaseAction saveDatabaseAction = new SaveDatabaseAction();</span>
+
+<span class="fc" id="L166">    private final JPanel srcPanel = new JPanel();</span>
+
+    private JTextArea source;
+
+<span class="fc" id="L170">    private final JTabbedPane tabbed = new JTabbedPane();</span>
+
+    private final JabRefFrame frame;
+
+    private final BasePanel panel;
+
+<span class="fc" id="L176">    private final Set&lt;FieldContentSelector&gt; contentSelectors = new HashSet&lt;&gt;();</span>
+
+<span class="fc" id="L178">    private boolean updateSource = true; // This can be set to false to stop the source</span>
+    private boolean movingToDifferentEntry; // Indicates that we are about to go to the next or previous entry
+
+<span class="fc" id="L181">    private final List&lt;Object&gt; tabs = new ArrayList&lt;&gt;();</span>
+
+    // text area from getting updated. This is used in cases where the source
+    // couldn't be parsed, and the user is given the option to edit it.
+<span class="fc" id="L185">    private boolean lastSourceAccepted = true; // This indicates whether the last</span>
+
+    // attempt
+    // at parsing the source was successful. It is used to determine whether the
+    // dialog should close; it should stay open if the user received an error
+    // message about the source, whatever he or she chose to do about it.
+    private String lastSourceStringAccepted; // This is used to prevent double
+
+    // fields.
+    // These values can be used to calculate the preferred height for the form.
+    // reqW starts at 1 because it needs room for the bibtex key field.
+<span class="fc" id="L196">    private int sourceIndex = -1; // The index the source panel has in tabbed.</span>
+
+    private final HelpAction helpAction;
+
+<span class="fc" id="L200">    private final UndoAction undoAction = new UndoAction();</span>
+
+<span class="fc" id="L202">    private final RedoAction redoAction = new RedoAction();</span>
+
+<span class="fc" id="L204">    private final TabListener tabListener = new TabListener();</span>
+
+
+<span class="fc" id="L207">    public EntryEditor(JabRefFrame frame, BasePanel panel, BibEntry entry) {</span>
+<span class="fc" id="L208">        this.frame = frame;</span>
+<span class="fc" id="L209">        this.panel = panel;</span>
+<span class="fc" id="L210">        this.entry = entry;</span>
+
+<span class="fc" id="L212">        this.entry.addPropertyChangeListener(this);</span>
+<span class="fc" id="L213">        this.entry.addPropertyChangeListener(SpecialFieldUpdateListener.getInstance());</span>
+<span class="fc" id="L214">        displayedBibEntryType = entry.getType();</span>
+
+<span class="fc" id="L216">        helpAction = new HelpAction(HelpFiles.ENTRY_EDITOR, IconTheme.JabRefIcon.HELP.getIcon());</span>
+<span class="fc" id="L217">        closeAction = new CloseAction();</span>
+<span class="fc" id="L218">        generateKeyAction = new GenerateKeyAction();</span>
+<span class="fc" id="L219">        storeFieldAction = new StoreFieldAction();</span>
+<span class="fc" id="L220">        writeXmp = new WriteXMPEntryEditorAction(panel, this);</span>
+
+<span class="fc" id="L222">        BorderLayout borderLayout = new BorderLayout();</span>
+<span class="fc" id="L223">        setLayout(borderLayout);</span>
+<span class="fc" id="L224">        setupToolBar();</span>
+<span class="fc" id="L225">        setupFieldPanels();</span>
+<span class="fc" id="L226">        setupSourcePanel();</span>
+<span class="fc" id="L227">        add(tabbed, BorderLayout.CENTER);</span>
+<span class="fc" id="L228">        tabbed.addChangeListener(tabListener);</span>
+<span class="pc bpc" id="L229" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.DEFAULT_SHOW_SOURCE)) {</span>
+<span class="nc" id="L230">            tabbed.setSelectedIndex(sourceIndex);</span>
+        }
+
+<span class="fc" id="L233">        updateAllFields();</span>
+<span class="pc bpc" id="L234" title="1 of 2 branches missed.">        if (this.fileListEditor != null){</span>
+<span class="fc" id="L235">            this.fileListEditor.adjustColumnWidth();</span>
+        }
+<span class="fc" id="L237">    }</span>
+
+    private void setupFieldPanels() {
+<span class="fc" id="L240">        tabbed.removeAll();</span>
+<span class="fc" id="L241">        tabs.clear();</span>
+
+<span class="fc" id="L243">        EntryType type = EntryTypes.getTypeOrDefault(entry.getType(), this.frame.getCurrentBasePanel().getBibDatabaseContext().getMode());</span>
+
+        // required fields
+<span class="fc" id="L246">        List&lt;String&gt; requiredFields = addRequiredTab(type);</span>
+
+        // optional fields
+<span class="fc" id="L249">        List&lt;String&gt; displayedOptionalFields = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L251" title="2 of 4 branches missed.">        if ((type.getOptionalFields() != null) &amp;&amp; !type.getOptionalFields().isEmpty()) {</span>
+<span class="pc bpc" id="L252" title="1 of 2 branches missed.">            if (!frame.getCurrentBasePanel().getBibDatabaseContext().isBiblatexMode()) {</span>
+<span class="fc" id="L253">                addOptionalTab(type);</span>
+<span class="fc" id="L254">            } else {</span>
+<span class="nc" id="L255">                displayedOptionalFields.addAll(type.getPrimaryOptionalFields());</span>
+<span class="nc" id="L256">                displayedOptionalFields.addAll(type.getSecondaryOptionalFields());</span>
+
+<span class="nc" id="L258">                addOptionalTab(type);</span>
+
+<span class="nc" id="L260">                Set&lt;String&gt; deprecatedFields = new HashSet&lt;&gt;(EntryConverter.FIELD_ALIASES_TEX_TO_LTX.keySet());</span>
+<span class="nc" id="L261">                deprecatedFields.add(&quot;year&quot;);</span>
+<span class="nc" id="L262">                deprecatedFields.add(&quot;month&quot;);</span>
+<span class="nc" id="L263">                List&lt;String&gt; secondaryOptionalFields = type.getSecondaryOptionalFields();</span>
+<span class="nc" id="L264">                List&lt;String&gt; optionalFieldsNotPrimaryOrDeprecated = new ArrayList&lt;&gt;(secondaryOptionalFields);</span>
+<span class="nc" id="L265">                optionalFieldsNotPrimaryOrDeprecated.removeAll(deprecatedFields);</span>
+
+                // Get list of all optional fields of this entry and their aliases
+<span class="nc" id="L268">                Set&lt;String&gt; optionalFieldsAndAliases = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">                for (String field : type.getOptionalFields()) {</span>
+<span class="nc" id="L270">                    optionalFieldsAndAliases.add(field);</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">                    if (EntryConverter.FIELD_ALIASES_LTX_TO_TEX.containsKey(field)) {</span>
+<span class="nc" id="L272">                        optionalFieldsAndAliases.add(EntryConverter.FIELD_ALIASES_LTX_TO_TEX.get(field));</span>
+                    }
+                }
+
+                // Get all optional fields which are deprecated
+<span class="nc" id="L277">                Set&lt;String&gt; usedOptionalFieldsDeprecated = new HashSet&lt;&gt;(deprecatedFields);</span>
+<span class="nc" id="L278">                usedOptionalFieldsDeprecated.retainAll(optionalFieldsAndAliases);</span>
+
+                // Add tabs
+<span class="nc" id="L281">                EntryEditorTab optPan2 = new EntryEditorTab(frame, panel, optionalFieldsNotPrimaryOrDeprecated, this,</span>
+<span class="nc" id="L282">                        false, true, Localization.lang(&quot;Optional fields 2&quot;));</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">                if (optPan2.fileListEditor != null) {</span>
+<span class="nc" id="L284">                    fileListEditor = optPan2.fileListEditor;</span>
+                }
+<span class="nc" id="L286">                tabbed.addTab(Localization.lang(&quot;Optional fields 2&quot;), IconTheme.JabRefIcon.OPTIONAL.getSmallIcon(), optPan2</span>
+<span class="nc" id="L287">                        .getPane(), Localization.lang(&quot;Show optional fields&quot;));</span>
+<span class="nc" id="L288">                tabs.add(optPan2);</span>
+
+<span class="nc bnc" id="L290" title="All 2 branches missed.">                if (!usedOptionalFieldsDeprecated.isEmpty()) {</span>
+                    EntryEditorTab optPan3;
+<span class="nc" id="L292">                    optPan3 = new EntryEditorTab(frame, panel, new ArrayList&lt;&gt;(usedOptionalFieldsDeprecated), this,</span>
+<span class="nc" id="L293">                            false, true, Localization.lang(&quot;Deprecated fields&quot;));</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">                    if (optPan3.fileListEditor != null) {</span>
+<span class="nc" id="L295">                        fileListEditor = optPan3.fileListEditor;</span>
+                    }
+<span class="nc" id="L297">                    tabbed.addTab(Localization.lang(&quot;Deprecated fields&quot;), IconTheme.JabRefIcon.OPTIONAL.getSmallIcon(), optPan3</span>
+<span class="nc" id="L298">                            .getPane(), Localization.lang(&quot;Show deprecated BibTeX fields&quot;));</span>
+<span class="nc" id="L299">                    tabs.add(optPan3);</span>
+                }
+            }
+        }
+
+        // other fields
+<span class="fc" id="L305">        List&lt;String&gt; displayedFields = Stream.concat(requiredFields.stream(), displayedOptionalFields.stream()).map(String::toLowerCase).collect(Collectors.toList());</span>
+<span class="pc bnc" id="L306" title="All 2 branches missed.">        List&lt;String&gt; otherFields = entry.getFieldNames().stream().map(String::toLowerCase).filter(f -&gt; !displayedFields.contains(f)).collect(Collectors.toList());</span>
+<span class="fc" id="L307">        otherFields.remove(&quot;bibtexkey&quot;);</span>
+<span class="fc" id="L308">        otherFields.removeAll(Globals.prefs.getCustomTabFieldNames());</span>
+
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">        if(!otherFields.isEmpty()) {</span>
+<span class="nc" id="L311">            addOtherTab(otherFields);</span>
+        }
+
+        // general fields from preferences
+<span class="fc" id="L315">        addGeneralTabs();</span>
+        // source tab
+<span class="fc" id="L317">        addSourceTab();</span>
+<span class="fc" id="L318">    }</span>
+
+    private void addGeneralTabs() {
+<span class="fc" id="L321">        EntryEditorTabList tabList = Globals.prefs.getEntryEditorTabList();</span>
+<span class="fc bfc" id="L322" title="All 2 branches covered.">        for (int i = 0; i &lt; tabList.getTabCount(); i++) {</span>
+<span class="fc" id="L323">            EntryEditorTab newTab = new EntryEditorTab(frame, panel, tabList.getTabFields(i), this, false,</span>
+<span class="fc" id="L324">                    false, tabList.getTabName(i));</span>
+<span class="fc bfc" id="L325" title="All 2 branches covered.">            if (newTab.fileListEditor != null) {</span>
+<span class="fc" id="L326">                fileListEditor = newTab.fileListEditor;</span>
+            }
+<span class="fc" id="L328">            tabbed.addTab(tabList.getTabName(i), newTab.getPane());</span>
+<span class="fc" id="L329">            tabs.add(newTab);</span>
+        }
+<span class="fc" id="L331">    }</span>
+
+    private void addSourceTab() {
+<span class="fc" id="L334">        srcPanel.setName(Localization.lang(&quot;BibTeX source&quot;));</span>
+<span class="fc" id="L335">        tabbed.addTab(Localization.lang(&quot;BibTeX source&quot;), IconTheme.JabRefIcon.SOURCE.getSmallIcon(), srcPanel,</span>
+<span class="fc" id="L336">                Localization.lang(&quot;Show/edit BibTeX source&quot;));</span>
+<span class="fc" id="L337">        tabs.add(srcPanel);</span>
+<span class="fc" id="L338">        sourceIndex = tabs.size() - 1; // Set the sourceIndex variable.</span>
+<span class="fc" id="L339">        srcPanel.setFocusCycleRoot(true);</span>
+<span class="fc" id="L340">    }</span>
+
+    private void addOtherTab(List&lt;String&gt; otherFields) {
+<span class="nc" id="L343">        EntryEditorTab otherPanel = new EntryEditorTab(frame, panel, otherFields, this,</span>
+<span class="nc" id="L344">                false, false, Localization.lang(&quot;Other fields&quot;));</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">        if (otherPanel.fileListEditor != null) {</span>
+<span class="nc" id="L346">            fileListEditor = otherPanel.fileListEditor;</span>
+        }
+<span class="nc" id="L348">        tabbed.addTab(Localization.lang(&quot;Other fields&quot;), IconTheme.JabRefIcon.OPTIONAL.getSmallIcon(), otherPanel</span>
+<span class="nc" id="L349">                .getPane(), Localization.lang(&quot;Show remaining fields&quot;));</span>
+<span class="nc" id="L350">        tabs.add(otherPanel);</span>
+<span class="nc" id="L351">    }</span>
+
+    private List&lt;String&gt; addRequiredTab(EntryType type) {
+<span class="fc" id="L354">        List&lt;String&gt; requiredFields = type.getRequiredFieldsFlat();</span>
+
+<span class="fc" id="L356">        EntryEditorTab requiredPanel = new EntryEditorTab(frame, panel, requiredFields, this, true, false, Localization.lang(&quot;Required fields&quot;));</span>
+<span class="pc bpc" id="L357" title="1 of 2 branches missed.">        if (requiredPanel.fileListEditor != null) {</span>
+<span class="nc" id="L358">            fileListEditor = requiredPanel.fileListEditor;</span>
+        }
+<span class="fc" id="L360">        tabbed.addTab(Localization.lang(&quot;Required fields&quot;), IconTheme.JabRefIcon.REQUIRED.getSmallIcon(), requiredPanel</span>
+<span class="fc" id="L361">                .getPane(), Localization.lang(&quot;Show required fields&quot;));</span>
+<span class="fc" id="L362">        tabs.add(requiredPanel);</span>
+<span class="fc" id="L363">        return requiredFields;</span>
+    }
+
+    private void addOptionalTab(EntryType type) {
+<span class="fc" id="L367">        EntryEditorTab optionalPanel = new EntryEditorTab(frame, panel, type.getPrimaryOptionalFields(), this,</span>
+<span class="fc" id="L368">                false, true, Localization.lang(&quot;Optional fields&quot;));</span>
+
+<span class="pc bpc" id="L370" title="1 of 2 branches missed.">        if (optionalPanel.fileListEditor != null) {</span>
+<span class="nc" id="L371">            fileListEditor = optionalPanel.fileListEditor;</span>
+        }
+<span class="fc" id="L373">        tabbed.addTab(Localization.lang(&quot;Optional fields&quot;), IconTheme.JabRefIcon.OPTIONAL.getSmallIcon(), optionalPanel</span>
+<span class="fc" id="L374">                .getPane(), Localization.lang(&quot;Show optional fields&quot;));</span>
+<span class="fc" id="L375">        tabs.add(optionalPanel);</span>
+<span class="fc" id="L376">    }</span>
+
+    public String getDisplayedBibEntryType() {
+<span class="nc" id="L379">        return displayedBibEntryType;</span>
+    }
+
+    /**
+     * @return reference to the currently edited entry
+     */
+    @Override
+    public BibEntry getEntry() {
+<span class="fc" id="L387">        return entry;</span>
+    }
+
+    public BibDatabase getDatabase() {
+<span class="nc" id="L391">        return panel.getDatabase();</span>
+    }
+
+    private void setupToolBar() {
+<span class="fc" id="L395">        JPanel leftPan = new JPanel();</span>
+<span class="fc" id="L396">        leftPan.setLayout(new BorderLayout());</span>
+<span class="fc" id="L397">        JToolBar toolBar = new OSXCompatibleToolbar(SwingConstants.VERTICAL);</span>
+
+<span class="fc" id="L399">        toolBar.setBorder(null);</span>
+<span class="fc" id="L400">        toolBar.setRollover(true);</span>
+
+<span class="fc" id="L402">        toolBar.setMargin(new Insets(0, 0, 0, 2));</span>
+
+        // The toolbar carries all the key bindings that are valid for the whole
+        // window.
+<span class="fc" id="L406">        ActionMap actionMap = toolBar.getActionMap();</span>
+<span class="fc" id="L407">        InputMap inputMap = toolBar.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+
+<span class="fc" id="L409">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_ENTRY_EDITOR), &quot;close&quot;);</span>
+<span class="fc" id="L410">        actionMap.put(&quot;close&quot;, closeAction);</span>
+<span class="fc" id="L411">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_STORE_FIELD), &quot;store&quot;);</span>
+<span class="fc" id="L412">        actionMap.put(&quot;store&quot;, getStoreFieldAction());</span>
+<span class="fc" id="L413">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.AUTOGENERATE_BIBTEX_KEYS), &quot;generateKey&quot;);</span>
+<span class="fc" id="L414">        actionMap.put(&quot;generateKey&quot;, getGenerateKeyAction());</span>
+<span class="fc" id="L415">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.AUTOMATICALLY_LINK_FILES), &quot;autoLink&quot;);</span>
+<span class="fc" id="L416">        actionMap.put(&quot;autoLink&quot;, autoLinkAction);</span>
+<span class="fc" id="L417">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_PREVIOUS_ENTRY), &quot;prev&quot;);</span>
+<span class="fc" id="L418">        actionMap.put(&quot;prev&quot;, getPrevEntryAction());</span>
+<span class="fc" id="L419">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_NEXT_ENTRY), &quot;next&quot;);</span>
+<span class="fc" id="L420">        actionMap.put(&quot;next&quot;, getNextEntryAction());</span>
+<span class="fc" id="L421">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.UNDO), &quot;undo&quot;);</span>
+<span class="fc" id="L422">        actionMap.put(&quot;undo&quot;, undoAction);</span>
+<span class="fc" id="L423">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.REDO), &quot;redo&quot;);</span>
+<span class="fc" id="L424">        actionMap.put(&quot;redo&quot;, redoAction);</span>
+<span class="fc" id="L425">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.HELP), &quot;help&quot;);</span>
+<span class="fc" id="L426">        actionMap.put(&quot;help&quot;, getHelpAction());</span>
+
+<span class="fc" id="L428">        toolBar.setFloatable(false);</span>
+
+        // Add actions (and thus buttons)
+<span class="fc" id="L431">        JButton closeBut = new JButton(closeAction);</span>
+<span class="fc" id="L432">        closeBut.setText(null);</span>
+<span class="fc" id="L433">        closeBut.setBorder(null);</span>
+<span class="fc" id="L434">        closeBut.setMargin(new Insets(8, 0, 8, 0));</span>
+<span class="fc" id="L435">        leftPan.add(closeBut, BorderLayout.NORTH);</span>
+
+        // Create type-label
+<span class="fc" id="L438">        TypedBibEntry typedEntry = new TypedBibEntry(entry, Optional.empty(), panel.getBibDatabaseContext().getMode());</span>
+<span class="fc" id="L439">        leftPan.add(new TypeLabel(typedEntry.getTypeForDisplay()), BorderLayout.CENTER);</span>
+<span class="fc" id="L440">        TypeButton typeButton = new TypeButton();</span>
+
+<span class="fc" id="L442">        toolBar.add(typeButton);</span>
+<span class="fc" id="L443">        toolBar.add(getGenerateKeyAction());</span>
+<span class="fc" id="L444">        toolBar.add(autoLinkAction);</span>
+
+<span class="fc" id="L446">        toolBar.add(writeXmp);</span>
+
+<span class="fc" id="L448">        toolBar.addSeparator();</span>
+
+<span class="fc" id="L450">        toolBar.add(deleteAction);</span>
+<span class="fc" id="L451">        toolBar.add(getPrevEntryAction());</span>
+<span class="fc" id="L452">        toolBar.add(getNextEntryAction());</span>
+
+<span class="fc" id="L454">        toolBar.addSeparator();</span>
+
+<span class="fc" id="L456">        toolBar.add(getHelpAction());</span>
+
+<span class="fc" id="L458">        Component[] comps = toolBar.getComponents();</span>
+
+<span class="fc bfc" id="L460" title="All 2 branches covered.">        for (Component comp : comps) {</span>
+<span class="fc" id="L461">            ((JComponent) comp).setOpaque(false);</span>
+        }
+
+<span class="fc" id="L464">        leftPan.add(toolBar, BorderLayout.SOUTH);</span>
+<span class="fc" id="L465">        add(leftPan, BorderLayout.WEST);</span>
+<span class="fc" id="L466">    }</span>
+
+    /**
+     * Rebuild the field tabs. This is called e.g. when a new content selector
+     * has been added.
+     */
+    public void rebuildPanels() {
+        // Remove change listener, because the rebuilding causes meaningless
+        // events and trouble:
+<span class="nc" id="L475">        tabbed.removeChangeListener(tabListener);</span>
+
+<span class="nc" id="L477">        setupFieldPanels();</span>
+        // Add the change listener again:
+<span class="nc" id="L479">        tabbed.addChangeListener(tabListener);</span>
+<span class="nc" id="L480">        revalidate();</span>
+<span class="nc" id="L481">        repaint();</span>
+<span class="nc" id="L482">    }</span>
+
+    /**
+     * getExtra checks the field name against InternalBibtexFields.getFieldExtras(name).
+     * If the name has an entry, the proper component to be shown is created and
+     * returned. Otherwise, null is returned. In addition, e.g. listeners can be
+     * added to the field editor, even if no component is returned.
+     *
+     * @param editor Field editor
+     * @return Component to show, or null if none.
+     */
+    public Optional&lt;JComponent&gt; getExtra(final FieldEditor editor) {
+<span class="fc" id="L494">        final String fieldName = editor.getFieldName();</span>
+
+<span class="fc" id="L496">        final Set&lt;FieldProperties&gt; fieldExtras = InternalBibtexFields.getFieldExtras(fieldName);</span>
+
+        // timestamp or a other field with datepicker command
+<span class="fc bfc" id="L499" title="All 2 branches covered.">        if (Globals.prefs.get(JabRefPreferences.TIME_STAMP_FIELD).equals(fieldName)</span>
+<span class="pc bpc" id="L500" title="1 of 2 branches missed.">                || fieldExtras.contains(FieldProperties.DATE)) {</span>
+            // double click AND datefield =&gt; insert the current date (today)
+<span class="fc" id="L502">            return FieldExtraComponents.getDateTimeExtraComponent(editor,</span>
+<span class="fc" id="L503">                    fieldExtras.contains(FieldProperties.DATE));</span>
+<span class="fc bfc" id="L504" title="All 2 branches covered.">        } else if (fieldExtras.contains(FieldProperties.EXTERNAL)) {</span>
+<span class="fc" id="L505">            return FieldExtraComponents.getExternalExtraComponent(panel, editor);</span>
+<span class="fc bfc" id="L506" title="All 2 branches covered.">        } else if (fieldExtras.contains(FieldProperties.JOURNAL_NAME)) {</span>
+            // Add controls for switching between abbreviated and full journal names.
+            // If this field also has a FieldContentSelector, we need to combine these.
+<span class="fc" id="L509">            return FieldExtraComponents.getJournalExtraComponent(frame, panel, editor, entry, contentSelectors,</span>
+<span class="fc" id="L510">                    getStoreFieldAction());</span>
+<span class="pc bpc" id="L511" title="1 of 2 branches missed.">        } else if (!panel.getBibDatabaseContext().getMetaData().getContentSelectors(fieldName).isEmpty()) {</span>
+<span class="nc" id="L512">            return FieldExtraComponents.getSelectorExtraComponent(frame, panel, editor, contentSelectors, getStoreFieldAction());</span>
+<span class="pc bpc" id="L513" title="1 of 2 branches missed.">        } else if (fieldExtras.contains(FieldProperties.URL)) {</span>
+<span class="nc" id="L514">            return FieldExtraComponents.getURLExtraComponent(editor, getStoreFieldAction());</span>
+<span class="fc bfc" id="L515" title="All 2 branches covered.">        } else if (fieldExtras.contains(FieldProperties.DOI)) {</span>
+<span class="fc" id="L516">            return FieldExtraComponents.getDoiExtraComponent(panel, this, editor);</span>
+<span class="fc bfc" id="L517" title="All 2 branches covered.">        } else if (fieldExtras.contains(FieldProperties.OWNER)) {</span>
+<span class="fc" id="L518">            return FieldExtraComponents.getSetOwnerExtraComponent(editor, getStoreFieldAction());</span>
+<span class="pc bpc" id="L519" title="1 of 2 branches missed.">        } else if (fieldExtras.contains(FieldProperties.YES_NO)) {</span>
+<span class="nc" id="L520">            return FieldExtraComponents.getYesNoExtraComponent(editor, this);</span>
+<span class="fc bfc" id="L521" title="All 2 branches covered.">        } else if (fieldExtras.contains(FieldProperties.MONTH)) {</span>
+<span class="fc" id="L522">            return FieldExtraComponents.getMonthExtraComponent(editor, this, frame.getCurrentBasePanel().getBibDatabaseContext().getMode());</span>
+<span class="pc bpc" id="L523" title="1 of 2 branches missed.">        } else if (fieldExtras.contains(FieldProperties.GENDER)) {</span>
+<span class="nc" id="L524">            return FieldExtraComponents.getGenderExtraComponent(editor, this);</span>
+<span class="pc bpc" id="L525" title="1 of 2 branches missed.">        } else if (fieldExtras.contains(FieldProperties.EDITOR_TYPE)) {</span>
+<span class="nc" id="L526">            return FieldExtraComponents.getEditorTypeExtraComponent(editor, this);</span>
+<span class="pc bpc" id="L527" title="1 of 2 branches missed.">        } else if (fieldExtras.contains(FieldProperties.PAGINATION)) {</span>
+<span class="nc" id="L528">            return FieldExtraComponents.getPaginationExtraComponent(editor, this);</span>
+<span class="pc bpc" id="L529" title="1 of 2 branches missed.">        } else if (fieldExtras.contains(FieldProperties.TYPE)) {</span>
+<span class="nc" id="L530">            return FieldExtraComponents.getTypeExtraComponent(editor, this,</span>
+<span class="nc" id="L531">                    &quot;patent&quot;.equals(entry.getType().toLowerCase(Locale.ENGLISH)));</span>
+        }
+<span class="fc" id="L533">        return Optional.empty();</span>
+    }
+
+    private void setupSourcePanel() {
+<span class="fc" id="L537">        source = new JTextAreaWithHighlighting();</span>
+<span class="fc" id="L538">        panel.getSearchBar().getSearchQueryHighlightObservable().addSearchListener((SearchQueryHighlightListener) source);</span>
+
+<span class="fc" id="L540">        source.setEditable(true);</span>
+<span class="fc" id="L541">        source.setLineWrap(true);</span>
+<span class="fc" id="L542">        source.setTabSize(GUIGlobals.INDENT);</span>
+<span class="fc" id="L543">        source.addFocusListener(new FieldEditorFocusListener());</span>
+        // Add the global focus listener, so a menu item can see if this field was focused when an action was called.
+<span class="fc" id="L545">        source.addFocusListener(Globals.focusListener);</span>
+<span class="fc" id="L546">        source.setFont(new Font(&quot;Monospaced&quot;, Font.PLAIN, Globals.prefs.getInt(JabRefPreferences.FONT_SIZE)));</span>
+<span class="fc" id="L547">        setupJTextComponent(source);</span>
+<span class="fc" id="L548">        updateSource();</span>
+
+<span class="fc" id="L550">        JScrollPane scrollPane = new JScrollPane(source, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="fc" id="L551">                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+
+<span class="fc" id="L553">        srcPanel.setLayout(new BorderLayout());</span>
+<span class="fc" id="L554">        srcPanel.add(scrollPane, BorderLayout.CENTER);</span>
+<span class="fc" id="L555">    }</span>
+
+    public void updateSource() {
+<span class="pc bpc" id="L558" title="1 of 2 branches missed.">        if (updateSource) {</span>
+
+            try {
+<span class="fc" id="L561">                String srcString = getSourceString(entry, panel.getBibDatabaseContext().getMode());</span>
+<span class="fc" id="L562">                source.setText(srcString);</span>
+<span class="fc" id="L563">                lastSourceStringAccepted = srcString;</span>
+
+                //////////////////////////////////////////////////////////
+                // Set the current Entry to be selected.
+                // Fixes the bug of losing selection after, e.g.
+                // an autogeneration of a BibTeX key.
+                // - ILC (16/02/2010) -
+                //////////////////////////////////////////////////////////
+<span class="fc" id="L571">                SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="fc" id="L572">                    final int row = panel.mainTable.findEntry(entry);</span>
+<span class="pc bpc" id="L573" title="1 of 2 branches missed.">                    if (row &gt;= 0) {</span>
+<span class="pc bpc" id="L574" title="1 of 2 branches missed.">                        if (panel.mainTable.getSelectedRowCount() == 0) {</span>
+<span class="nc" id="L575">                            panel.mainTable.setRowSelectionInterval(row, row);</span>
+                        }
+<span class="fc" id="L577">                        panel.mainTable.ensureVisible(row);</span>
+                    }
+<span class="fc" id="L579">                });</span>
+<span class="pc" id="L580">            } catch (IOException ex) {</span>
+<span class="nc" id="L581">                source.setText(ex.getMessage() + &quot;\n\n&quot; +</span>
+<span class="nc" id="L582">                        Localization.lang(&quot;Correct the entry, and &quot;</span>
+                                + &quot;reopen editor to display/edit source.&quot;));
+<span class="nc" id="L584">                source.setEditable(false);</span>
+<span class="nc" id="L585">                LOGGER.debug(&quot;Incorrect entry&quot;, ex);</span>
+            }
+
+        }
+<span class="fc" id="L589">    }</span>
+
+    public static String getSourceString(BibEntry entry, BibDatabaseMode type) throws IOException {
+<span class="fc" id="L592">        StringWriter stringWriter = new StringWriter(200);</span>
+<span class="fc" id="L593">        LatexFieldFormatter formatter = LatexFieldFormatter.buildIgnoreHashes();</span>
+<span class="fc" id="L594">        new BibEntryWriter(formatter, false).writeWithoutPrependedNewlines(entry, stringWriter, type);</span>
+
+<span class="fc" id="L596">        return stringWriter.getBuffer().toString();</span>
+    }
+
+    /**
+     * NOTE: This method is only used for the source panel, not for the
+     * other tabs. Look at EntryEditorTab for the setup of text components
+     * in the other tabs.
+     */
+    private void setupJTextComponent(JTextComponent textComponent) {
+        // Set up key bindings and focus listener for the FieldEditor.
+<span class="fc" id="L606">        InputMap inputMap = textComponent.getInputMap(JComponent.WHEN_FOCUSED);</span>
+<span class="fc" id="L607">        ActionMap actionMap = textComponent.getActionMap();</span>
+
+<span class="fc" id="L609">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_STORE_FIELD), &quot;store&quot;);</span>
+<span class="fc" id="L610">        actionMap.put(&quot;store&quot;, getStoreFieldAction());</span>
+
+<span class="fc" id="L612">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_NEXT_PANEL), &quot;right&quot;);</span>
+<span class="fc" id="L613">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_NEXT_PANEL_2), &quot;right&quot;);</span>
+<span class="fc" id="L614">        actionMap.put(&quot;right&quot;, getSwitchRightAction());</span>
+
+<span class="fc" id="L616">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_PREVIOUS_PANEL), &quot;left&quot;);</span>
+<span class="fc" id="L617">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.ENTRY_EDITOR_PREVIOUS_PANEL_2), &quot;left&quot;);</span>
+<span class="fc" id="L618">        actionMap.put(&quot;left&quot;, getSwitchLeftAction());</span>
+
+<span class="fc" id="L620">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.HELP), &quot;help&quot;);</span>
+<span class="fc" id="L621">        actionMap.put(&quot;help&quot;, getHelpAction());</span>
+<span class="fc" id="L622">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.SAVE_DATABASE), &quot;save&quot;);</span>
+<span class="fc" id="L623">        actionMap.put(&quot;save&quot;, getSaveDatabaseAction());</span>
+
+<span class="fc" id="L625">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.NEXT_TAB), &quot;nexttab&quot;);</span>
+<span class="fc" id="L626">        actionMap.put(&quot;nexttab&quot;, frame.nextTab);</span>
+<span class="fc" id="L627">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.PREVIOUS_TAB), &quot;prevtab&quot;);</span>
+<span class="fc" id="L628">        actionMap.put(&quot;prevtab&quot;, frame.prevTab);</span>
+
+<span class="fc" id="L630">        Set&lt;AWTKeyStroke&gt; keys = new HashSet&lt;&gt;(</span>
+<span class="fc" id="L631">                textComponent.getFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS));</span>
+<span class="fc" id="L632">        keys.clear();</span>
+<span class="fc" id="L633">        keys.add(AWTKeyStroke.getAWTKeyStroke(&quot;pressed TAB&quot;));</span>
+<span class="fc" id="L634">        textComponent.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS, keys);</span>
+<span class="fc" id="L635">        keys = new HashSet&lt;&gt;(textComponent</span>
+<span class="fc" id="L636">                .getFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS));</span>
+<span class="fc" id="L637">        keys.clear();</span>
+<span class="fc" id="L638">        keys.add(KeyStroke.getKeyStroke(&quot;shift pressed TAB&quot;));</span>
+<span class="fc" id="L639">        textComponent.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS, keys);</span>
+
+<span class="fc" id="L641">        textComponent.addFocusListener(new FieldListener());</span>
+<span class="fc" id="L642">    }</span>
+
+    @Override
+    public void requestFocus() {
+<span class="fc" id="L646">        activateVisible();</span>
+<span class="fc" id="L647">    }</span>
+
+    private void activateVisible() {
+<span class="fc" id="L650">        Object activeTab = tabs.get(tabbed.getSelectedIndex());</span>
+
+<span class="pc bpc" id="L652" title="1 of 2 branches missed.">        if (activeTab instanceof EntryEditorTab) {</span>
+<span class="fc" id="L653">            ((EntryEditorTab) activeTab).activate();</span>
+<span class="fc" id="L654">        } else {</span>
+<span class="nc" id="L655">            new FocusRequester(source);</span>
+        }
+<span class="fc" id="L657">    }</span>
+
+    /**
+     * Reports the enabled status of the editor, as set by setEnabled()
+     */
+    @Override
+    public boolean isEnabled() {
+<span class="nc" id="L664">        return source.isEnabled();</span>
+    }
+
+    /**
+     * Sets the enabled status of all text fields of the entry editor.
+     */
+    @Override
+    public void setEnabled(boolean enabled) {
+<span class="nc bnc" id="L672" title="All 2 branches missed.">        for (Object tab : tabs) {</span>
+<span class="nc bnc" id="L673" title="All 2 branches missed.">            if (tab instanceof EntryEditorTab) {</span>
+<span class="nc" id="L674">                ((EntryEditorTab) tab).setEnabled(enabled);</span>
+            }
+        }
+<span class="nc" id="L677">        source.setEnabled(enabled);</span>
+
+<span class="nc" id="L679">    }</span>
+
+    /**
+     * Centers the given row, and highlights it.
+     *
+     * @param row an &lt;code&gt;int&lt;/code&gt; value
+     */
+    private void scrollTo(int row) {
+<span class="nc" id="L687">        movingToDifferentEntry = true;</span>
+<span class="nc" id="L688">        panel.mainTable.setRowSelectionInterval(row, row);</span>
+<span class="nc" id="L689">        panel.mainTable.ensureVisible(row);</span>
+<span class="nc" id="L690">    }</span>
+
+    /**
+     * Makes sure the current edit is stored.
+     */
+    public void storeCurrentEdit() {
+<span class="fc" id="L696">        Component comp = Globals.focusListener.getFocused();</span>
+<span class="pc bpc" id="L697" title="4 of 6 branches missed.">        if (Objects.equals(comp, source) || ((comp instanceof FieldEditor) &amp;&amp; this.isAncestorOf(comp))) {</span>
+<span class="nc bnc" id="L698" title="All 2 branches missed.">            if (comp instanceof FieldEditor) {</span>
+<span class="nc" id="L699">                ((FieldEditor) comp).clearAutoCompleteSuggestion();</span>
+            }
+<span class="nc" id="L701">            getStoreFieldAction().actionPerformed(new ActionEvent(comp, 0, &quot;&quot;));</span>
+        }
+<span class="fc" id="L703">    }</span>
+
+    /**
+     * Returns the index of the active (visible) panel.
+     *
+     * @return an &lt;code&gt;int&lt;/code&gt; value
+     */
+    public int getVisiblePanel() {
+<span class="nc" id="L711">        return tabbed.getSelectedIndex();</span>
+    }
+
+    /**
+     * Returns the name of the currently selected component.
+     */
+    public String getVisiblePanelName() {
+<span class="fc" id="L718">        return tabbed.getSelectedComponent().getName();</span>
+    }
+
+    public void setVisiblePanel(String name) {
+<span class="pc bpc" id="L722" title="1 of 2 branches missed.">        for (int i = 0; i &lt; tabbed.getTabCount(); ++i) {</span>
+<span class="pc bpc" id="L723" title="2 of 4 branches missed.">            if ((tabbed.getComponent(i).getName() != null) &amp;&amp; tabbed.getComponent(i).getName().equals(name)) {</span>
+<span class="fc" id="L724">                tabbed.setSelectedIndex(i);</span>
+<span class="fc" id="L725">                return;</span>
+            }
+        }
+<span class="nc bnc" id="L728" title="All 2 branches missed.">        if (tabbed.getTabCount() &gt; 0) {</span>
+<span class="nc" id="L729">            tabbed.setSelectedIndex(0);</span>
+        }
+<span class="nc" id="L731">    }</span>
+
+    public void setFocusToField(String fieldName) {
+<span class="nc bnc" id="L734" title="All 2 branches missed.">        for (Object tab : tabs) {</span>
+<span class="nc bnc" id="L735" title="All 4 branches missed.">            if ((tab instanceof EntryEditorTab) &amp;&amp; ((EntryEditorTab) tab).getFields().contains(fieldName)) {</span>
+<span class="nc" id="L736">                EntryEditorTab entryEditorTab = (EntryEditorTab) tab;</span>
+<span class="nc" id="L737">                setVisiblePanel(entryEditorTab.getTabTitle());</span>
+<span class="nc" id="L738">                entryEditorTab.setActive(fieldName);</span>
+<span class="nc" id="L739">                entryEditorTab.activate();</span>
+            }
+        }
+<span class="nc" id="L742">    }</span>
+
+    /**
+     * Updates this editor to show the given entry, regardless of type
+     * correspondence.
+     *
+     * @param switchEntry a &lt;code&gt;BibEntry&lt;/code&gt; value
+     */
+    public synchronized void switchTo(BibEntry switchEntry) {
+<span class="fc" id="L751">        storeCurrentEdit();</span>
+
+        // Remove this instance as property listener for the entry:
+<span class="fc" id="L754">        this.entry.removePropertyChangeListener(this);</span>
+
+        // Register as property listener for the new entry:
+<span class="fc" id="L757">        switchEntry.addPropertyChangeListener(this);</span>
+
+<span class="fc" id="L759">        this.entry = switchEntry;</span>
+
+<span class="fc" id="L761">        updateAllFields();</span>
+<span class="fc" id="L762">        validateAllFields();</span>
+<span class="fc" id="L763">        updateSource();</span>
+<span class="fc" id="L764">        panel.newEntryShowing(switchEntry);</span>
+
+<span class="fc" id="L766">    }</span>
+
+    private boolean storeSource() {
+<span class="nc" id="L769">        BibtexParser bibtexParser = new BibtexParser(new StringReader(source.getText()));</span>
+
+        try {
+<span class="nc" id="L772">            ParserResult parserResult = bibtexParser.parse();</span>
+<span class="nc" id="L773">            BibDatabase database = parserResult.getDatabase();</span>
+
+<span class="nc bnc" id="L775" title="All 2 branches missed.">            if (database.getEntryCount() &gt; 1) {</span>
+<span class="nc" id="L776">                throw new IllegalStateException(&quot;More than one entry found.&quot;);</span>
+            }
+
+<span class="nc bnc" id="L779" title="All 2 branches missed.">            if (!database.hasEntries()) {</span>
+<span class="nc bnc" id="L780" title="All 2 branches missed.">                if (parserResult.hasWarnings()) {</span>
+                    // put the warning into as exception text -&gt; it will be displayed to the user
+<span class="nc" id="L782">                    throw new IllegalStateException(parserResult.warnings().get(0));</span>
+                } else {
+<span class="nc" id="L784">                    throw new IllegalStateException(&quot;No entries found.&quot;);</span>
+                }
+            }
+
+<span class="nc" id="L788">            NamedCompound compound = new NamedCompound(Localization.lang(&quot;source edit&quot;));</span>
+<span class="nc" id="L789">            BibEntry newEntry = database.getEntries().get(0);</span>
+<span class="nc" id="L790">            String newKey = newEntry.getCiteKey();</span>
+<span class="nc" id="L791">            boolean entryChanged = false;</span>
+<span class="nc" id="L792">            boolean duplicateWarning = false;</span>
+<span class="nc bnc" id="L793" title="All 4 branches missed.">            boolean emptyWarning = (newKey == null) || newKey.isEmpty();</span>
+
+<span class="nc bnc" id="L795" title="All 2 branches missed.">            if (panel.getDatabase().setCiteKeyForEntry(entry, newKey)) {</span>
+<span class="nc" id="L796">                duplicateWarning = true;</span>
+            }
+
+            // First, remove fields that the user has removed.
+<span class="nc bnc" id="L800" title="All 2 branches missed.">            for (String field : entry.getFieldNames()) {</span>
+<span class="nc bnc" id="L801" title="All 4 branches missed.">                if (InternalBibtexFields.isDisplayableField(field) &amp;&amp; !newEntry.hasField(field)) {</span>
+<span class="nc" id="L802">                    compound.addEdit(new UndoableFieldChange(entry, field, entry.getField(field), null));</span>
+<span class="nc" id="L803">                    entry.clearField(field);</span>
+<span class="nc" id="L804">                    entryChanged = true;</span>
+                }
+            }
+
+            // Then set all fields that have been set by the user.
+<span class="nc bnc" id="L809" title="All 2 branches missed.">            for (String field : newEntry.getFieldNames()) {</span>
+<span class="nc" id="L810">                String oldValue = entry.getField(field);</span>
+<span class="nc" id="L811">                String newValue = newEntry.getField(field);</span>
+<span class="nc bnc" id="L812" title="All 4 branches missed.">                if ((oldValue == null) || !oldValue.equals(newValue)) {</span>
+                    // Test if the field is legally set.
+<span class="nc" id="L814">                    new LatexFieldFormatter().format(newValue, field);</span>
+
+<span class="nc" id="L816">                    compound.addEdit(new UndoableFieldChange(entry, field, oldValue, newValue));</span>
+<span class="nc" id="L817">                    entry.setField(field, newValue);</span>
+<span class="nc" id="L818">                    entryChanged = true;</span>
+                }
+            }
+
+            // See if the user has changed the entry type:
+<span class="nc bnc" id="L823" title="All 2 branches missed.">            if (!Objects.equals(newEntry.getType(), entry.getType())) {</span>
+<span class="nc" id="L824">                compound.addEdit(new UndoableChangeType(entry, entry.getType(), newEntry.getType()));</span>
+<span class="nc" id="L825">                entry.setType(newEntry.getType());</span>
+<span class="nc" id="L826">                entryChanged = true;</span>
+            }
+<span class="nc" id="L828">            compound.end();</span>
+
+<span class="nc bnc" id="L830" title="All 2 branches missed.">            if (!entryChanged) {</span>
+<span class="nc" id="L831">                return true;</span>
+            }
+
+<span class="nc" id="L834">            panel.undoManager.addEdit(compound);</span>
+
+<span class="nc bnc" id="L836" title="All 2 branches missed.">            if (duplicateWarning) {</span>
+<span class="nc" id="L837">                warnDuplicateBibtexkey();</span>
+<span class="nc bnc" id="L838" title="All 2 branches missed.">            } else if (emptyWarning) {</span>
+<span class="nc" id="L839">                warnEmptyBibtexkey();</span>
+<span class="nc" id="L840">            } else {</span>
+<span class="nc" id="L841">                panel.output(Localization.lang(&quot;Stored entry&quot;) + '.');</span>
+            }
+
+<span class="nc" id="L844">            lastSourceStringAccepted = source.getText();</span>
+            // Update UI
+            // TODO: we need to repaint the entryeditor if fields that are not displayed have been added
+<span class="nc" id="L847">            panel.updateEntryEditorIfShowing();</span>
+<span class="nc" id="L848">            lastSourceAccepted = true;</span>
+<span class="nc" id="L849">            updateSource = true;</span>
+            // TODO: does updating work properly after source stored?
+<span class="nc" id="L851">            panel.markBaseChanged();</span>
+
+<span class="nc" id="L853">            SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L854">                final int row = panel.mainTable.findEntry(entry);</span>
+<span class="nc bnc" id="L855" title="All 2 branches missed.">                if (row &gt;= 0) {</span>
+<span class="nc" id="L856">                    panel.mainTable.ensureVisible(row);</span>
+                }
+<span class="nc" id="L858">            });</span>
+
+<span class="nc" id="L860">            return true;</span>
+<span class="nc" id="L861">        } catch (IllegalStateException | IOException ex) {</span>
+            // The source couldn't be parsed, so the user is given an
+            // error message, and the choice to keep or revert the contents
+            // of the source text field.
+<span class="nc" id="L865">            updateSource = false;</span>
+<span class="nc" id="L866">            lastSourceAccepted = false;</span>
+<span class="nc" id="L867">            tabbed.setSelectedComponent(srcPanel);</span>
+
+<span class="nc" id="L869">            Object[] options = {Localization.lang(&quot;Edit&quot;), Localization.lang(&quot;Revert to original source&quot;)};</span>
+
+<span class="nc" id="L871">            int answer = JOptionPane.showOptionDialog(frame, Localization.lang(&quot;Error&quot;) + &quot;: &quot; + ex.getMessage(),</span>
+<span class="nc" id="L872">                    Localization.lang(&quot;Problem with parsing entry&quot;), JOptionPane.YES_NO_OPTION,</span>
+<span class="nc" id="L873">                    JOptionPane.ERROR_MESSAGE, null, options, options[0]);</span>
+
+<span class="nc bnc" id="L875" title="All 2 branches missed.">            if (answer != 0) {</span>
+<span class="nc" id="L876">                updateSource = true;</span>
+<span class="nc" id="L877">                updateSource();</span>
+            }
+
+<span class="nc" id="L880">            LOGGER.debug(&quot;Incorrect source&quot;, ex);</span>
+
+<span class="nc" id="L882">            return false;</span>
+        }
+    }
+
+    private void setField(String fieldName, String newFieldData) {
+<span class="fc bfc" id="L887" title="All 2 branches covered.">        for (Object tab : tabs) {</span>
+<span class="fc bfc" id="L888" title="All 2 branches covered.">            if (tab instanceof EntryEditorTab) {</span>
+<span class="fc" id="L889">                ((EntryEditorTab) tab).updateField(fieldName, newFieldData);</span>
+            }
+        }
+<span class="fc" id="L892">    }</span>
+
+    /**
+     * Sets all the text areas according to the shown entry.
+     */
+    public void updateAllFields() {
+<span class="fc bfc" id="L898" title="All 2 branches covered.">        for (Object tab : tabs) {</span>
+<span class="fc bfc" id="L899" title="All 2 branches covered.">            if (tab instanceof EntryEditorTab) {</span>
+<span class="fc" id="L900">                ((EntryEditorTab) tab).setEntry(entry);</span>
+            }
+        }
+<span class="fc" id="L903">    }</span>
+
+    /**
+     * Removes the &quot;invalid field&quot; color from all text areas.
+     */
+    public void validateAllFields() {
+<span class="fc bfc" id="L909" title="All 2 branches covered.">        for (Object tab : tabs) {</span>
+<span class="fc bfc" id="L910" title="All 2 branches covered.">            if (tab instanceof EntryEditorTab) {</span>
+<span class="fc" id="L911">                ((EntryEditorTab) tab).validateAllFields();</span>
+            }
+        }
+<span class="fc" id="L914">    }</span>
+
+    public void updateAllContentSelectors() {
+<span class="nc bnc" id="L917" title="All 2 branches missed.">        if (!contentSelectors.isEmpty()) {</span>
+<span class="nc bnc" id="L918" title="All 2 branches missed.">            for (FieldContentSelector contentSelector : contentSelectors) {</span>
+<span class="nc" id="L919">                contentSelector.rebuildComboBox();</span>
+            }
+        }
+<span class="nc" id="L922">    }</span>
+
+    /**
+     * Update the JTextArea when a field has changed.
+     *
+     * @see java.beans.VetoableChangeListener#vetoableChange(java.beans.PropertyChangeEvent)
+     */
+    @Override
+    public void vetoableChange(PropertyChangeEvent e) {
+<span class="fc bfc" id="L931" title="All 2 branches covered.">        String newValue = e.getNewValue() == null ? &quot;&quot; : e.getNewValue().toString();</span>
+<span class="fc" id="L932">        setField(e.getPropertyName(), newValue);</span>
+<span class="fc" id="L933">    }</span>
+
+    public void updateField(final Object sourceObject) {
+<span class="fc" id="L936">        getStoreFieldAction().actionPerformed(new ActionEvent(sourceObject, 0, &quot;&quot;));</span>
+<span class="fc" id="L937">    }</span>
+
+    public void setMovingToDifferentEntry() {
+<span class="fc" id="L940">        movingToDifferentEntry = true;</span>
+<span class="fc" id="L941">    }</span>
+
+
+    private class TypeButton extends JButton {
+<span class="fc" id="L945">        public TypeButton() {</span>
+<span class="fc" id="L946">            super(IconTheme.JabRefIcon.EDIT.getIcon());</span>
+<span class="fc" id="L947">            setToolTipText(Localization.lang(&quot;Change entry type&quot;));</span>
+<span class="pc" id="L948">            addActionListener(e -&gt; showChangeEntryTypePopupMenu());</span>
+<span class="fc" id="L949">        }</span>
+    }
+
+    private void showChangeEntryTypePopupMenu() {
+<span class="nc" id="L953">        JPopupMenu typeMenu = new ChangeEntryTypeMenu().getChangeentryTypePopupMenu(panel);</span>
+<span class="nc" id="L954">        typeMenu.show(this, 0, 0);</span>
+<span class="nc" id="L955">    }</span>
+
+    private class TypeLabel extends JLabel {
+<span class="fc" id="L958">        public TypeLabel(String type) {</span>
+<span class="fc" id="L959">            super(type);</span>
+<span class="fc" id="L960">            setUI(new VerticalLabelUI(false));</span>
+<span class="fc" id="L961">            setForeground(GUIGlobals.ENTRY_EDITOR_LABEL_COLOR);</span>
+<span class="fc" id="L962">            setHorizontalAlignment(SwingConstants.RIGHT);</span>
+<span class="fc" id="L963">            setFont(new Font(&quot;dialog&quot;, Font.ITALIC + Font.BOLD, 18));</span>
+
+            // Add a mouse listener so the user can right-click the type label to change the entry type:
+<span class="fc" id="L966">            addMouseListener(new MouseAdapter() {</span>
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+<span class="nc bnc" id="L970" title="All 4 branches missed.">                    if (e.isPopupTrigger() || (e.getButton() == MouseEvent.BUTTON3)) {</span>
+<span class="nc" id="L971">                        handleTypeChange();</span>
+                    }
+<span class="nc" id="L973">                }</span>
+
+                @Override
+                public void mouseClicked(MouseEvent e) {
+<span class="nc bnc" id="L977" title="All 4 branches missed.">                    if (e.isPopupTrigger() || (e.getButton() == MouseEvent.BUTTON3)) {</span>
+<span class="nc" id="L978">                        handleTypeChange();</span>
+                    }
+<span class="nc" id="L980">                }</span>
+
+                private void handleTypeChange() {
+<span class="nc" id="L983">                    showChangeEntryTypePopupMenu();</span>
+<span class="nc" id="L984">                }</span>
+            });
+<span class="fc" id="L986">        }</span>
+
+        @Override
+        public void paintComponent(Graphics g) {
+<span class="fc" id="L990">            Graphics2D g2 = (Graphics2D) g;</span>
+<span class="fc" id="L991">            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);</span>
+<span class="fc" id="L992">            super.paintComponent(g2);</span>
+<span class="fc" id="L993">        }</span>
+    }
+
+<span class="fc" id="L996">    private class FieldListener extends FocusAdapter {</span>
+
+        /*
+         * Focus listener that fires the storeFieldAction when a TextArea
+         * loses focus.
+         */
+        @Override
+        public void focusGained(FocusEvent e) {
+            // Do nothing
+<span class="nc" id="L1005">        }</span>
+
+        @Override
+        public void focusLost(FocusEvent event) {
+<span class="nc bnc" id="L1009" title="All 2 branches missed.">            if (!event.isTemporary()) {</span>
+<span class="nc" id="L1010">                updateField(event.getSource());</span>
+            }
+<span class="nc" id="L1012">        }</span>
+    }
+
+<span class="fc" id="L1015">    private class TabListener implements ChangeListener {</span>
+        @Override
+        public void stateChanged(ChangeEvent event) {
+            // We tell the editor tab to update all its fields.
+            //  This makes sure they are updated even if the tab we
+            // just left contained one
+            // or more of the same fields as this one:
+<span class="nc" id="L1022">            SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L1023">                Object activeTab = tabs.get(tabbed.getSelectedIndex());</span>
+<span class="nc bnc" id="L1024" title="All 2 branches missed.">                if (activeTab instanceof EntryEditorTab) {</span>
+<span class="nc" id="L1025">                    ((EntryEditorTab) activeTab).updateAll();</span>
+                }
+<span class="nc" id="L1027">            });</span>
+<span class="nc" id="L1028">        }</span>
+    }
+
+    class DeleteAction extends AbstractAction {
+<span class="fc" id="L1032">        public DeleteAction() {</span>
+<span class="fc" id="L1033">            super(Localization.lang(&quot;Delete&quot;), IconTheme.JabRefIcon.DELETE_ENTRY.getIcon());</span>
+<span class="fc" id="L1034">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Delete entry&quot;));</span>
+<span class="fc" id="L1035">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            // Show confirmation dialog if not disabled:
+<span class="nc" id="L1040">            boolean goOn = panel.showDeleteConfirmationDialog(1);</span>
+
+<span class="nc bnc" id="L1042" title="All 2 branches missed.">            if (!goOn) {</span>
+<span class="nc" id="L1043">                return;</span>
+            }
+
+<span class="nc" id="L1046">            panel.entryEditorClosing(EntryEditor.this);</span>
+<span class="nc" id="L1047">            panel.getDatabase().removeEntry(entry);</span>
+<span class="nc" id="L1048">            panel.markBaseChanged();</span>
+<span class="nc" id="L1049">            panel.undoManager.addEdit(new UndoableRemoveEntry(panel.getDatabase(), entry, panel));</span>
+<span class="nc" id="L1050">            panel.output(Localization.lang(&quot;Deleted entry&quot;));</span>
+<span class="nc" id="L1051">        }</span>
+    }
+
+    class CloseAction extends AbstractAction {
+<span class="fc" id="L1055">        public CloseAction() {</span>
+<span class="fc" id="L1056">            super(Localization.lang(&quot;Close window&quot;), IconTheme.JabRefIcon.CLOSE.getSmallIcon());</span>
+<span class="fc" id="L1057">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Close window&quot;));</span>
+<span class="fc" id="L1058">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="pc bpc" id="L1062" title="1 of 2 branches missed.">            if (tabbed.getSelectedComponent() == srcPanel) {</span>
+<span class="nc" id="L1063">                updateField(source);</span>
+<span class="nc bnc" id="L1064" title="All 2 branches missed.">                if (lastSourceAccepted) {</span>
+<span class="nc" id="L1065">                    panel.entryEditorClosing(EntryEditor.this);</span>
+                }
+<span class="nc" id="L1067">            } else {</span>
+<span class="fc" id="L1068">                panel.entryEditorClosing(EntryEditor.this);</span>
+            }
+<span class="fc" id="L1070">        }</span>
+    }
+
+    public class StoreFieldAction extends AbstractAction {
+<span class="fc" id="L1074">        public StoreFieldAction() {</span>
+<span class="fc" id="L1075">            super(&quot;Store field value&quot;);</span>
+<span class="fc" id="L1076">            putValue(Action.SHORT_DESCRIPTION, &quot;Store field value&quot;);</span>
+<span class="fc" id="L1077">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent event) {
+<span class="fc" id="L1081">            boolean movingAway = movingToDifferentEntry;</span>
+<span class="fc" id="L1082">            movingToDifferentEntry = false;</span>
+
+<span class="fc bfc" id="L1084" title="All 2 branches covered.">            if (event.getSource() instanceof TextField) {</span>
+                // Storage from bibtex key field.
+<span class="fc" id="L1086">                TextField textField = (TextField) event.getSource();</span>
+<span class="fc" id="L1087">                String oldValue = entry.getCiteKey();</span>
+<span class="fc" id="L1088">                String newValue = textField.getText();</span>
+
+<span class="fc bfc" id="L1090" title="All 2 branches covered.">                if (newValue.isEmpty()) {</span>
+<span class="fc" id="L1091">                    newValue = null;</span>
+                }
+
+<span class="pc bpc" id="L1094" title="4 of 8 branches missed.">                if (((oldValue == null) &amp;&amp; (newValue == null)) || ((oldValue != null) &amp;&amp; oldValue.equals(newValue))) {</span>
+<span class="fc" id="L1095">                    return; // No change.</span>
+                }
+
+                // Make sure the key is legal:
+<span class="fc" id="L1099">                String cleaned = LabelPatternUtil.checkLegalKey(newValue);</span>
+<span class="pc bpc" id="L1100" title="1 of 4 branches missed.">                if ((cleaned == null) || cleaned.equals(newValue)) {</span>
+<span class="fc" id="L1101">                    textField.setValidBackgroundColor();</span>
+<span class="fc" id="L1102">                } else {</span>
+<span class="fc" id="L1103">                    JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Invalid BibTeX key&quot;),</span>
+<span class="fc" id="L1104">                            Localization.lang(&quot;Error setting field&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="fc" id="L1105">                    textField.setInvalidBackgroundColor();</span>
+<span class="fc" id="L1106">                    return;</span>
+                }
+
+<span class="fc" id="L1109">                boolean isDuplicate = panel.getDatabase().setCiteKeyForEntry(entry, newValue);</span>
+
+<span class="pc bpc" id="L1111" title="1 of 2 branches missed.">                if (newValue == null) {</span>
+<span class="nc" id="L1112">                    warnEmptyBibtexkey();</span>
+<span class="nc" id="L1113">                } else {</span>
+<span class="pc bpc" id="L1114" title="1 of 2 branches missed.">                    if (isDuplicate) {</span>
+<span class="nc" id="L1115">                        warnDuplicateBibtexkey();</span>
+<span class="nc" id="L1116">                    } else {</span>
+<span class="fc" id="L1117">                        panel.output(Localization.lang(&quot;BibTeX key is unique.&quot;));</span>
+                    }
+                }
+
+                // Add an UndoableKeyChange to the baseframe's undoManager.
+<span class="fc" id="L1122">                UndoableKeyChange undoableKeyChange = new UndoableKeyChange(panel.getDatabase(), entry, oldValue, newValue);</span>
+<span class="pc bpc" id="L1123" title="1 of 2 branches missed.">                if (TimeStamp.updateTimeStampIsSet()) {</span>
+<span class="nc" id="L1124">                    NamedCompound ce = new NamedCompound(undoableKeyChange.getPresentationName());</span>
+<span class="nc" id="L1125">                    ce.addEdit(undoableKeyChange);</span>
+<span class="nc" id="L1126">                    TimeStamp.doUpdateTimeStamp(entry)</span>
+<span class="nc" id="L1127">                            .ifPresent(fieldChange -&gt; ce.addEdit(new UndoableFieldChange(fieldChange)));</span>
+<span class="nc" id="L1128">                    panel.undoManager.addEdit(ce);</span>
+<span class="nc" id="L1129">                } else {</span>
+<span class="fc" id="L1130">                    panel.undoManager.addEdit(undoableKeyChange);</span>
+                }
+
+<span class="fc" id="L1133">                textField.setValidBackgroundColor();</span>
+
+<span class="pc bpc" id="L1135" title="1 of 2 branches missed.">                if (textField.getTextComponent().hasFocus()) {</span>
+<span class="nc" id="L1136">                    textField.setActiveBackgroundColor();</span>
+                }
+<span class="fc" id="L1138">                updateSource();</span>
+<span class="fc" id="L1139">                panel.markBaseChanged();</span>
+<span class="pc bpc" id="L1140" title="1 of 2 branches missed.">            } else if (event.getSource() instanceof FieldEditor) {</span>
+<span class="fc" id="L1141">                String toSet = null;</span>
+<span class="fc" id="L1142">                FieldEditor fieldEditor = (FieldEditor) event.getSource();</span>
+                boolean set;
+                // Trim the whitespace off this value
+<span class="fc" id="L1145">                String currentText = fieldEditor.getText();</span>
+<span class="fc" id="L1146">                String trim = currentText.trim();</span>
+<span class="fc bfc" id="L1147" title="All 2 branches covered.">                if (!trim.isEmpty()) {</span>
+<span class="fc" id="L1148">                    toSet = trim;</span>
+                }
+
+                // We check if the field has changed, since we don't want to
+                // mark the base as changed unless we have a real change.
+<span class="fc bfc" id="L1153" title="All 2 branches covered.">                if (toSet == null) {</span>
+<span class="fc" id="L1154">                    set = entry.hasField(fieldEditor.getFieldName());</span>
+<span class="fc" id="L1155">                } else {</span>
+<span class="pc bfc" id="L1156" title="All 2 branches covered.">                    set = !((entry.hasField(fieldEditor.getFieldName()))</span>
+<span class="pc bpc" id="L1157" title="1 of 2 branches missed.">                            &amp;&amp; toSet.equals(entry.getField(fieldEditor.getFieldName())));</span>
+                }
+
+<span class="fc bfc" id="L1160" title="All 2 branches covered.">                if (set) {</span>
+                    try {
+                        // The following statement attempts to write the
+                        // new contents into a StringWriter, and this will
+                        // cause an IOException if the field is not
+                        // properly formatted. If that happens, the field
+                        // is not stored and the textarea turns red.
+<span class="fc bfc" id="L1167" title="All 2 branches covered.">                        if (toSet != null) {</span>
+<span class="fc" id="L1168">                            new LatexFieldFormatter().format(toSet, fieldEditor.getFieldName());</span>
+                        }
+
+<span class="fc" id="L1171">                        String oldValue = entry.getField(fieldEditor.getFieldName());</span>
+
+<span class="fc bfc" id="L1173" title="All 2 branches covered.">                        if (toSet == null) {</span>
+<span class="fc" id="L1174">                            entry.clearField(fieldEditor.getFieldName());</span>
+<span class="fc" id="L1175">                        } else {</span>
+<span class="fc" id="L1176">                            entry.setField(fieldEditor.getFieldName(), toSet);</span>
+                        }
+
+<span class="fc" id="L1179">                        fieldEditor.setValidBackgroundColor();</span>
+
+                        // See if we need to update an AutoCompleter instance:
+<span class="fc" id="L1182">                        AutoCompleter&lt;String&gt; aComp = panel.getAutoCompleters().get(fieldEditor.getFieldName());</span>
+<span class="fc bfc" id="L1183" title="All 2 branches covered.">                        if (aComp != null) {</span>
+<span class="fc" id="L1184">                            aComp.addBibtexEntry(entry);</span>
+                        }
+
+                        // Add an UndoableFieldChange to the baseframe's undoManager.
+<span class="fc" id="L1188">                        UndoableFieldChange undoableFieldChange = new UndoableFieldChange(entry, fieldEditor.getFieldName(), oldValue, toSet);</span>
+<span class="pc bpc" id="L1189" title="1 of 2 branches missed.">                        if (TimeStamp.updateTimeStampIsSet()) {</span>
+<span class="nc" id="L1190">                            NamedCompound ce = new NamedCompound(undoableFieldChange.getPresentationName());</span>
+<span class="nc" id="L1191">                            ce.addEdit(undoableFieldChange);</span>
+
+<span class="nc" id="L1193">                            TimeStamp.doUpdateTimeStamp(entry)</span>
+<span class="nc" id="L1194">                                    .ifPresent(fieldChange -&gt; ce.addEdit(new UndoableFieldChange(fieldChange)));</span>
+
+<span class="nc" id="L1196">                            panel.undoManager.addEdit(ce);</span>
+<span class="nc" id="L1197">                        } else {</span>
+<span class="fc" id="L1198">                            panel.undoManager.addEdit(undoableFieldChange);</span>
+                        }
+<span class="fc" id="L1200">                        updateSource();</span>
+<span class="fc" id="L1201">                        panel.markBaseChanged();</span>
+<span class="pc" id="L1202">                    } catch (IllegalArgumentException ex) {</span>
+<span class="nc" id="L1203">                        JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Error&quot;) + &quot;: &quot; + ex.getMessage(),</span>
+<span class="nc" id="L1204">                                Localization.lang(&quot;Error setting field&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L1205">                        fieldEditor.setInvalidBackgroundColor();</span>
+<span class="nc" id="L1206">                        LOGGER.debug(&quot;Error setting field&quot;, ex);</span>
+                    }
+<span class="nc" id="L1208">                } else {</span>
+                    // set == false
+                    // We set the field and label color.
+<span class="fc" id="L1211">                    fieldEditor.setValidBackgroundColor();</span>
+                }
+<span class="pc bpc" id="L1213" title="1 of 2 branches missed.">                if (fieldEditor.getTextComponent().hasFocus()) {</span>
+<span class="nc" id="L1214">                    fieldEditor.setBackground(GUIGlobals.ACTIVE_EDITOR_COLOR);</span>
+                }
+<span class="nc bnc" id="L1216" title="All 2 branches missed.">            } else if (source.isEditable()</span>
+<span class="nc bnc" id="L1217" title="All 2 branches missed.">                    &amp;&amp; !source.getText().equals(lastSourceStringAccepted)) {</span>
+<span class="nc" id="L1218">                storeSource();</span>
+            }
+
+            // Make sure we scroll to the entry if it moved in the table.
+            // Should only be done if this editor is currently showing:
+<span class="pc bpc" id="L1223" title="1 of 4 branches missed.">            if (!movingAway &amp;&amp; isShowing()) {</span>
+<span class="fc" id="L1224">                SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="fc" id="L1225">                    final int row = panel.mainTable.findEntry(entry);</span>
+<span class="pc bpc" id="L1226" title="1 of 2 branches missed.">                    if (row &gt;= 0) {</span>
+<span class="fc" id="L1227">                        panel.mainTable.ensureVisible(row);</span>
+                    }
+<span class="fc" id="L1229">                });</span>
+            }
+<span class="fc" id="L1231">        }</span>
+    }
+
+    class SwitchLeftAction extends AbstractAction {
+<span class="fc" id="L1235">        public SwitchLeftAction() {</span>
+<span class="fc" id="L1236">            super(&quot;Switch to the panel to the left&quot;);</span>
+<span class="fc" id="L1237">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1241">            int i = tabbed.getSelectedIndex();</span>
+<span class="nc bnc" id="L1242" title="All 2 branches missed.">            tabbed.setSelectedIndex(i &gt; 0 ? i - 1 : tabbed.getTabCount() - 1);</span>
+
+<span class="nc" id="L1244">            activateVisible();</span>
+<span class="nc" id="L1245">        }</span>
+    }
+
+    class SwitchRightAction extends AbstractAction {
+<span class="fc" id="L1249">        public SwitchRightAction() {</span>
+<span class="fc" id="L1250">            super(&quot;Switch to the panel to the right&quot;);</span>
+<span class="fc" id="L1251">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1255">            int i = tabbed.getSelectedIndex();</span>
+<span class="nc bnc" id="L1256" title="All 2 branches missed.">            tabbed.setSelectedIndex(i &lt; (tabbed.getTabCount() - 1) ? i + 1 : 0);</span>
+<span class="nc" id="L1257">            activateVisible();</span>
+
+<span class="nc" id="L1259">        }</span>
+    }
+
+    class NextEntryAction extends AbstractAction {
+<span class="fc" id="L1263">        public NextEntryAction() {</span>
+<span class="fc" id="L1264">            super(Localization.lang(&quot;Next entry&quot;), IconTheme.JabRefIcon.DOWN.getIcon());</span>
+
+<span class="fc" id="L1266">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Next entry&quot;));</span>
+<span class="fc" id="L1267">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+<span class="nc" id="L1272">            int thisRow = panel.mainTable.findEntry(entry);</span>
+            int newRow;
+
+<span class="nc bnc" id="L1275" title="All 2 branches missed.">            if ((thisRow + 1) &lt; panel.getDatabase().getEntryCount()) {</span>
+<span class="nc" id="L1276">                newRow = thisRow + 1;</span>
+<span class="nc bnc" id="L1277" title="All 2 branches missed.">            } else if (thisRow &gt; 0) {</span>
+<span class="nc" id="L1278">                newRow = 0;</span>
+<span class="nc" id="L1279">            } else {</span>
+<span class="nc" id="L1280">                return; // newRow is still -1, so we can assume the database has</span>
+                // only one entry.
+            }
+
+<span class="nc" id="L1284">            scrollTo(newRow);</span>
+<span class="nc" id="L1285">            panel.mainTable.setRowSelectionInterval(newRow, newRow);</span>
+
+<span class="nc" id="L1287">        }</span>
+    }
+
+    class PrevEntryAction extends AbstractAction {
+<span class="fc" id="L1291">        public PrevEntryAction() {</span>
+<span class="fc" id="L1292">            super(Localization.lang(&quot;Previous entry&quot;), IconTheme.JabRefIcon.UP.getIcon());</span>
+
+<span class="fc" id="L1294">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Previous entry&quot;));</span>
+<span class="fc" id="L1295">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1299">            int thisRow = panel.mainTable.findEntry(entry);</span>
+            int newRow;
+
+<span class="nc bnc" id="L1302" title="All 2 branches missed.">            if ((thisRow - 1) &gt;= 0) {</span>
+<span class="nc" id="L1303">                newRow = thisRow - 1;</span>
+<span class="nc bnc" id="L1304" title="All 2 branches missed.">            } else if (thisRow != (panel.getDatabase().getEntryCount() - 1)) {</span>
+<span class="nc" id="L1305">                newRow = panel.getDatabase().getEntryCount() - 1;</span>
+<span class="nc" id="L1306">            } else {</span>
+<span class="nc" id="L1307">                return; // newRow is still -1, so we can assume the database has</span>
+                // only one entry.
+
+            }
+
+<span class="nc" id="L1312">            scrollTo(newRow);</span>
+<span class="nc" id="L1313">            panel.mainTable.setRowSelectionInterval(newRow, newRow);</span>
+
+<span class="nc" id="L1315">        }</span>
+    }
+
+    class GenerateKeyAction extends AbstractAction {
+
+<span class="fc" id="L1320">        public GenerateKeyAction() {</span>
+<span class="fc" id="L1321">            super(Localization.lang(&quot;Generate BibTeX key&quot;), IconTheme.JabRefIcon.MAKE_KEY.getIcon());</span>
+
+<span class="fc" id="L1323">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Generate BibTeX key&quot;));</span>
+
+<span class="fc" id="L1325">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            // 1. get BibEntry for selected index (already have)
+            // 2. update label
+
+            // Store the current edit in case this action is called during the
+            // editing of a field:
+<span class="nc" id="L1334">            storeCurrentEdit();</span>
+
+            // This is a partial clone of net.sf.jabref.gui.BasePanel.setupActions().new AbstractWorker() {...}.run()
+
+            // this updates the table automatically, on close, but not
+            // within the tab
+<span class="nc" id="L1340">            Object oldValue = entry.getCiteKey();</span>
+
+<span class="nc bnc" id="L1342" title="All 2 branches missed.">            if (oldValue != null) {</span>
+<span class="nc bnc" id="L1343" title="All 2 branches missed.">                if (Globals.prefs.getBoolean(JabRefPreferences.AVOID_OVERWRITING_KEY)) {</span>
+<span class="nc" id="L1344">                    panel.output(Localization.lang(&quot;Not overwriting existing key. To change this setting, open Options -&gt; Prefererences -&gt; BibTeX key generator&quot;));</span>
+<span class="nc" id="L1345">                    return;</span>
+<span class="nc bnc" id="L1346" title="All 2 branches missed.">                } else if (Globals.prefs.getBoolean(JabRefPreferences.WARN_BEFORE_OVERWRITING_KEY)) {</span>
+<span class="nc" id="L1347">                    CheckBoxMessage cbm = new CheckBoxMessage(Localization.lang(&quot;The current BibTeX key will be overwritten. Continue?&quot;),</span>
+<span class="nc" id="L1348">                            Localization.lang(&quot;Disable this confirmation dialog&quot;), false);</span>
+<span class="nc" id="L1349">                    int answer = JOptionPane.showConfirmDialog(frame, cbm, Localization.lang(&quot;Overwrite key&quot;),</span>
+<span class="nc" id="L1350">                            JOptionPane.YES_NO_OPTION);</span>
+<span class="nc bnc" id="L1351" title="All 2 branches missed.">                    if (cbm.isSelected()) {</span>
+<span class="nc" id="L1352">                        Globals.prefs.putBoolean(JabRefPreferences.WARN_BEFORE_OVERWRITING_KEY, false);</span>
+                    }
+<span class="nc bnc" id="L1354" title="All 2 branches missed.">                    if (answer == JOptionPane.NO_OPTION) {</span>
+                        // Ok, break off the operation.
+<span class="nc" id="L1356">                        return;</span>
+                    }
+                }
+            }
+
+<span class="nc" id="L1361">            LabelPatternUtil.makeLabel(panel.getBibDatabaseContext().getMetaData(), panel.getDatabase(), entry);</span>
+
+            // Store undo information:
+<span class="nc" id="L1364">            panel.undoManager.addEdit(new UndoableKeyChange(panel.getDatabase(), entry, (String) oldValue, entry.getCiteKey()));</span>
+
+            // here we update the field
+<span class="nc" id="L1367">            String bibtexKeyData = entry.getCiteKey();</span>
+<span class="nc" id="L1368">            setField(BibEntry.KEY_FIELD, bibtexKeyData);</span>
+<span class="nc" id="L1369">            updateSource();</span>
+<span class="nc" id="L1370">            panel.markBaseChanged();</span>
+
+<span class="nc" id="L1372">        }</span>
+    }
+
+    class UndoAction extends AbstractAction {
+<span class="fc" id="L1376">        public UndoAction() {</span>
+<span class="fc" id="L1377">            super(&quot;Undo&quot;, IconTheme.JabRefIcon.UNDO.getIcon());</span>
+<span class="fc" id="L1378">            putValue(Action.SHORT_DESCRIPTION, &quot;Undo&quot;);</span>
+<span class="fc" id="L1379">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1383">            panel.runCommand(Actions.UNDO);</span>
+<span class="nc" id="L1384">        }</span>
+    }
+
+    class RedoAction extends AbstractAction {
+<span class="fc" id="L1388">        public RedoAction() {</span>
+<span class="fc" id="L1389">            super(&quot;Redo&quot;, IconTheme.JabRefIcon.REDO.getIcon());</span>
+<span class="fc" id="L1390">            putValue(Action.SHORT_DESCRIPTION, &quot;Redo&quot;);</span>
+<span class="fc" id="L1391">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1395">            panel.runCommand(Actions.REDO);</span>
+<span class="nc" id="L1396">        }</span>
+    }
+
+    class SaveDatabaseAction extends AbstractAction {
+<span class="fc" id="L1400">        public SaveDatabaseAction() {</span>
+<span class="fc" id="L1401">            super(&quot;Save database&quot;);</span>
+<span class="fc" id="L1402">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1406">            Object activeTab = tabs.get(tabbed.getSelectedIndex());</span>
+<span class="nc bnc" id="L1407" title="All 2 branches missed.">            if (activeTab instanceof EntryEditorTab) {</span>
+                // Normal panel.
+<span class="nc" id="L1409">                EntryEditorTab fp = (EntryEditorTab) activeTab;</span>
+<span class="nc" id="L1410">                FieldEditor fe = fp.getActive();</span>
+<span class="nc" id="L1411">                fe.clearAutoCompleteSuggestion();</span>
+<span class="nc" id="L1412">                updateField(fe);</span>
+<span class="nc" id="L1413">            } else {</span>
+                // Source panel.
+<span class="nc" id="L1415">                updateField(activeTab);</span>
+            }
+
+
+<span class="nc" id="L1419">            panel.runCommand(Actions.SAVE);</span>
+
+<span class="nc" id="L1421">        }</span>
+    }
+
+    private void warnDuplicateBibtexkey() {
+<span class="nc" id="L1425">        panel.output(Localization.lang(&quot;Duplicate BibTeX key&quot;) + &quot;. &quot;</span>
+<span class="nc" id="L1426">                + Localization.lang(&quot;Grouping may not work for this entry.&quot;));</span>
+<span class="nc" id="L1427">    }</span>
+
+    private void warnEmptyBibtexkey() {
+<span class="nc" id="L1430">        panel.output(Localization.lang(&quot;Empty BibTeX key&quot;)+&quot;. &quot;+Localization.lang(&quot;Grouping may not work for this entry.&quot;));</span>
+<span class="nc" id="L1431">    }</span>
+
+
+    public AbstractAction getNextEntryAction() {
+<span class="fc" id="L1435">        return nextEntryAction;</span>
+    }
+
+
+    public AbstractAction getPrevEntryAction() {
+<span class="fc" id="L1440">        return prevEntryAction;</span>
+    }
+
+
+    public SwitchLeftAction getSwitchLeftAction() {
+<span class="fc" id="L1445">        return switchLeftAction;</span>
+    }
+
+
+    public SwitchRightAction getSwitchRightAction() {
+<span class="fc" id="L1450">        return switchRightAction;</span>
+    }
+
+
+    public SaveDatabaseAction getSaveDatabaseAction() {
+<span class="fc" id="L1455">        return saveDatabaseAction;</span>
+    }
+
+
+    public HelpAction getHelpAction() {
+<span class="fc" id="L1460">        return helpAction;</span>
+    }
+
+
+    public GenerateKeyAction getGenerateKeyAction() {
+<span class="fc" id="L1465">        return generateKeyAction;</span>
+    }
+
+
+    public StoreFieldAction getStoreFieldAction() {
+<span class="fc" id="L1470">        return storeFieldAction;</span>
+    }
+
+
+    private class AutoLinkAction extends AbstractAction {
+<span class="fc" id="L1475">        public AutoLinkAction() {</span>
+<span class="fc" id="L1476">            putValue(Action.SMALL_ICON, IconTheme.JabRefIcon.AUTO_FILE_LINK.getIcon());</span>
+<span class="fc" id="L1477">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Automatically set file links for this entry&quot;) + &quot; (Alt-F)&quot;);</span>
+<span class="fc" id="L1478">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent event) {
+<span class="nc" id="L1482">            FileListEditor localFileListEditor = EntryEditor.this.fileListEditor;</span>
+<span class="nc bnc" id="L1483" title="All 2 branches missed.">            if (localFileListEditor == null) {</span>
+<span class="nc" id="L1484">                LOGGER.warn(&quot;No file list editor found.&quot;);</span>
+<span class="nc" id="L1485">            } else {</span>
+<span class="nc" id="L1486">                localFileListEditor.autoSetLinks();</span>
+            }
+<span class="nc" id="L1488">        }</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

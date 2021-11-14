@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>RightClickMenu.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.menus</a> &gt; <span class="el_source">RightClickMenu.java</span></div><h1>RightClickMenu.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.menus;
+
+import java.awt.event.ActionEvent;
+
+import javax.swing.AbstractAction;
+import javax.swing.Icon;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.EntryMarker;
+import net.sf.jabref.gui.FileListTableModel;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.actions.Actions;
+import net.sf.jabref.gui.worker.MarkEntriesAction;
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.specialfields.Printed;
+import net.sf.jabref.specialfields.Priority;
+import net.sf.jabref.specialfields.Quality;
+import net.sf.jabref.specialfields.Rank;
+import net.sf.jabref.specialfields.ReadStatus;
+import net.sf.jabref.specialfields.Relevance;
+import net.sf.jabref.specialfields.SpecialField;
+import net.sf.jabref.specialfields.SpecialFieldValue;
+import net.sf.jabref.specialfields.SpecialFieldsUtils;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+public class RightClickMenu extends JPopupMenu implements PopupMenuListener {
+<span class="fc" id="L57">    private static final Log LOGGER = LogFactory.getLog(RightClickMenu.class);</span>
+
+    private final BasePanel panel;
+    private final JMenuItem groupAdd;
+    private final JMenuItem groupRemove;
+    private final JMenuItem groupMoveTo;
+<span class="fc" id="L63">    private final JCheckBoxMenuItem floatMarked = new JCheckBoxMenuItem(Localization.lang(&quot;Float marked entries&quot;),</span>
+<span class="fc" id="L64">            Globals.prefs.getBoolean(JabRefPreferences.FLOAT_MARKED_ENTRIES));</span>
+
+
+<span class="fc" id="L67">    public RightClickMenu(JabRefFrame frame, BasePanel panel) {</span>
+<span class="fc" id="L68">        this.panel = panel;</span>
+<span class="fc" id="L69">        JMenu typeMenu = new ChangeEntryTypeMenu().getChangeEntryTypeMenu(panel);</span>
+        // Are multiple entries selected?
+<span class="fc" id="L71">        boolean multiple = areMultipleEntriesSelected();</span>
+
+        // If only one entry is selected, get a reference to it for adapting the menu.
+<span class="fc" id="L74">        BibEntry be = null;</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">        if (panel.mainTable.getSelectedRowCount() == 1) {</span>
+<span class="fc" id="L76">            be = panel.mainTable.getSelected().get(0);</span>
+        }
+
+<span class="fc" id="L79">        addPopupMenuListener(this);</span>
+
+<span class="fc" id="L81">        JMenu copySpecialMenu = new JMenu(Localization.lang(&quot;Copy&quot;) + &quot;...&quot;);</span>
+<span class="fc" id="L82">        copySpecialMenu.add(new GeneralAction(Actions.COPY_KEY, Localization.lang(&quot;Copy BibTeX key&quot;)));</span>
+<span class="fc" id="L83">        copySpecialMenu.add(new GeneralAction(Actions.COPY_CITE_KEY, Localization.lang(&quot;Copy \\cite{BibTeX key}&quot;)));</span>
+<span class="fc" id="L84">        copySpecialMenu</span>
+<span class="fc" id="L85">                .add(new GeneralAction(Actions.COPY_KEY_AND_TITLE, Localization.lang(&quot;Copy BibTeX key and title&quot;)));</span>
+<span class="fc" id="L86">        copySpecialMenu.add(new GeneralAction(Actions.EXPORT_TO_CLIPBOARD, Localization.lang(&quot;Export to clipboard&quot;),</span>
+<span class="fc" id="L87">                IconTheme.JabRefIcon.EXPORT_TO_CLIPBOARD.getSmallIcon()));</span>
+
+<span class="fc" id="L89">        add(new GeneralAction(Actions.COPY, Localization.lang(&quot;Copy&quot;), IconTheme.JabRefIcon.COPY.getSmallIcon()));</span>
+<span class="fc" id="L90">        add(copySpecialMenu);</span>
+<span class="fc" id="L91">        add(new GeneralAction(Actions.PASTE, Localization.lang(&quot;Paste&quot;), IconTheme.JabRefIcon.PASTE.getSmallIcon()));</span>
+<span class="fc" id="L92">        add(new GeneralAction(Actions.CUT, Localization.lang(&quot;Cut&quot;), IconTheme.JabRefIcon.CUT.getSmallIcon()));</span>
+<span class="fc" id="L93">        add(new GeneralAction(Actions.DELETE, Localization.lang(&quot;Delete&quot;), IconTheme.JabRefIcon.DELETE_ENTRY.getSmallIcon()));</span>
+<span class="fc" id="L94">        addSeparator();</span>
+
+<span class="fc" id="L96">        add(new GeneralAction(Actions.SEND_AS_EMAIL, Localization.lang(&quot;Send as email&quot;), IconTheme.JabRefIcon.EMAIL.getSmallIcon()));</span>
+<span class="fc" id="L97">        addSeparator();</span>
+
+<span class="fc" id="L99">        JMenu markSpecific = JabRefFrame.subMenu(Localization.menuTitle(&quot;Mark specific color&quot;));</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        for (int i = 0; i &lt; EntryMarker.MAX_MARKING_LEVEL; i++) {</span>
+<span class="fc" id="L101">            markSpecific.add(new MarkEntriesAction(frame, i).getMenuItem());</span>
+        }
+
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        if (multiple) {</span>
+<span class="nc" id="L105">            add(new GeneralAction(Actions.MARK_ENTRIES, Localization.lang(&quot;Mark entries&quot;), IconTheme.JabRefIcon.MARK_ENTRIES.getSmallIcon()));</span>
+<span class="nc" id="L106">            add(markSpecific);</span>
+<span class="nc" id="L107">            add(new GeneralAction(Actions.UNMARK_ENTRIES, Localization.lang(&quot;Unmark entries&quot;), IconTheme.JabRefIcon.UNMARK_ENTRIES.getSmallIcon()));</span>
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        } else if (be != null) {</span>
+<span class="fc" id="L109">            String marked = be.getField(InternalBibtexFields.MARKED);</span>
+            // We have to check for &quot;&quot; too as the marked field may be empty
+<span class="pc bpc" id="L111" title="3 of 4 branches missed.">            if ((marked == null) || marked.isEmpty()) {</span>
+<span class="fc" id="L112">                add(new GeneralAction(Actions.MARK_ENTRIES, Localization.lang(&quot;Mark entry&quot;), IconTheme.JabRefIcon.MARK_ENTRIES.getSmallIcon()));</span>
+<span class="fc" id="L113">                add(markSpecific);</span>
+<span class="fc" id="L114">            } else {</span>
+<span class="nc" id="L115">                add(markSpecific);</span>
+<span class="nc" id="L116">                add(new GeneralAction(Actions.UNMARK_ENTRIES, Localization.lang(&quot;Unmark entry&quot;), IconTheme.JabRefIcon.UNMARK_ENTRIES.getSmallIcon()));</span>
+            }
+        }
+
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SPECIALFIELDSENABLED)) {</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RANKING)) {</span>
+<span class="fc" id="L122">                JMenu rankingMenu = new JMenu();</span>
+<span class="fc" id="L123">                RightClickMenu.populateSpecialFieldMenu(rankingMenu, Rank.getInstance(), frame);</span>
+<span class="fc" id="L124">                add(rankingMenu);</span>
+            }
+
+            // TODO: multiple handling for relevance and quality-assurance
+            // if multiple values are selected (&quot;if (multiple)&quot;), two options (set / clear) should be offered
+            // if one value is selected either set or clear should be offered
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RELEVANCE)) {</span>
+<span class="nc" id="L131">                add(Relevance.getInstance().getValues().get(0).getMenuAction(frame));</span>
+            }
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_QUALITY)) {</span>
+<span class="nc" id="L134">                add(Quality.getInstance().getValues().get(0).getMenuAction(frame));</span>
+            }
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRINTED)) {</span>
+<span class="nc" id="L137">                add(Printed.getInstance().getValues().get(0).getMenuAction(frame));</span>
+            }
+
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRIORITY)) {</span>
+<span class="nc" id="L141">                JMenu priorityMenu = new JMenu();</span>
+<span class="nc" id="L142">                RightClickMenu.populateSpecialFieldMenu(priorityMenu, Priority.getInstance(), frame);</span>
+<span class="nc" id="L143">                add(priorityMenu);</span>
+            }
+
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_READ)) {</span>
+<span class="nc" id="L147">                JMenu readStatusMenu = new JMenu();</span>
+<span class="nc" id="L148">                RightClickMenu.populateSpecialFieldMenu(readStatusMenu, ReadStatus.getInstance(), frame);</span>
+<span class="nc" id="L149">                add(readStatusMenu);</span>
+            }
+
+        }
+
+<span class="fc" id="L154">        addSeparator();</span>
+
+<span class="fc" id="L156">        add(new GeneralAction(Actions.OPEN_FOLDER, Localization.lang(&quot;Open folder&quot;)) {</span>
+            {
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">                if (!isFieldSetForSelectedEntry(Globals.FILE_FIELD)) {</span>
+<span class="fc" id="L159">                    this.setEnabled(false);</span>
+                }
+            }
+        });
+
+<span class="fc" id="L164">        add(new GeneralAction(Actions.OPEN_EXTERNAL_FILE, Localization.lang(&quot;Open file&quot;), getFileIconForSelectedEntry()) {</span>
+            {
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">                if (!isFieldSetForSelectedEntry(Globals.FILE_FIELD)) {</span>
+<span class="fc" id="L167">                    this.setEnabled(false);</span>
+                }
+            }
+        });
+
+<span class="fc" id="L172">        add(new GeneralAction(Actions.OPEN_URL, Localization.lang(&quot;Open URL or DOI&quot;), IconTheme.JabRefIcon.WWW.getSmallIcon()) {</span>
+            {
+<span class="pc bpc" id="L174" title="2 of 4 branches missed.">                if(!(isFieldSetForSelectedEntry(&quot;url&quot;) || isFieldSetForSelectedEntry(&quot;doi&quot;))) {</span>
+<span class="fc" id="L175">                    this.setEnabled(false);</span>
+                }
+            }
+        });
+
+<span class="fc" id="L180">        addSeparator();</span>
+
+<span class="fc" id="L182">        add(typeMenu);</span>
+
+<span class="fc" id="L184">        add(new GeneralAction(Actions.MERGE_DOI, Localization.lang(&quot;Get BibTeX data from DOI&quot;)) {</span>
+            {
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">                if (!(isFieldSetForSelectedEntry(&quot;doi&quot;))) {</span>
+<span class="fc" id="L187">                    this.setEnabled(false);</span>
+                }
+            }
+        });
+<span class="fc" id="L191">        add(frame.getMassSetField());</span>
+<span class="fc" id="L192">        add(new GeneralAction(Actions.ADD_FILE_LINK, Localization.lang(&quot;Attach file&quot;), IconTheme.JabRefIcon.ATTACH_FILE.getSmallIcon()));</span>
+<span class="fc" id="L193">        add(frame.getManageKeywords());</span>
+<span class="fc" id="L194">        add(new GeneralAction(Actions.MERGE_ENTRIES,</span>
+<span class="fc" id="L195">                Localization.lang(&quot;Merge entries&quot;) + &quot;...&quot;,</span>
+<span class="fc" id="L196">                IconTheme.JabRefIcon.MERGE_ENTRIES.getSmallIcon()) {</span>
+
+            {
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">                if (!(areExactlyTwoEntriesSelected())) {</span>
+<span class="fc" id="L200">                    this.setEnabled(false);</span>
+                }
+            }
+
+        });
+
+<span class="fc" id="L206">        addSeparator(); // for &quot;add/move/remove to/from group&quot; entries (appended here)</span>
+
+<span class="fc" id="L208">        groupAdd = new JMenuItem(new GeneralAction(Actions.ADD_TO_GROUP, Localization.lang(&quot;Add to group&quot;)));</span>
+<span class="fc" id="L209">        add(groupAdd);</span>
+<span class="fc" id="L210">        groupRemove = new JMenuItem(new GeneralAction(Actions.REMOVE_FROM_GROUP, Localization.lang(&quot;Remove from group&quot;)));</span>
+<span class="fc" id="L211">        add(groupRemove);</span>
+
+<span class="fc" id="L213">        groupMoveTo = add(new GeneralAction(Actions.MOVE_TO_GROUP, Localization.lang(&quot;Move to group&quot;)));</span>
+<span class="fc" id="L214">        add(groupMoveTo);</span>
+
+        // create disabledIcons for all menu entries
+<span class="fc" id="L217">        frame.createDisabledIconsForMenuEntries(this);</span>
+<span class="fc" id="L218">    }</span>
+
+    private boolean areMultipleEntriesSelected() {
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">        return panel.mainTable.getSelectedRowCount() &gt; 1;</span>
+    }
+
+    private boolean areExactlyTwoEntriesSelected() {
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">        return panel.mainTable.getSelectedRowCount() == 2;</span>
+    }
+
+    /**
+     * Remove all types from the menu.
+     * Then cycle through all available values, and add them.
+     */
+    public static void populateSpecialFieldMenu(JMenu menu, SpecialField field, JabRefFrame frame) {
+<span class="fc" id="L233">        menu.setText(field.getMenuString());</span>
+<span class="fc" id="L234">        menu.setIcon(((IconTheme.FontBasedIcon) field.getRepresentingIcon()).createSmallIcon());</span>
+<span class="fc bfc" id="L235" title="All 2 branches covered.">        for (SpecialFieldValue val : field.getValues()) {</span>
+<span class="fc" id="L236">            menu.add(val.getMenuAction(frame));</span>
+        }
+<span class="fc" id="L238">    }</span>
+
+    /**
+     * Set the dynamic contents of &quot;Add to group ...&quot; submenu.
+     */
+    @Override
+    public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+<span class="fc" id="L245">        panel.storeCurrentEdit();</span>
+<span class="fc" id="L246">        GroupTreeNode groups = panel.getBibDatabaseContext().getMetaData().getGroups();</span>
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">        if (groups == null) {</span>
+<span class="nc" id="L248">            groupAdd.setEnabled(false);</span>
+<span class="nc" id="L249">            groupRemove.setEnabled(false);</span>
+<span class="nc" id="L250">            groupMoveTo.setEnabled(false);</span>
+<span class="nc" id="L251">        } else {</span>
+<span class="fc" id="L252">            groupAdd.setEnabled(true);</span>
+<span class="fc" id="L253">            groupRemove.setEnabled(true);</span>
+<span class="fc" id="L254">            groupMoveTo.setEnabled(true);</span>
+        }
+<span class="fc" id="L256">    }</span>
+
+
+    @Override
+    public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+        // Nothing to do
+<span class="fc" id="L262">    }</span>
+
+    @Override
+    public void popupMenuCanceled(PopupMenuEvent e) {
+        // nothing to do
+<span class="fc" id="L267">    }</span>
+
+    private boolean isFieldSetForSelectedEntry(String fieldname) {
+<span class="pc bpc" id="L270" title="1 of 2 branches missed.">        if (panel.mainTable.getSelectedRowCount() == 1) {</span>
+<span class="fc" id="L271">            BibEntry entry = panel.mainTable.getSelected().get(0);</span>
+<span class="fc" id="L272">            return entry.getFieldNames().contains(fieldname);</span>
+        } else {
+<span class="nc" id="L274">            return false;</span>
+        }
+    }
+
+    private Icon getFileIconForSelectedEntry() {
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">        if (panel.mainTable.getSelectedRowCount() == 1) {</span>
+<span class="fc" id="L280">            BibEntry entry = panel.mainTable.getSelected().get(0);</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">            if(entry.hasField(Globals.FILE_FIELD)) {</span>
+<span class="nc" id="L282">                JLabel label = FileListTableModel.getFirstLabel(entry.getField(Globals.FILE_FIELD));</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">                if (label != null) {</span>
+<span class="nc" id="L284">                    return label.getIcon();</span>
+                }
+            }
+        }
+<span class="fc" id="L288">        return IconTheme.JabRefIcon.FILE.getSmallIcon();</span>
+    }
+
+    class GeneralAction extends AbstractAction {
+
+        private final String command;
+
+<span class="fc" id="L295">        public GeneralAction(String command, String name) {</span>
+<span class="fc" id="L296">            super(name);</span>
+<span class="fc" id="L297">            this.command = command;</span>
+<span class="fc" id="L298">        }</span>
+
+<span class="fc" id="L300">        public GeneralAction(String command, String name, Icon icon) {</span>
+<span class="fc" id="L301">            super(name, icon);</span>
+<span class="fc" id="L302">            this.command = command;</span>
+<span class="fc" id="L303">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            try {
+<span class="fc" id="L308">                panel.runCommand(command);</span>
+<span class="pc" id="L309">            } catch (Throwable ex) {</span>
+<span class="nc" id="L310">                LOGGER.debug(&quot;Cannot execute command &quot; + command + &quot;.&quot;, ex);</span>
+            }
+<span class="fc" id="L312">        }</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

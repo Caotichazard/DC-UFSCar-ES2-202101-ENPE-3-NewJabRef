@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SpecialFieldsUtils.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.specialfields</a> &gt; <span class="el_source">SpecialFieldsUtils.java</span></div><h1>SpecialFieldsUtils.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.specialfields;
+
+import java.util.List;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.gui.undo.UndoableFieldChange;
+import net.sf.jabref.logic.util.UpdateField;
+import net.sf.jabref.model.entry.BibEntry;
+
+<span class="nc" id="L26">public class SpecialFieldsUtils {</span>
+
+    private static final String KEYWORDS_FIELD = &quot;keywords&quot;;
+    public static final String FIELDNAME_PRIORITY = &quot;priority&quot;;
+    public static final String FIELDNAME_RANKING = &quot;ranking&quot;;
+    public static final String FIELDNAME_RELEVANCE = &quot;relevance&quot;;
+    public static final String FIELDNAME_QUALITY = &quot;qualityassured&quot;;
+    public static final String FIELDNAME_READ = &quot;readstatus&quot;;
+    public static final String FIELDNAME_PRINTED = &quot;printed&quot;;
+
+    public static final String PREF_SPECIALFIELDSENABLED = &quot;specialFieldsEnabled&quot;;
+<span class="fc" id="L37">    public static final Boolean PREF_SPECIALFIELDSENABLED_DEFAULT = Boolean.TRUE;</span>
+
+    public static final String PREF_SHOWCOLUMN_RANKING = &quot;showRankingColumn&quot;;
+<span class="fc" id="L40">    public static final Boolean PREF_SHOWCOLUMN_RANKING_DEFAULT = Boolean.TRUE;</span>
+
+    public static final String PREF_SHOWCOLUMN_PRIORITY = &quot;showPriorityColumn&quot;;
+<span class="fc" id="L43">    public static final Boolean PREF_SHOWCOLUMN_PRIORITY_DEFAULT = Boolean.FALSE;</span>
+
+    public static final String PREF_SHOWCOLUMN_RELEVANCE = &quot;showRelevanceColumn&quot;;
+<span class="fc" id="L46">    public static final Boolean PREF_SHOWCOLUMN_RELEVANCE_DEFAULT = Boolean.FALSE;</span>
+
+    public static final String PREF_SHOWCOLUMN_QUALITY = &quot;showQualityColumn&quot;;
+<span class="fc" id="L49">    public static final Boolean PREF_SHOWCOLUMN_QUALITY_DEFAULT = Boolean.FALSE;</span>
+
+    public static final String PREF_SHOWCOLUMN_READ = &quot;showReadColumn&quot;;
+<span class="fc" id="L52">    public static final Boolean PREF_SHOWCOLUMN_READ_DEFAULT = Boolean.FALSE;</span>
+
+    public static final String PREF_SHOWCOLUMN_PRINTED = &quot;showPrintedColumn&quot;;
+<span class="fc" id="L55">    public static final Boolean PREF_SHOWCOLUMN_PRINTED_DEFAULT = Boolean.FALSE;</span>
+
+    // The choice between PREF_AUTOSYNCSPECIALFIELDSTOKEYWORDS and PREF_SERIALIZESPECIALFIELDS is mutually exclusive
+    // At least in the settings, not in the implementation. But having both confused the users, therefore, having activated both options at the same time has been disabled
+    public static final String PREF_AUTOSYNCSPECIALFIELDSTOKEYWORDS = &quot;autoSyncSpecialFieldsToKeywords&quot;;
+<span class="fc" id="L60">    public static final Boolean PREF_AUTOSYNCSPECIALFIELDSTOKEYWORDS_DEFAULT = Boolean.TRUE;</span>
+
+    // The choice between PREF_AUTOSYNCSPECIALFIELDSTOKEYWORDS and PREF_SERIALIZESPECIALFIELDS is mutually exclusive
+    public static final String PREF_SERIALIZESPECIALFIELDS = &quot;serializeSpecialFields&quot;;
+<span class="fc" id="L64">    public static final Boolean PREF_SERIALIZESPECIALFIELDS_DEFAULT = Boolean.FALSE;</span>
+
+
+    /****************************************************/
+    /** generic treatment                              **/
+    /** no special treatment any more, thanks to enums **/
+    /****************************************************/
+
+    /**
+     * @param e - Field to be handled
+     * @param value - may be null to state that field should be emptied
+     * @param be - BibTeXEntry to be handled
+     * @param ce - Filled with undo info (if necessary)
+     * @param nullFieldIfValueIsTheSame - true: field is nulled if value is the same than the current value in be
+     */
+    public static void updateField(SpecialField e, String value, BibEntry be, NamedCompound ce, boolean nullFieldIfValueIsTheSame) {
+<span class="nc" id="L80">        UpdateField.updateField(be, e.getFieldName(), value, nullFieldIfValueIsTheSame)</span>
+<span class="nc" id="L81">                .ifPresent(fieldChange -&gt; ce.addEdit(new UndoableFieldChange(fieldChange)));</span>
+        // we cannot use &quot;value&quot; here as updateField has side effects: &quot;nullFieldIfValueIsTheSame&quot; nulls the field if value is the same
+<span class="nc" id="L83">        SpecialFieldsUtils.exportFieldToKeywords(e, be.getField(e.getFieldName()), be, ce);</span>
+<span class="nc" id="L84">    }</span>
+
+    private static void exportFieldToKeywords(SpecialField e, BibEntry be, NamedCompound ce) {
+<span class="nc" id="L87">        SpecialFieldsUtils.exportFieldToKeywords(e, be.getField(e.getFieldName()), be, ce);</span>
+<span class="nc" id="L88">    }</span>
+
+    private static void exportFieldToKeywords(SpecialField e, String newValue, BibEntry be, NamedCompound ce) {
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (!SpecialFieldsUtils.keywordSyncEnabled()) {</span>
+<span class="nc" id="L92">            return;</span>
+        }
+<span class="nc" id="L94">        List&lt;String&gt; keywordList = be.getSeparatedKeywords();</span>
+<span class="nc" id="L95">        List&lt;String&gt; values = e.getKeyWords();</span>
+
+<span class="nc" id="L97">        int foundPos = -1;</span>
+
+        // cleanup keywords
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        for (Object value : values) {</span>
+<span class="nc" id="L101">            int pos = keywordList.indexOf(value);</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (pos &gt;= 0) {</span>
+<span class="nc" id="L103">                foundPos = pos;</span>
+<span class="nc" id="L104">                keywordList.remove(pos);</span>
+            }
+        }
+
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (newValue != null) {</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            if (foundPos == -1) {</span>
+<span class="nc" id="L110">                keywordList.add(newValue);</span>
+<span class="nc" id="L111">            } else {</span>
+<span class="nc" id="L112">                keywordList.add(foundPos, newValue);</span>
+            }
+        }
+<span class="nc" id="L115">        String oldValue = be.getField(KEYWORDS_FIELD);</span>
+<span class="nc" id="L116">        be.putKeywords(keywordList);</span>
+<span class="nc" id="L117">        String updatedValue = be.getField(KEYWORDS_FIELD);</span>
+<span class="nc bnc" id="L118" title="All 6 branches missed.">        if (((oldValue == null) || !oldValue.equals(updatedValue)) &amp;&amp; (ce != null)) {</span>
+<span class="nc" id="L119">            ce.addEdit(new UndoableFieldChange(be, KEYWORDS_FIELD, oldValue, updatedValue));</span>
+        }
+
+<span class="nc" id="L122">    }</span>
+
+    /**
+     * Update keywords according to values of special fields
+     *
+     * @param nc indicates the undo named compound. May be null
+     */
+    public static void syncKeywordsFromSpecialFields(BibEntry be, NamedCompound nc) {
+<span class="nc" id="L130">        SpecialFieldsUtils.exportFieldToKeywords(Priority.getInstance(), be, nc);</span>
+<span class="nc" id="L131">        SpecialFieldsUtils.exportFieldToKeywords(Rank.getInstance(), be, nc);</span>
+<span class="nc" id="L132">        SpecialFieldsUtils.exportFieldToKeywords(Relevance.getInstance(), be, nc);</span>
+<span class="nc" id="L133">        SpecialFieldsUtils.exportFieldToKeywords(Quality.getInstance(), be, nc);</span>
+<span class="nc" id="L134">        SpecialFieldsUtils.exportFieldToKeywords(ReadStatus.getInstance(), be, nc);</span>
+<span class="nc" id="L135">        SpecialFieldsUtils.exportFieldToKeywords(Printed.getInstance(), be, nc);</span>
+<span class="nc" id="L136">    }</span>
+
+    private static void importKeywordsForField(List&lt;String&gt; keywordList, SpecialField c, BibEntry be,
+            NamedCompound nc) {
+<span class="nc" id="L140">        List&lt;String&gt; values = c.getKeyWords();</span>
+<span class="nc" id="L141">        String newValue = null;</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        for (String val : values) {</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">            if (keywordList.contains(val)) {</span>
+<span class="nc" id="L144">                newValue = val;</span>
+<span class="nc" id="L145">                break;</span>
+            }
+        }
+<span class="nc" id="L148">        UpdateField.updateNonDisplayableField(be, c.getFieldName(), newValue)</span>
+<span class="nc" id="L149">                .ifPresent(fieldChange -&gt; nc.addEdit(new UndoableFieldChange(fieldChange)));</span>
+<span class="nc" id="L150">    }</span>
+
+    /**
+     * updates field values according to keywords
+     *
+     * @param ce indicates the undo named compound. May be null
+     */
+    public static void syncSpecialFieldsFromKeywords(BibEntry be, NamedCompound ce) {
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">        if (!be.hasField(KEYWORDS_FIELD)) {</span>
+<span class="fc" id="L159">            return;</span>
+        }
+<span class="nc" id="L161">        List&lt;String&gt; keywordList = net.sf.jabref.model.entry.EntryUtil</span>
+<span class="nc" id="L162">                .getSeparatedKeywords(be.getField(KEYWORDS_FIELD));</span>
+<span class="nc" id="L163">        SpecialFieldsUtils.importKeywordsForField(keywordList, Priority.getInstance(), be, ce);</span>
+<span class="nc" id="L164">        SpecialFieldsUtils.importKeywordsForField(keywordList, Rank.getInstance(), be, ce);</span>
+<span class="nc" id="L165">        SpecialFieldsUtils.importKeywordsForField(keywordList, Quality.getInstance(), be, ce);</span>
+<span class="nc" id="L166">        SpecialFieldsUtils.importKeywordsForField(keywordList, Relevance.getInstance(), be, ce);</span>
+<span class="nc" id="L167">        SpecialFieldsUtils.importKeywordsForField(keywordList, ReadStatus.getInstance(), be, ce);</span>
+<span class="nc" id="L168">        SpecialFieldsUtils.importKeywordsForField(keywordList, Printed.getInstance(), be, ce);</span>
+<span class="nc" id="L169">    }</span>
+
+    /**
+     * @param fieldName the fieldName
+     * @return an instance of that field. The returned object is a singleton. null is returned if fieldName does not indicate a special field
+     */
+    public static SpecialField getSpecialFieldInstanceFromFieldName(String fieldName) {
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        if (fieldName.equals(SpecialFieldsUtils.FIELDNAME_PRIORITY)) {</span>
+<span class="nc" id="L177">            return Priority.getInstance();</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">        } else if (fieldName.equals(SpecialFieldsUtils.FIELDNAME_QUALITY)) {</span>
+<span class="nc" id="L179">            return Quality.getInstance();</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">        } else if (fieldName.equals(SpecialFieldsUtils.FIELDNAME_RANKING)) {</span>
+<span class="nc" id="L181">            return Rank.getInstance();</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">        } else if (fieldName.equals(SpecialFieldsUtils.FIELDNAME_RELEVANCE)) {</span>
+<span class="nc" id="L183">            return Relevance.getInstance();</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">        } else if (fieldName.equals(SpecialFieldsUtils.FIELDNAME_READ)) {</span>
+<span class="nc" id="L185">            return ReadStatus.getInstance();</span>
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">        } else if (fieldName.equals(SpecialFieldsUtils.FIELDNAME_PRINTED)) {</span>
+<span class="nc" id="L187">            return Printed.getInstance();</span>
+        } else {
+<span class="fc" id="L189">            return null;</span>
+        }
+    }
+
+    /**
+     * @param fieldName the name of the field to check
+     * @return true if given field is a special field, false otherwise
+     */
+    public static boolean isSpecialField(String fieldName) {
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        return SpecialFieldsUtils.getSpecialFieldInstanceFromFieldName(fieldName) != null;</span>
+    }
+
+    public static boolean keywordSyncEnabled() {
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">        return Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SPECIALFIELDSENABLED) &amp;&amp;</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">                Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_AUTOSYNCSPECIALFIELDSTOKEYWORDS);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

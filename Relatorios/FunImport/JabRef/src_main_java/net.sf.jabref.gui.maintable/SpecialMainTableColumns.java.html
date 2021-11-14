@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SpecialMainTableColumns.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.maintable</a> &gt; <span class="el_source">SpecialMainTableColumns.java</span></div><h1>SpecialMainTableColumns.java</h1><pre class="source lang-java linenums">package net.sf.jabref.gui.maintable;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import javax.swing.JLabel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.external.ExternalFileType;
+import net.sf.jabref.gui.FileListTableModel;
+import net.sf.jabref.gui.GUIGlobals;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.specialfields.Printed;
+import net.sf.jabref.specialfields.Priority;
+import net.sf.jabref.specialfields.Quality;
+import net.sf.jabref.specialfields.Rank;
+import net.sf.jabref.specialfields.ReadStatus;
+import net.sf.jabref.specialfields.Relevance;
+import net.sf.jabref.specialfields.SpecialFieldValue;
+import net.sf.jabref.specialfields.SpecialFieldsUtils;
+
+<span class="nc" id="L25">public class SpecialMainTableColumns {</span>
+
+<span class="fc" id="L27">    public static final MainTableColumn NUMBER_COL = new MainTableColumn(InternalBibtexFields.NUMBER_COL) {</span>
+
+        @Override
+        public Object getColumnValue(BibEntry entry) {
+<span class="nc" id="L31">            return &quot;#&quot;;</span>
+        }
+
+        @Override
+        public String getDisplayName() {
+<span class="fc" id="L36">            return &quot;#&quot;;</span>
+        }
+    };
+
+<span class="fc" id="L40">    public static final MainTableColumn RANKING_COLUMN = new MainTableColumn(SpecialFieldsUtils.FIELDNAME_RANKING,</span>
+<span class="fc" id="L41">            Arrays.asList(SpecialFieldsUtils.FIELDNAME_RANKING),</span>
+<span class="fc" id="L42">            new JLabel(SpecialFieldsUtils.FIELDNAME_RANKING)) {</span>
+
+        @Override
+        public Object getColumnValue(BibEntry entry) {
+<span class="nc" id="L46">            SpecialFieldValue rank = Rank.getInstance().parse(entry.getField(SpecialFieldsUtils.FIELDNAME_RANKING));</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">            if (rank == null) {</span>
+<span class="nc" id="L48">                return null;</span>
+            } else {
+<span class="nc" id="L50">                return rank.createLabel();</span>
+            }
+        }
+    };
+
+<span class="fc" id="L55">    public static final MainTableColumn PRIORITY_COLUMN = new MainTableColumn(SpecialFieldsUtils.FIELDNAME_PRIORITY,</span>
+<span class="fc" id="L56">            Arrays.asList(SpecialFieldsUtils.FIELDNAME_PRIORITY),</span>
+<span class="fc" id="L57">            new JLabel(Priority.getInstance().getRepresentingIcon())) {</span>
+
+        @Override
+        public Object getColumnValue(BibEntry entry) {
+
+<span class="nc" id="L62">            SpecialFieldValue prio = Priority.getInstance()</span>
+<span class="nc" id="L63">                    .parse(entry.getField(SpecialFieldsUtils.FIELDNAME_PRIORITY));</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">            if (prio == null) {</span>
+<span class="nc" id="L65">                return null;</span>
+            } else {
+<span class="nc" id="L67">                return prio.createLabel();</span>
+            }
+        }
+    };
+
+<span class="fc" id="L72">    public static final MainTableColumn READ_STATUS_COLUMN = new MainTableColumn(SpecialFieldsUtils.FIELDNAME_READ,</span>
+<span class="fc" id="L73">            Arrays.asList(SpecialFieldsUtils.FIELDNAME_READ),</span>
+<span class="fc" id="L74">            new JLabel(ReadStatus.getInstance().getRepresentingIcon())) {</span>
+
+        @Override
+        public Object getColumnValue(BibEntry entry) {
+
+<span class="nc" id="L79">            SpecialFieldValue status = ReadStatus.getInstance()</span>
+<span class="nc" id="L80">                    .parse(entry.getField(SpecialFieldsUtils.FIELDNAME_READ));</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            if (status == null) {</span>
+<span class="nc" id="L82">                return null;</span>
+            } else {
+<span class="nc" id="L84">                return status.createLabel();</span>
+            }
+        }
+    };
+
+<span class="fc" id="L89">    public static final MainTableColumn RELEVANCE_COLUMN = createIconColumn(SpecialFieldsUtils.FIELDNAME_RELEVANCE,</span>
+<span class="fc" id="L90">            Arrays.asList(SpecialFieldsUtils.FIELDNAME_RELEVANCE),</span>
+<span class="fc" id="L91">            new JLabel(Relevance.getInstance().getRepresentingIcon()));</span>
+
+<span class="fc" id="L93">    public static final MainTableColumn PRINTED_COLUMN = createIconColumn(SpecialFieldsUtils.FIELDNAME_PRINTED,</span>
+<span class="fc" id="L94">            Arrays.asList(SpecialFieldsUtils.FIELDNAME_PRINTED),</span>
+<span class="fc" id="L95">            new JLabel(Printed.getInstance().getRepresentingIcon()));</span>
+
+<span class="fc" id="L97">    public static final MainTableColumn QUALITY_COLUMN = createIconColumn(SpecialFieldsUtils.FIELDNAME_QUALITY,</span>
+<span class="fc" id="L98">            Arrays.asList(SpecialFieldsUtils.FIELDNAME_QUALITY),</span>
+<span class="fc" id="L99">            new JLabel(Quality.getInstance().getRepresentingIcon()));</span>
+
+
+<span class="fc" id="L102">    public static final MainTableColumn FILE_COLUMN = new MainTableColumn(Globals.FILE_FIELD,</span>
+<span class="fc" id="L103">            Arrays.asList(Globals.FILE_FIELD), new JLabel(IconTheme.JabRefIcon.FILE.getSmallIcon())) {</span>
+
+        @Override
+        public Object getColumnValue(BibEntry entry) {
+            // We use a FileListTableModel to parse the field content:
+<span class="nc" id="L108">            FileListTableModel fileList = new FileListTableModel();</span>
+<span class="nc" id="L109">            fileList.setContent(entry.getField(Globals.FILE_FIELD));</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            if (fileList.getRowCount() &gt; 1) {</span>
+<span class="nc" id="L111">                return new JLabel(IconTheme.JabRefIcon.FILE_MULTIPLE.getSmallIcon());</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">            } else if (fileList.getRowCount() == 1) {</span>
+<span class="nc" id="L113">                Optional&lt;ExternalFileType&gt; type = fileList.getEntry(0).type;</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">                if (type.isPresent()) {</span>
+<span class="nc" id="L115">                    return type.get().getIconLabel();</span>
+                } else {
+<span class="nc" id="L117">                    return new JLabel(IconTheme.JabRefIcon.FILE.getSmallIcon());</span>
+                }
+            }
+
+<span class="nc" id="L121">            return null;</span>
+        }
+<span class="fc" id="L123">    };</span>
+
+    /**
+     * Creates a MainTableColumn which shows an icon instead textual content
+     *
+     * @param columnName the name of the column
+     * @param fields     the entry fields which should be shown
+     * @return the crated MainTableColumn
+     */
+    public static MainTableColumn createIconColumn(String columnName, List&lt;String&gt; fields, JLabel iconLabel) {
+<span class="fc" id="L133">        return new MainTableColumn(columnName, fields, iconLabel) {</span>
+
+            @Override
+            public Object getColumnValue(BibEntry entry) {
+<span class="nc" id="L137">                JLabel iconLabel = null;</span>
+<span class="nc" id="L138">                boolean iconFound = false;</span>
+
+                // check for each field whether content is available
+<span class="nc bnc" id="L141" title="All 2 branches missed.">                for (String field : fields) {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">                    if (entry.hasField(field)) {</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">                        if (iconFound) {</span>
+<span class="nc" id="L144">                            return new JLabel(IconTheme.JabRefIcon.FILE_MULTIPLE.getSmallIcon());</span>
+                        } else {
+<span class="nc" id="L146">                            iconLabel = GUIGlobals.getTableIcon(field);</span>
+<span class="nc" id="L147">                            iconFound = true;</span>
+                        }
+
+                    }
+                }
+<span class="nc" id="L152">                return iconLabel;</span>
+            }
+        };
+    }
+
+    /**
+     * create a MainTableColumn for specific file types.
+     *
+     * Shows the icon for the given type (or the FILE_MULTIPLE icon)
+     *
+     * @param externalFileTypeName the name of the externalFileType
+     *
+     * @return the created MainTableColumn
+     */
+    public static MainTableColumn createFileIconColumn(String externalFileTypeName) {
+
+
+
+<span class="nc" id="L170">        return new MainTableColumn(externalFileTypeName, Arrays.asList(Globals.FILE_FIELD), new JLabel()) {</span>
+
+            @Override
+            public boolean isFileFilter() {
+<span class="nc" id="L174">                return true;</span>
+            }
+
+            @Override
+            public String getDisplayName() {
+<span class="nc" id="L179">                return externalFileTypeName;</span>
+            }
+
+            @Override
+            public Object getColumnValue(BibEntry entry) {
+
+<span class="nc" id="L185">                boolean iconFound = false;</span>
+<span class="nc" id="L186">                JLabel iconLabel = null;</span>
+<span class="nc" id="L187">                FileListTableModel fileList = new FileListTableModel();</span>
+<span class="nc" id="L188">                fileList.setContent(entry.getField(Globals.FILE_FIELD));</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">                for (int i = 0; i &lt; fileList.getRowCount(); i++) {</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                    if ((fileList.getEntry(i).type.isPresent())</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">                            &amp;&amp; externalFileTypeName.equalsIgnoreCase(fileList.getEntry(i).type.get().getName())) {</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">                        if (iconFound) {</span>
+                            // already found another file of the desired type - show FILE_MULTIPLE Icon
+<span class="nc" id="L194">                            return new JLabel(IconTheme.JabRefIcon.FILE_MULTIPLE.getSmallIcon());</span>
+                        } else {
+<span class="nc" id="L196">                            iconLabel = fileList.getEntry(i).type.get().getIconLabel();</span>
+<span class="nc" id="L197">                            iconFound = true;</span>
+                        }
+                    }
+                }
+<span class="nc" id="L201">                return iconLabel;</span>
+            }
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

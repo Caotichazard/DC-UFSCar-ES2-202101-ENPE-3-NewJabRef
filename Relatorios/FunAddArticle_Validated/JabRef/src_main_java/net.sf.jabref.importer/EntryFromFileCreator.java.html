@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryFromFileCreator.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer</a> &gt; <span class="el_source">EntryFromFileCreator.java</span></div><h1>EntryFromFileCreator.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer;
+
+import java.io.File;
+import java.io.FileFilter;
+import java.util.List;
+import java.util.Optional;
+import java.util.StringTokenizer;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefGUI;
+import net.sf.jabref.external.ExternalFileType;
+import net.sf.jabref.external.ExternalFileTypes;
+import net.sf.jabref.gui.FileListEntry;
+import net.sf.jabref.gui.FileListTableModel;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * The interface EntryFromFileCreator does twice: &lt;br&gt;
+ * On the one hand, it defines a set of files, which it can deal with, on the
+ * other hand it provides the functionality to create a Bibtex entry out of a
+ * file. The interface extends the java.io.FileFilter to inherit a common way of
+ * defining file sets.
+ *
+ * @author Dan&amp;Nosh
+ * @version 25.11.2008 | 23:39:03
+ *
+ */
+public abstract class EntryFromFileCreator implements FileFilter {
+
+    protected final ExternalFileType externalFileType;
+
+    private static final int MIN_PATH_TOKEN_LENGTH = 4;
+
+    /**
+     * Constructor. &lt;br&gt;
+     * Forces subclasses to provide an {@link ExternalFileType} instance, which
+     * they build on.
+     *
+     * @param externalFileType
+     */
+<span class="nc" id="L57">    EntryFromFileCreator(ExternalFileType externalFileType) {</span>
+<span class="nc" id="L58">        this.externalFileType = externalFileType;</span>
+<span class="nc" id="L59">    }</span>
+
+    protected abstract Optional&lt;BibEntry&gt; createBibtexEntry(File f);
+
+    /**
+     * &lt;p&gt;
+     * To support platform independence, a creator must define what types of
+     * files it accepts on it's own.
+     * &lt;/p&gt;
+     * &lt;p&gt;
+     * Basically, accepting files which end with the file extension that is
+     * described in the nested {@link #externalFileType} would work on windows
+     * systems. This is also the recommended criterion, on which files should be
+     * accepted.
+     * &lt;/p&gt;
+     * &lt;p&gt;
+     * However, defining what types of files this creator accepts, is a property
+     * of &lt;i&gt;entry creators&lt;/i&gt;, that is left to the user.
+     * &lt;/p&gt;
+     */
+    @Override
+    public abstract boolean accept(File f);
+
+    /**
+     * Name of this import format.
+     *
+     * &lt;p&gt;
+     * The name must be unique.
+     * &lt;/p&gt;
+     *
+     * @return format name, must be unique and not &lt;code&gt;null&lt;/code&gt;
+     */
+    public abstract String getFormatName();
+
+    /**
+     * Create one BibEntry containing information regarding the given File.
+     *
+     * @param f
+     * @param addPathTokensAsKeywords
+     * @return
+     */
+    public Optional&lt;BibEntry&gt; createEntry(File f, boolean addPathTokensAsKeywords) {
+<span class="nc bnc" id="L101" title="All 4 branches missed.">        if ((f == null) || !f.exists()) {</span>
+<span class="nc" id="L102">            return Optional.empty();</span>
+        }
+<span class="nc" id="L104">        Optional&lt;BibEntry&gt; newEntry = createBibtexEntry(f);</span>
+
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (!(newEntry.isPresent())) {</span>
+<span class="nc" id="L107">            return newEntry;</span>
+        }
+
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (addPathTokensAsKeywords) {</span>
+<span class="nc" id="L111">            appendToField(newEntry.get(), &quot;keywords&quot;, extractPathesToKeyWordsfield(f.getAbsolutePath()));</span>
+        }
+
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (!newEntry.get().hasField(&quot;title&quot;)) {</span>
+<span class="nc" id="L115">            newEntry.get().setField(&quot;title&quot;, f.getName());</span>
+        }
+
+<span class="nc" id="L118">        addFileInfo(newEntry.get(), f);</span>
+<span class="nc" id="L119">        return newEntry;</span>
+    }
+
+    /** Returns the ExternalFileType that is imported here */
+    public ExternalFileType getExternalFileType() {
+<span class="nc" id="L124">        return externalFileType;</span>
+    }
+
+    /**
+     * Splits the path to the file and builds a keywords String in the format
+     * that is used by Jabref.
+     *
+     * @param absolutePath
+     * @return
+     */
+    private static String extractPathesToKeyWordsfield(String absolutePath) {
+<span class="nc" id="L135">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L136">        StringTokenizer st = new StringTokenizer(absolutePath, String.valueOf(File.separatorChar));</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        while (st.hasMoreTokens()) {</span>
+<span class="nc" id="L138">            String token = st.nextToken();</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">            if (!st.hasMoreTokens()) {</span>
+                // ignore last token. The filename ist not wanted as keyword.
+<span class="nc" id="L141">                break;</span>
+            }
+<span class="nc bnc" id="L143" title="All 2 branches missed.">            if (token.length() &gt;= MIN_PATH_TOKEN_LENGTH) {</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">                if (sb.length() &gt; 0) {</span>
+                    // TODO: find Jabref constant for delimter
+<span class="nc" id="L146">                    sb.append(',');</span>
+                }
+<span class="nc" id="L148">                sb.append(token);</span>
+            }
+        }
+<span class="nc" id="L151">        return sb.toString();</span>
+    }
+
+    private void addFileInfo(BibEntry entry, File file) {
+<span class="nc" id="L155">        Optional&lt;ExternalFileType&gt; fileType = ExternalFileTypes.getInstance()</span>
+<span class="nc" id="L156">                .getExternalFileTypeByExt(externalFileType.getFieldName());</span>
+
+<span class="nc" id="L158">        List&lt;String&gt; possibleFilePaths = JabRefGUI.getMainFrame().getCurrentBasePanel().getBibDatabaseContext().getFileDirectory();</span>
+<span class="nc" id="L159">        File shortenedFileName = FileUtil.shortenFileName(file, possibleFilePaths);</span>
+<span class="nc" id="L160">        FileListEntry fileListEntry = new FileListEntry(&quot;&quot;, shortenedFileName.getPath(), fileType);</span>
+
+<span class="nc" id="L162">        FileListTableModel model = new FileListTableModel();</span>
+<span class="nc" id="L163">        model.addEntry(0, fileListEntry);</span>
+
+<span class="nc" id="L165">        entry.setField(Globals.FILE_FIELD, model.getStringRepresentation());</span>
+<span class="nc" id="L166">    }</span>
+
+    protected void appendToField(BibEntry entry, String field, String value) {
+<span class="nc bnc" id="L169" title="All 4 branches missed.">        if ((value == null) || value.isEmpty()) {</span>
+<span class="nc" id="L170">            return;</span>
+        }
+<span class="nc" id="L172">        String oVal = entry.getField(field);</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (oVal == null) {</span>
+<span class="nc" id="L174">            entry.setField(field, value);</span>
+<span class="nc" id="L175">        } else {</span>
+            // TODO: find Jabref constant for delimter
+<span class="nc bnc" id="L177" title="All 2 branches missed.">            if (!oVal.contains(value)) {</span>
+<span class="nc" id="L178">                entry.setField(field, oVal + &quot;,&quot; + value);</span>
+            }
+
+        }
+<span class="nc" id="L182">    }</span>
+
+    protected void addEntrysToEntry(BibEntry entry, List&lt;BibEntry&gt; entrys) {
+<span class="nc bnc" id="L185" title="All 2 branches missed.">        if (entrys != null) {</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">            for (BibEntry e : entrys) {</span>
+<span class="nc" id="L187">                addEntryDataToEntry(entry, e);</span>
+            }
+        }
+<span class="nc" id="L190">    }</span>
+
+    protected void addEntryDataToEntry(BibEntry entry, BibEntry e) {
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        for (String field : e.getFieldNames()) {</span>
+<span class="nc" id="L194">            appendToField(entry, field, e.getField(field));</span>
+        }
+<span class="nc" id="L196">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc bnc" id="L200" title="All 2 branches missed.">        if (externalFileType == null) {</span>
+<span class="nc" id="L201">            return &quot;(undefined)&quot;;</span>
+        }
+<span class="nc" id="L203">        return externalFileType.getName() + &quot; (.&quot; + externalFileType.getExtension() + &quot;)&quot;;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

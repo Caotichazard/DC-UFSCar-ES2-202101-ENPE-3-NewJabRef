@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>JournalAbbreviationRepository.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.journals</a> &gt; <span class="el_source">JournalAbbreviationRepository.java</span></div><h1>JournalAbbreviationRepository.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.journals;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * A repository for all journal abbreviations, including add and find methods.
+ */
+<span class="fc" id="L34">public class JournalAbbreviationRepository {</span>
+
+<span class="fc" id="L36">    private final Map&lt;String, Abbreviation&gt; fullNameLowerCase2Abbreviation = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L37">    private final Map&lt;String, Abbreviation&gt; isoLowerCase2Abbreviation = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L38">    private final Map&lt;String, Abbreviation&gt; medlineLowerCase2Abbreviation = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L40">    private final SortedSet&lt;Abbreviation&gt; abbreviations = new TreeSet&lt;&gt;();</span>
+
+<span class="fc" id="L42">    private static final Log LOGGER = LogFactory.getLog(JournalAbbreviationRepository.class);</span>
+
+    public int size() {
+<span class="nc" id="L45">        return abbreviations.size();</span>
+    }
+
+    public boolean isKnownName(String journalName) {
+<span class="fc" id="L49">        String nameKey = Objects.requireNonNull(journalName).trim().toLowerCase(Locale.ENGLISH);</span>
+<span class="pc bpc" id="L50" title="2 of 4 branches missed.">        return (fullNameLowerCase2Abbreviation.containsKey(nameKey)) || (isoLowerCase2Abbreviation.containsKey(nameKey))</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">                || (medlineLowerCase2Abbreviation.containsKey(nameKey));</span>
+    }
+
+    public boolean isAbbreviatedName(String journalName) {
+<span class="nc" id="L55">        String nameKey = Objects.requireNonNull(journalName).trim().toLowerCase(Locale.ENGLISH);</span>
+<span class="nc bnc" id="L56" title="All 4 branches missed.">        return (isoLowerCase2Abbreviation.containsKey(nameKey)) || (medlineLowerCase2Abbreviation.containsKey(nameKey));</span>
+    }
+
+    /**
+     * Attempts to get the abbreviated name of the journal given. May contain dots.
+     *
+     * @param journalName The journal name to abbreviate.
+     * @return The abbreviated name
+     */
+    public Optional&lt;Abbreviation&gt; getAbbreviation(String journalName) {
+<span class="nc" id="L66">        String nameKey = Objects.requireNonNull(journalName).toLowerCase(Locale.ENGLISH).trim();</span>
+
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (fullNameLowerCase2Abbreviation.containsKey(nameKey)) {</span>
+<span class="nc" id="L69">            return Optional.of(fullNameLowerCase2Abbreviation.get(nameKey));</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        } else if (isoLowerCase2Abbreviation.containsKey(nameKey)) {</span>
+<span class="nc" id="L71">            return Optional.of(isoLowerCase2Abbreviation.get(nameKey));</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        } else if (medlineLowerCase2Abbreviation.containsKey(nameKey)) {</span>
+<span class="nc" id="L73">            return Optional.of(medlineLowerCase2Abbreviation.get(nameKey));</span>
+        } else {
+<span class="nc" id="L75">            return Optional.empty();</span>
+        }
+    }
+
+    public void addEntry(Abbreviation abbreviation) {
+<span class="fc" id="L80">        Objects.requireNonNull(abbreviation);</span>
+
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        if (isKnownName(abbreviation.getName())) {</span>
+<span class="nc" id="L83">            Abbreviation previous = getAbbreviation(abbreviation.getName()).get();</span>
+<span class="nc" id="L84">            abbreviations.remove(previous);</span>
+<span class="nc" id="L85">            LOGGER.info(&quot;Duplicate journal abbreviation - old one will be overwritten by new one\nOLD: &quot;</span>
+<span class="nc" id="L86">                    + previous + &quot;\nNEW: &quot; + abbreviation);</span>
+        }
+
+<span class="fc" id="L89">        abbreviations.add(abbreviation);</span>
+
+<span class="fc" id="L91">        fullNameLowerCase2Abbreviation.put(abbreviation.getName().toLowerCase(Locale.ENGLISH), abbreviation);</span>
+<span class="fc" id="L92">        isoLowerCase2Abbreviation.put(abbreviation.getIsoAbbreviation().toLowerCase(Locale.ENGLISH), abbreviation);</span>
+<span class="fc" id="L93">        medlineLowerCase2Abbreviation.put(abbreviation.getMedlineAbbreviation().toLowerCase(Locale.ENGLISH),</span>
+<span class="fc" id="L94">                abbreviation);</span>
+<span class="fc" id="L95">    }</span>
+
+    public void addEntries(List&lt;Abbreviation&gt; abbreviationsToAdd) {
+<span class="fc" id="L98">        abbreviationsToAdd.forEach(this::addEntry);</span>
+<span class="fc" id="L99">    }</span>
+
+    public SortedSet&lt;Abbreviation&gt; getAbbreviations() {
+<span class="fc" id="L102">        return Collections.unmodifiableSortedSet(abbreviations);</span>
+    }
+
+    public Optional&lt;String&gt; getNextAbbreviation(String text) {
+<span class="nc" id="L106">        Optional&lt;Abbreviation&gt; abbreviation = getAbbreviation(text);</span>
+
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (!abbreviation.isPresent()) {</span>
+<span class="nc" id="L109">            return Optional.empty();</span>
+        }
+
+<span class="nc" id="L112">        Abbreviation abbr = abbreviation.get();</span>
+<span class="nc" id="L113">        return Optional.of(abbr.getNext(text));</span>
+    }
+
+    public Optional&lt;String&gt; getMedlineAbbreviation(String text) {
+<span class="nc" id="L117">        Optional&lt;Abbreviation&gt; abbreviation = getAbbreviation(text);</span>
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (!abbreviation.isPresent()) {</span>
+<span class="nc" id="L120">            return Optional.empty();</span>
+        }
+
+<span class="nc" id="L123">        Abbreviation abbr = abbreviation.get();</span>
+<span class="nc" id="L124">        return Optional.of(abbr.getMedlineAbbreviation());</span>
+    }
+
+    public Optional&lt;String&gt; getIsoAbbreviation(String text) {
+<span class="nc" id="L128">        Optional&lt;Abbreviation&gt; abbreviation = getAbbreviation(text);</span>
+
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        if (!abbreviation.isPresent()) {</span>
+<span class="nc" id="L131">            return Optional.empty();</span>
+        }
+
+<span class="nc" id="L134">        Abbreviation abbr = abbreviation.get();</span>
+<span class="nc" id="L135">        return Optional.of(abbr.getIsoAbbreviation());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

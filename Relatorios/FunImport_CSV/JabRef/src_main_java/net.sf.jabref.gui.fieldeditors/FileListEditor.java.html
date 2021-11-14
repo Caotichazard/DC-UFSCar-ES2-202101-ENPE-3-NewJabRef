@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FileListEditor.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.fieldeditors</a> &gt; <span class="el_source">FileListEditor.java</span></div><h1>FileListEditor.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.fieldeditors;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import javax.swing.AbstractAction;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.KeyStroke;
+import javax.swing.TransferHandler;
+import javax.swing.table.TableCellRenderer;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefExecutorService;
+import net.sf.jabref.external.AutoSetLinks;
+import net.sf.jabref.external.DownloadExternalFile;
+import net.sf.jabref.external.ExternalFileType;
+import net.sf.jabref.external.ExternalFileTypes;
+import net.sf.jabref.external.MoveFileAction;
+import net.sf.jabref.gui.FileListEntry;
+import net.sf.jabref.gui.FileListEntryEditor;
+import net.sf.jabref.gui.FileListTableModel;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.actions.Actions;
+import net.sf.jabref.gui.autocompleter.AutoCompleteListener;
+import net.sf.jabref.gui.desktop.JabRefDesktop;
+import net.sf.jabref.gui.entryeditor.EntryEditor;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.EntryUtil;
+
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Created by Morten O. Alver 2007.02.22
+ */
+public class FileListEditor extends JTable implements FieldEditor, DownloadExternalFile.DownloadCallback {
+
+<span class="nc" id="L84">    private static final Log LOGGER = LogFactory.getLog(FileListEditor.class);</span>
+
+    private final FieldNameLabel label;
+    private FileListEntryEditor editor;
+    private final JabRefFrame frame;
+    private final BibDatabaseContext databaseContext;
+    private final String fieldName;
+    private final EntryEditor entryEditor;
+    private final JPanel panel;
+    private final FileListTableModel tableModel;
+    private final JButton auto;
+<span class="nc" id="L95">    private final JPopupMenu menu = new JPopupMenu();</span>
+
+<span class="nc" id="L97">    public FileListEditor(JabRefFrame frame, BibDatabaseContext databaseContext, String fieldName, String content,</span>
+                          EntryEditor entryEditor) {
+<span class="nc" id="L99">        this.frame = frame;</span>
+<span class="nc" id="L100">        this.databaseContext = databaseContext;</span>
+<span class="nc" id="L101">        this.fieldName = fieldName;</span>
+<span class="nc" id="L102">        this.entryEditor = entryEditor;</span>
+<span class="nc" id="L103">        label = new FieldNameLabel(&quot; &quot; + EntryUtil.capitalizeFirst(fieldName) + &quot; &quot;);</span>
+<span class="nc" id="L104">        tableModel = new FileListTableModel();</span>
+<span class="nc" id="L105">        setText(content);</span>
+<span class="nc" id="L106">        setModel(tableModel);</span>
+<span class="nc" id="L107">        JScrollPane sPane = new JScrollPane(this);</span>
+<span class="nc" id="L108">        setTableHeader(null);</span>
+<span class="nc" id="L109">        addMouseListener(new TableClickListener());</span>
+
+<span class="nc" id="L111">        JButton add = new JButton(IconTheme.JabRefIcon.ADD_NOBOX.getSmallIcon());</span>
+<span class="nc" id="L112">        add.setToolTipText(Localization.lang(&quot;New file link (INSERT)&quot;));</span>
+<span class="nc" id="L113">        JButton remove = new JButton(IconTheme.JabRefIcon.REMOVE_NOBOX.getSmallIcon());</span>
+<span class="nc" id="L114">        remove.setToolTipText(Localization.lang(&quot;Remove file link (DELETE)&quot;));</span>
+<span class="nc" id="L115">        JButton up = new JButton(IconTheme.JabRefIcon.UP.getSmallIcon());</span>
+
+<span class="nc" id="L117">        JButton down = new JButton(IconTheme.JabRefIcon.DOWN.getSmallIcon());</span>
+<span class="nc" id="L118">        auto = new JButton(Localization.lang(&quot;Auto&quot;));</span>
+<span class="nc" id="L119">        JButton download = new JButton(Localization.lang(&quot;Download&quot;));</span>
+<span class="nc" id="L120">        add.setMargin(new Insets(0, 0, 0, 0));</span>
+<span class="nc" id="L121">        remove.setMargin(new Insets(0, 0, 0, 0));</span>
+<span class="nc" id="L122">        up.setMargin(new Insets(0, 0, 0, 0));</span>
+<span class="nc" id="L123">        down.setMargin(new Insets(0, 0, 0, 0));</span>
+<span class="nc" id="L124">        add.addActionListener(e -&gt; addEntry());</span>
+<span class="nc" id="L125">        remove.addActionListener(e -&gt; removeEntries());</span>
+<span class="nc" id="L126">        up.addActionListener(e -&gt; moveEntry(-1));</span>
+<span class="nc" id="L127">        down.addActionListener(e -&gt; moveEntry(1));</span>
+<span class="nc" id="L128">        auto.addActionListener(e -&gt; autoSetLinks());</span>
+<span class="nc" id="L129">        download.addActionListener(e -&gt; downloadFile());</span>
+
+<span class="nc" id="L131">        FormBuilder builder = FormBuilder.create()</span>
+<span class="nc" id="L132">                .layout(new FormLayout</span>
+<span class="nc" id="L133">                (&quot;fill:pref,1dlu,fill:pref,1dlu,fill:pref&quot;, &quot;fill:pref,fill:pref&quot;));</span>
+<span class="nc" id="L134">        builder.add(up).xy(1, 1);</span>
+<span class="nc" id="L135">        builder.add(add).xy(3, 1);</span>
+<span class="nc" id="L136">        builder.add(auto).xy(5, 1);</span>
+<span class="nc" id="L137">        builder.add(down).xy(1, 2);</span>
+<span class="nc" id="L138">        builder.add(remove).xy(3, 2);</span>
+<span class="nc" id="L139">        builder.add(download).xy(5, 2);</span>
+<span class="nc" id="L140">        panel = new JPanel();</span>
+<span class="nc" id="L141">        panel.setLayout(new BorderLayout());</span>
+<span class="nc" id="L142">        panel.add(sPane, BorderLayout.CENTER);</span>
+<span class="nc" id="L143">        panel.add(builder.getPanel(), BorderLayout.EAST);</span>
+
+<span class="nc" id="L145">        TransferHandler transferHandler = new FileListEditorTransferHandler(frame, entryEditor, null);</span>
+<span class="nc" id="L146">        setTransferHandler(transferHandler);</span>
+<span class="nc" id="L147">        panel.setTransferHandler(transferHandler);</span>
+
+        // Add an input/action pair for deleting entries:
+<span class="nc" id="L150">        getInputMap().put(KeyStroke.getKeyStroke(&quot;DELETE&quot;), &quot;delete&quot;);</span>
+<span class="nc" id="L151">        getActionMap().put(&quot;delete&quot;, new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L155">                int row = getSelectedRow();</span>
+<span class="nc" id="L156">                removeEntries();</span>
+<span class="nc" id="L157">                row = Math.min(row, getRowCount() - 1);</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                if (row &gt;= 0) {</span>
+<span class="nc" id="L159">                    setRowSelectionInterval(row, row);</span>
+                }
+<span class="nc" id="L161">            }</span>
+        });
+
+        // Add an input/action pair for inserting an entry:
+<span class="nc" id="L165">        getInputMap().put(KeyStroke.getKeyStroke(&quot;INSERT&quot;), &quot;insert&quot;);</span>
+<span class="nc" id="L166">        getActionMap().put(&quot;insert&quot;, new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L170">                addEntry();</span>
+<span class="nc" id="L171">            }</span>
+        });
+
+        // Add input/action pair for moving an entry up:
+<span class="nc" id="L175">        getInputMap().put(Globals.getKeyPrefs().getKey(KeyBinding.FILE_LIST_EDITOR_MOVE_ENTRY_UP), &quot;move up&quot;);</span>
+<span class="nc" id="L176">        getActionMap().put(&quot;move up&quot;, new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L180">                moveEntry(-1);</span>
+<span class="nc" id="L181">            }</span>
+        });
+
+        // Add input/action pair for moving an entry down:
+<span class="nc" id="L185">        getInputMap().put(Globals.getKeyPrefs().getKey(KeyBinding.FILE_LIST_EDITOR_MOVE_ENTRY_DOWN), &quot;move down&quot;);</span>
+<span class="nc" id="L186">        getActionMap().put(&quot;move down&quot;, new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L190">                moveEntry(1);</span>
+<span class="nc" id="L191">            }</span>
+        });
+
+<span class="nc" id="L194">        JMenuItem openLink = new JMenuItem(Localization.lang(&quot;Open&quot;));</span>
+<span class="nc" id="L195">        menu.add(openLink);</span>
+<span class="nc" id="L196">        openLink.addActionListener(e -&gt; openSelectedFile());</span>
+
+<span class="nc" id="L198">        JMenuItem openFolder = new JMenuItem(Localization.lang(&quot;Open folder&quot;));</span>
+<span class="nc" id="L199">        menu.add(openFolder);</span>
+<span class="nc" id="L200">        openFolder.addActionListener(e -&gt; {</span>
+<span class="nc" id="L201">            int row = getSelectedRow();</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">            if (row &gt;= 0) {</span>
+<span class="nc" id="L203">                FileListEntry entry = tableModel.getEntry(row);</span>
+                try {
+<span class="nc" id="L205">                    String path = &quot;&quot;;</span>
+                    // absolute path
+<span class="nc bnc" id="L207" title="All 2 branches missed.">                    if (Paths.get(entry.link).isAbsolute()) {</span>
+<span class="nc" id="L208">                        path = Paths.get(entry.link).toString();</span>
+<span class="nc" id="L209">                    } else {</span>
+                        // relative to file folder
+<span class="nc bnc" id="L211" title="All 2 branches missed.">                        for (String folder : databaseContext.getFileDirectory()) {</span>
+<span class="nc" id="L212">                            Path file = Paths.get(folder, entry.link);</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">                            if (Files.exists(file)) {</span>
+<span class="nc" id="L214">                                path = file.toString();</span>
+<span class="nc" id="L215">                                break;</span>
+                            }
+                        }
+                    }
+<span class="nc bnc" id="L219" title="All 2 branches missed.">                    if (!path.isEmpty()) {</span>
+<span class="nc" id="L220">                        JabRefDesktop.openFolderAndSelectFile(path);</span>
+<span class="nc" id="L221">                    } else {</span>
+<span class="nc" id="L222">                        JOptionPane.showMessageDialog(frame,</span>
+<span class="nc" id="L223">                                Localization.lang(&quot;File not found&quot;),</span>
+<span class="nc" id="L224">                                Localization.lang(&quot;Error&quot;),</span>
+<span class="nc" id="L225">                                JOptionPane.ERROR_MESSAGE);</span>
+                    }
+<span class="nc" id="L227">                } catch (IOException ex) {</span>
+<span class="nc" id="L228">                    LOGGER.debug(&quot;Cannot open folder&quot;, ex);</span>
+                }
+            }
+<span class="nc" id="L231">        });</span>
+
+<span class="nc" id="L233">        JMenuItem rename = new JMenuItem(Localization.lang(&quot;Move/Rename file&quot;));</span>
+<span class="nc" id="L234">        menu.add(rename);</span>
+<span class="nc" id="L235">        rename.addActionListener(new MoveFileAction(frame, entryEditor, this, false));</span>
+
+<span class="nc" id="L237">        JMenuItem moveToFileDir = new JMenuItem(Localization.lang(&quot;Move file to file directory&quot;));</span>
+<span class="nc" id="L238">        menu.add(moveToFileDir);</span>
+<span class="nc" id="L239">        moveToFileDir.addActionListener(new MoveFileAction(frame, entryEditor, this, true));</span>
+
+<span class="nc" id="L241">        JMenuItem deleteFile = new JMenuItem(Localization.lang(&quot;Delete local file&quot;));</span>
+<span class="nc" id="L242">        menu.add(deleteFile);</span>
+<span class="nc" id="L243">        deleteFile.addActionListener(e -&gt; {</span>
+<span class="nc" id="L244">            int row = getSelectedRow();</span>
+            // no selection
+<span class="nc bnc" id="L246" title="All 2 branches missed.">            if (row != -1) {</span>
+
+<span class="nc" id="L248">                FileListEntry entry = tableModel.getEntry(row);</span>
+                // null if file does not exist
+<span class="nc" id="L250">                Optional&lt;File&gt; file = FileUtil.expandFilename(databaseContext, entry.link);</span>
+
+                // transactional delete and unlink
+                try {
+<span class="nc bnc" id="L254" title="All 2 branches missed.">                    if (file.isPresent()) {</span>
+<span class="nc" id="L255">                        Files.delete(file.get().toPath());</span>
+                    }
+<span class="nc" id="L257">                    removeEntries();</span>
+<span class="nc" id="L258">                } catch (IOException ex) {</span>
+<span class="nc" id="L259">                    JOptionPane.showMessageDialog(frame, Localization.lang(&quot;File permission error&quot;),</span>
+<span class="nc" id="L260">                            Localization.lang(&quot;Cannot delete file&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L261">                    LOGGER.warn(&quot;File permission error while deleting: &quot; + entry.link, ex);</span>
+                }
+            }
+<span class="nc" id="L264">        });</span>
+<span class="nc" id="L265">        adjustColumnWidth();</span>
+<span class="nc" id="L266">    }</span>
+
+    public void adjustColumnWidth() {
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        for (int column = 0; column &lt; this.getColumnCount(); column++) {</span>
+<span class="nc" id="L270">            int width = 0;</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">            for (int row = 0; row &lt; this.getRowCount(); row++) {</span>
+<span class="nc" id="L272">                TableCellRenderer renderer = this.getCellRenderer(row, column);</span>
+<span class="nc" id="L273">                Component comp = this.prepareRenderer(renderer, row, column);</span>
+<span class="nc" id="L274">                width = Math.max(comp.getPreferredSize().width, width);</span>
+            }
+<span class="nc" id="L276">            this.columnModel.getColumn(column).setPreferredWidth(width);</span>
+        }
+<span class="nc" id="L278">    }</span>
+
+    private void openSelectedFile() {
+<span class="nc" id="L281">        int row = getSelectedRow();</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">        if (row &gt;= 0) {</span>
+<span class="nc" id="L283">            FileListEntry entry = tableModel.getEntry(row);</span>
+            try {
+<span class="nc" id="L285">                Optional&lt;ExternalFileType&gt; type = ExternalFileTypes.getInstance()</span>
+<span class="nc" id="L286">                        .getExternalFileTypeByName(entry.type.get().getName());</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">                JabRefDesktop.openExternalFileAnyFormat(databaseContext, entry.link, type.isPresent() ? type : entry.type);</span>
+<span class="nc" id="L288">            } catch (IOException e) {</span>
+<span class="nc" id="L289">                LOGGER.warn(&quot;Cannot open selected file.&quot;, e);</span>
+            }
+        }
+<span class="nc" id="L292">    }</span>
+
+    public FileListTableModel getTableModel() {
+<span class="nc" id="L295">        return tableModel;</span>
+    }
+
+    @Override
+    public String getFieldName() {
+<span class="nc" id="L300">        return fieldName;</span>
+    }
+
+    /*
+      * Returns the component to be added to a container. Might be a JScrollPane
+    * or the component itself.
+    */
+    @Override
+    public JComponent getPane() {
+<span class="nc" id="L309">        return panel;</span>
+    }
+
+    /*
+     * Returns the text component itself.
+    */
+    @Override
+    public JComponent getTextComponent() {
+<span class="nc" id="L317">        return this;</span>
+    }
+
+    @Override
+    public JLabel getLabel() {
+<span class="nc" id="L322">        return label;</span>
+    }
+
+    @Override
+    public void setLabelColor(Color color) {
+<span class="nc" id="L327">        label.setForeground(color);</span>
+<span class="nc" id="L328">    }</span>
+
+    @Override
+    public String getText() {
+<span class="nc" id="L332">        return tableModel.getStringRepresentation();</span>
+    }
+
+    @Override
+    public void setText(String newText) {
+<span class="nc" id="L337">        tableModel.setContent(newText);</span>
+<span class="nc" id="L338">    }</span>
+
+    @Override
+    public void append(String text) {
+        // Do nothing
+<span class="nc" id="L343">    }</span>
+
+    @Override
+    public void updateFont() {
+        // Do nothing
+<span class="nc" id="L348">    }</span>
+
+    @Override
+    public void paste(String textToInsert) {
+        // Do nothing
+<span class="nc" id="L353">    }</span>
+
+    @Override
+    public String getSelectedText() {
+<span class="nc" id="L357">        return null;</span>
+    }
+
+    private void addEntry(String initialLink) {
+<span class="nc" id="L361">        int row = getSelectedRow();</span>
+<span class="nc bnc" id="L362" title="All 2 branches missed.">        if (row == -1) {</span>
+<span class="nc" id="L363">            row = 0;</span>
+        }
+<span class="nc" id="L365">        FileListEntry entry = new FileListEntry(&quot;&quot;, initialLink);</span>
+<span class="nc bnc" id="L366" title="All 2 branches missed.">        if (editListEntry(entry, true)) {</span>
+<span class="nc" id="L367">            tableModel.addEntry(row, entry);</span>
+        }
+<span class="nc" id="L369">        entryEditor.updateField(this);</span>
+<span class="nc" id="L370">        adjustColumnWidth();</span>
+<span class="nc" id="L371">    }</span>
+
+    private void addEntry() {
+<span class="nc" id="L374">        List&lt;String&gt; defaultDirectory = databaseContext.getFileDirectory();</span>
+<span class="nc bnc" id="L375" title="All 4 branches missed.">        if (defaultDirectory.isEmpty() || (defaultDirectory.get(0) == null)) {</span>
+<span class="nc" id="L376">            addEntry(&quot;&quot;);</span>
+<span class="nc" id="L377">        } else {</span>
+<span class="nc" id="L378">            addEntry(defaultDirectory.get(0));</span>
+        }
+<span class="nc" id="L380">    }</span>
+
+    private void removeEntries() {
+<span class="nc" id="L383">        int[] rows = getSelectedRows();</span>
+<span class="nc bnc" id="L384" title="All 2 branches missed.">        if (rows != null) {</span>
+<span class="nc bnc" id="L385" title="All 2 branches missed.">            for (int i = rows.length - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L386">                tableModel.removeEntry(rows[i]);</span>
+            }
+        }
+<span class="nc" id="L389">        entryEditor.updateField(this);</span>
+<span class="nc" id="L390">        adjustColumnWidth();</span>
+<span class="nc" id="L391">    }</span>
+
+    private void moveEntry(int i) {
+<span class="nc" id="L394">        int[] sel = getSelectedRows();</span>
+<span class="nc bnc" id="L395" title="All 4 branches missed.">        if ((sel.length != 1) || (tableModel.getRowCount() &lt; 2)) {</span>
+<span class="nc" id="L396">            return;</span>
+        }
+<span class="nc" id="L398">        int toIdx = sel[0] + i;</span>
+<span class="nc bnc" id="L399" title="All 2 branches missed.">        if (toIdx &gt;= tableModel.getRowCount()) {</span>
+<span class="nc" id="L400">            toIdx -= tableModel.getRowCount();</span>
+        }
+<span class="nc bnc" id="L402" title="All 2 branches missed.">        if (toIdx &lt; 0) {</span>
+<span class="nc" id="L403">            toIdx += tableModel.getRowCount();</span>
+        }
+<span class="nc" id="L405">        FileListEntry entry = tableModel.getEntry(sel[0]);</span>
+<span class="nc" id="L406">        tableModel.removeEntry(sel[0]);</span>
+<span class="nc" id="L407">        tableModel.addEntry(toIdx, entry);</span>
+<span class="nc" id="L408">        entryEditor.updateField(this);</span>
+<span class="nc" id="L409">        setRowSelectionInterval(toIdx, toIdx);</span>
+<span class="nc" id="L410">        adjustColumnWidth();</span>
+<span class="nc" id="L411">    }</span>
+
+    /**
+     * Open an editor for this entry.
+     *
+     * @param entry      The entry to edit.
+     * @param openBrowse True to indicate that a Browse dialog should be immediately opened.
+     * @return true if the edit was accepted, false if it was canceled.
+     */
+    private boolean editListEntry(FileListEntry entry, boolean openBrowse) {
+<span class="nc bnc" id="L421" title="All 2 branches missed.">        if (editor == null) {</span>
+<span class="nc" id="L422">            editor = new FileListEntryEditor(frame, entry, false, true, databaseContext);</span>
+<span class="nc" id="L423">        } else {</span>
+<span class="nc" id="L424">            editor.setEntry(entry);</span>
+        }
+<span class="nc" id="L426">        editor.setVisible(true, openBrowse);</span>
+<span class="nc bnc" id="L427" title="All 2 branches missed.">        if (editor.okPressed()) {</span>
+<span class="nc" id="L428">            tableModel.fireTableDataChanged();</span>
+        }
+<span class="nc" id="L430">        entryEditor.updateField(this);</span>
+<span class="nc" id="L431">        adjustColumnWidth();</span>
+<span class="nc" id="L432">        return editor.okPressed();</span>
+    }
+
+    public void autoSetLinks() {
+<span class="nc" id="L436">        auto.setEnabled(false);</span>
+
+<span class="nc" id="L438">        Collection&lt;BibEntry&gt; entries = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L439">        entries.addAll(frame.getCurrentBasePanel().getSelectedEntries());</span>
+
+        // filesystem lookup
+<span class="nc" id="L442">        JDialog dialog = new JDialog(frame, true);</span>
+<span class="nc" id="L443">        JabRefExecutorService.INSTANCE</span>
+<span class="nc" id="L444">                .execute(AutoSetLinks.autoSetLinks(entries, null, null, tableModel, databaseContext, e -&gt; {</span>
+<span class="nc" id="L445">                    auto.setEnabled(true);</span>
+
+<span class="nc bnc" id="L447" title="All 2 branches missed.">                    if (e.getID() &gt; 0) {</span>
+<span class="nc" id="L448">                        entryEditor.updateField(this);</span>
+<span class="nc" id="L449">                        adjustColumnWidth();</span>
+<span class="nc" id="L450">                        frame.output(Localization.lang(&quot;Finished automatically setting external links.&quot;));</span>
+<span class="nc" id="L451">                    } else {</span>
+<span class="nc" id="L452">                        frame.output(Localization.lang(&quot;Finished automatically setting external links.&quot;) + &quot; &quot;</span>
+<span class="nc" id="L453">                                + Localization.lang(&quot;No files found.&quot;));</span>
+
+                        // auto download file as no file found before
+<span class="nc" id="L456">                        frame.getCurrentBasePanel().runCommand(Actions.DOWNLOAD_FULL_TEXT);</span>
+                    }
+                    // reset
+<span class="nc" id="L459">                    auto.setEnabled(true);</span>
+<span class="nc" id="L460">                } , dialog));</span>
+<span class="nc" id="L461">    }</span>
+
+    /**
+     * Run a file download operation.
+     */
+    private void downloadFile() {
+<span class="nc" id="L467">        String bibtexKey = entryEditor.getEntry().getCiteKey();</span>
+<span class="nc bnc" id="L468" title="All 2 branches missed.">        if (bibtexKey == null) {</span>
+<span class="nc" id="L469">            int answer = JOptionPane.showConfirmDialog(frame,</span>
+<span class="nc" id="L470">                    Localization.lang(&quot;This entry has no BibTeX key. Generate key now?&quot;),</span>
+<span class="nc" id="L471">                    Localization.lang(&quot;Download file&quot;), JOptionPane.OK_CANCEL_OPTION,</span>
+<span class="nc" id="L472">                    JOptionPane.QUESTION_MESSAGE);</span>
+<span class="nc bnc" id="L473" title="All 2 branches missed.">            if (answer == JOptionPane.OK_OPTION) {</span>
+<span class="nc" id="L474">                ActionListener l = entryEditor.getGenerateKeyAction();</span>
+<span class="nc" id="L475">                l.actionPerformed(null);</span>
+<span class="nc" id="L476">                bibtexKey = entryEditor.getEntry().getCiteKey();</span>
+            }
+        }
+<span class="nc" id="L479">        DownloadExternalFile def = new DownloadExternalFile(frame,</span>
+<span class="nc" id="L480">                frame.getCurrentBasePanel().getBibDatabaseContext(), bibtexKey);</span>
+        try {
+<span class="nc" id="L482">            def.download(this);</span>
+<span class="nc" id="L483">        } catch (IOException ex) {</span>
+<span class="nc" id="L484">            LOGGER.warn(&quot;Cannot download.&quot;, ex);</span>
+        }
+<span class="nc" id="L486">    }</span>
+
+    /**
+     * This is the callback method that the DownloadExternalFile class uses to report the result
+     * of a download operation. This call may never come, if the user canceled the operation.
+     *
+     * @param file The FileListEntry linking to the resulting local file.
+     */
+    @Override
+    public void downloadComplete(FileListEntry file) {
+<span class="nc" id="L496">        tableModel.addEntry(tableModel.getRowCount(), file);</span>
+<span class="nc" id="L497">        entryEditor.updateField(this);</span>
+<span class="nc" id="L498">        adjustColumnWidth();</span>
+<span class="nc" id="L499">    }</span>
+
+
+<span class="nc" id="L502">    class TableClickListener extends MouseAdapter {</span>
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+<span class="nc bnc" id="L506" title="All 4 branches missed.">            if ((e.getButton() == MouseEvent.BUTTON1) &amp;&amp; (e.getClickCount() == 2)) {</span>
+<span class="nc" id="L507">                int row = rowAtPoint(e.getPoint());</span>
+<span class="nc bnc" id="L508" title="All 2 branches missed.">                if (row &gt;= 0) {</span>
+<span class="nc" id="L509">                    FileListEntry entry = tableModel.getEntry(row);</span>
+<span class="nc" id="L510">                    editListEntry(entry, false);</span>
+                }
+<span class="nc bnc" id="L512" title="All 2 branches missed.">            } else if (e.isPopupTrigger()) {</span>
+<span class="nc" id="L513">                processPopupTrigger(e);</span>
+            }
+<span class="nc" id="L515">        }</span>
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+<span class="nc bnc" id="L519" title="All 2 branches missed.">            if (e.isPopupTrigger()) {</span>
+<span class="nc" id="L520">                processPopupTrigger(e);</span>
+            }
+<span class="nc" id="L522">        }</span>
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+<span class="nc bnc" id="L526" title="All 2 branches missed.">            if (e.isPopupTrigger()) {</span>
+<span class="nc" id="L527">                processPopupTrigger(e);</span>
+            }
+<span class="nc" id="L529">        }</span>
+
+        private void processPopupTrigger(MouseEvent e) {
+<span class="nc" id="L532">            int row = rowAtPoint(e.getPoint());</span>
+<span class="nc bnc" id="L533" title="All 2 branches missed.">            if (row &gt;= 0) {</span>
+<span class="nc" id="L534">                setRowSelectionInterval(row, row);</span>
+<span class="nc" id="L535">                menu.show(FileListEditor.this, e.getX(), e.getY());</span>
+            }
+<span class="nc" id="L537">        }</span>
+    }
+
+    @Override
+    public void undo() {
+        // Do nothing
+<span class="nc" id="L543">    }</span>
+
+    @Override
+    public void redo() {
+        // Do nothing
+<span class="nc" id="L548">    }</span>
+
+    @Override
+    public void setAutoCompleteListener(AutoCompleteListener listener) {
+        // Do nothing
+<span class="nc" id="L553">    }</span>
+
+    @Override
+    public void clearAutoCompleteSuggestion() {
+        // Do nothing
+<span class="nc" id="L558">    }</span>
+
+    @Override
+    public void setActiveBackgroundColor() {
+        // Do nothing
+<span class="nc" id="L563">    }</span>
+
+    @Override
+    public void setValidBackgroundColor() {
+        // Do nothing
+<span class="nc" id="L568">    }</span>
+
+    @Override
+    public void setInvalidBackgroundColor() {
+        // Do nothing
+<span class="nc" id="L573">    }</span>
+
+    @Override
+    public void updateFontColor() {
+        // Do nothing
+<span class="nc" id="L578">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

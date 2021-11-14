@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>PersonName.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.mods</a> &gt; <span class="el_source">PersonName.java</span></div><h1>PersonName.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.mods;
+
+import java.util.List;
+
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.entry.AuthorList;
+
+/**
+ * @author Michael Wrighton, S M Mahbub Murshed
+ *
+ * S M Mahbub Murshed : added few functions for convenience. May 15, 2007
+ *
+ * History
+ * Dec 16, 2011 - Changed parseName(String) to export authorname with
+ * 				  more than 3 names correctly
+ *
+ */
+public class PersonName {
+
+    private String givenName;
+    private String surname;
+    private String middleName;
+
+
+<span class="nc" id="L40">    public PersonName() {</span>
+        // Empty constructor
+<span class="nc" id="L42">    }</span>
+
+<span class="nc" id="L44">    public PersonName(String name) {</span>
+<span class="nc" id="L45">        parseName(name);</span>
+<span class="nc" id="L46">    }</span>
+
+<span class="nc" id="L48">    public PersonName(String firstName, String middleName, String lastName) {</span>
+<span class="nc" id="L49">        givenName = firstName;</span>
+<span class="nc" id="L50">        this.middleName = middleName;</span>
+<span class="nc" id="L51">        surname = lastName;</span>
+<span class="nc" id="L52">    }</span>
+
+    private void parseName(String author) {
+<span class="nc" id="L55">        String authorMod = AuthorList.fixAuthorLastNameFirst(author, false);</span>
+
+        //Formating names and replacing escape Char for ',' back to a comma
+        //            XMLChars xmlChars = new XMLChars();
+        //            authorMod = xmlChars.format(authorMod).replace(&quot;&amp;#44;&quot;, &quot;,&quot;);
+
+<span class="nc" id="L61">        int endOfLastName = authorMod.indexOf(',');</span>
+
+        // Tokenize just the firstName and middleNames as we have the surname
+        // before the comma.
+<span class="nc" id="L65">        List&lt;String&gt; names = StringUtil.tokenizeToList(authorMod.substring(endOfLastName + 1).trim(), &quot; \n\r&quot;);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (endOfLastName &gt;= 0) {</span>
+<span class="nc" id="L67">            names.add(authorMod.substring(0, endOfLastName));</span>
+        }
+
+<span class="nc" id="L70">        int amountOfNames = names.size();</span>
+
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (amountOfNames == 1) {</span>
+<span class="nc" id="L73">            surname = names.get(0);</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        } else if (amountOfNames == 2) {</span>
+<span class="nc" id="L75">            givenName = names.get(0);</span>
+<span class="nc" id="L76">            surname = names.get(1);</span>
+<span class="nc" id="L77">        }</span>
+        else {
+<span class="nc" id="L79">            givenName = names.get(0);</span>
+<span class="nc" id="L80">            middleName = &quot;&quot;;</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            for (int i = 1; i &lt; (amountOfNames - 1); i++) {</span>
+<span class="nc" id="L82">                middleName += ' ' + names.get(i);</span>
+            }
+<span class="nc" id="L84">            middleName = middleName.trim();</span>
+<span class="nc" id="L85">            surname = names.get(amountOfNames - 1);</span>
+        }
+<span class="nc" id="L87">    }</span>
+
+    public String getGivenNames() {
+<span class="nc" id="L90">        StringBuilder result = new StringBuilder();</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (givenName != null) {</span>
+<span class="nc" id="L92">            result.append(givenName);</span>
+        }
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (middleName != null) {</span>
+<span class="nc" id="L95">            result.append(' ').append(middleName);</span>
+        }
+<span class="nc" id="L97">        return result.toString();</span>
+    }
+
+    public String getSurname() {
+<span class="nc" id="L101">        return surname;</span>
+    }
+
+    public void setSurname(String lastName) {
+<span class="nc" id="L105">        surname = lastName;</span>
+<span class="nc" id="L106">    }</span>
+
+    public String getFirstname() {
+<span class="nc" id="L109">        return givenName;</span>
+    }
+
+    public void setFirstname(String firstName) {
+<span class="nc" id="L113">        givenName = firstName;</span>
+<span class="nc" id="L114">    }</span>
+
+    public String getMiddlename() {
+<span class="nc" id="L117">        return middleName;</span>
+    }
+
+    public void setMiddlename(String middleName) {
+<span class="nc" id="L121">        this.middleName = middleName;</span>
+<span class="nc" id="L122">    }</span>
+
+    public String getFullname() {
+<span class="nc" id="L125">        StringBuilder fullName = new StringBuilder();</span>
+<span class="nc bnc" id="L126" title="All 4 branches missed.">        if ((givenName != null) &amp;&amp; !givenName.isEmpty()) {</span>
+<span class="nc" id="L127">            fullName.append(givenName).append(' ');</span>
+        }
+<span class="nc bnc" id="L129" title="All 4 branches missed.">        if ((middleName != null) &amp;&amp; !middleName.isEmpty()) {</span>
+<span class="nc" id="L130">            fullName.append(middleName).append(' ');</span>
+        }
+<span class="nc bnc" id="L132" title="All 4 branches missed.">        if ((surname != null) &amp;&amp; !surname.isEmpty()) {</span>
+<span class="nc" id="L133">            fullName.append(surname);</span>
+        }
+
+<span class="nc" id="L136">        return fullName.toString().trim();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L141">        return surname;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

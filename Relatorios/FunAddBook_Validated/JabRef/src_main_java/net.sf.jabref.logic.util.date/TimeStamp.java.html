@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>TimeStamp.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.util.date</a> &gt; <span class="el_source">TimeStamp.java</span></div><h1>TimeStamp.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.util.date;
+
+import java.util.Optional;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.logic.util.UpdateField;
+import net.sf.jabref.model.entry.BibEntry;
+
+<span class="nc" id="L11">public class TimeStamp {</span>
+
+<span class="fc" id="L13">    private static final EasyDateFormat DATE_FORMATTER = new EasyDateFormat();</span>
+
+    public static boolean updateTimeStampIsSet() {
+<span class="pc bpc" id="L16" title="1 of 2 branches missed.">        return Globals.prefs.getBoolean(JabRefPreferences.USE_TIME_STAMP)</span>
+<span class="nc bnc" id="L17" title="All 2 branches missed.">                &amp;&amp; Globals.prefs.getBoolean(JabRefPreferences.UPDATE_TIMESTAMP);</span>
+    }
+
+    /**
+     * Updates the timestamp of the given entry, nests the given undaoableEdit in a named compound, and returns that
+     * named compound
+     */
+    public static Optional&lt;FieldChange&gt; doUpdateTimeStamp(BibEntry entry) {
+<span class="nc" id="L25">        String timeStampField = Globals.prefs.get(JabRefPreferences.TIME_STAMP_FIELD);</span>
+<span class="nc" id="L26">        String timestamp = DATE_FORMATTER.getCurrentDate();</span>
+<span class="nc" id="L27">        return UpdateField.updateField(entry, timeStampField, timestamp);</span>
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

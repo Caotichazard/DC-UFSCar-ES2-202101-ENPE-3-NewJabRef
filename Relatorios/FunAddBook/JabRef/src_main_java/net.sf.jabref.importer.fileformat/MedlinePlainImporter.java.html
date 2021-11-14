@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MedlinePlainImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">MedlinePlainImporter.java</span></div><h1>MedlinePlainImporter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+*/
+
+package net.sf.jabref.importer.fileformat;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.importer.ImportFormatReader;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.model.entry.AuthorList;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Importer for the MEDLINE Plain format.
+ *
+ * check here for details on the format
+ * http://www.nlm.nih.gov/bsd/mms/medlineelements.html
+ *
+ * @author vegeziel
+ */
+<span class="fc" id="L43">public class MedlinePlainImporter extends ImportFormat {</span>
+
+<span class="fc" id="L45">    private static final Pattern PMID_PATTERN = Pattern.compile(&quot;PMID.*-.*&quot;);</span>
+<span class="fc" id="L46">    private static final Pattern PMC_PATTERN = Pattern.compile(&quot;PMC.*-.*&quot;);</span>
+<span class="fc" id="L47">    private static final Pattern PMCR_PATTERN = Pattern.compile(&quot;PMCR.*-.*&quot;);</span>
+
+
+    /**
+     * Return the name of this import format.
+     */
+    @Override
+    public String getFormatName() {
+<span class="fc" id="L55">        return &quot;MedlinePlain&quot;;</span>
+    }
+
+    /*
+     *  (non-Javadoc)
+     * @see net.sf.jabref.imports.ImportFormat#getCLIId()
+     */
+    @Override
+    public String getCLIId() {
+<span class="nc" id="L64">        return &quot;medlineplain&quot;;</span>
+    }
+
+    /**
+     * Check whether the source is in the correct format for this importer.
+     */
+    @Override
+    public boolean isRecognizedFormat(InputStream stream) throws IOException {
+
+        // Our strategy is to look for the &quot;PMID  - *&quot;, &quot;PMC.*-.*&quot;, or &quot;PMCR.*-.*&quot; line
+        // (i.e., PubMed Unique Identifier, PubMed Central Identifier, PubMed Central Release)
+<span class="nc" id="L75">        try (BufferedReader in = new BufferedReader(ImportFormatReader.getReaderDefaultEncoding(stream))) {</span>
+
+            String str;
+<span class="nc bnc" id="L78" title="All 2 branches missed.">            while ((str = in.readLine()) != null) {</span>
+<span class="nc bnc" id="L79" title="All 4 branches missed.">                if (PMID_PATTERN.matcher(str).find() || PMC_PATTERN.matcher(str).find()</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">                        || PMCR_PATTERN.matcher(str).find()) {</span>
+<span class="nc" id="L81">                    return true;</span>
+                }
+            }
+        }
+<span class="nc" id="L85">        return false;</span>
+    }
+
+    /**
+     * Parse the entries in the source, and return a List of BibEntry
+     * objects.
+     */
+    @Override
+    public List&lt;BibEntry&gt; importEntries(InputStream stream, OutputPrinter status) throws IOException {
+<span class="nc" id="L94">        List&lt;BibEntry&gt; bibitems = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L95">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L96">        try (BufferedReader in = new BufferedReader(ImportFormatReader.getReaderDefaultEncoding(stream))) {</span>
+            String str;
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            while ((str = in.readLine()) != null) {</span>
+<span class="nc" id="L99">                sb.append(str);</span>
+<span class="nc" id="L100">                sb.append('\n');</span>
+            }
+        }
+<span class="nc" id="L103">        String[] entries = sb.toString().replace(&quot;\u2013&quot;, &quot;-&quot;).replace(&quot;\u2014&quot;, &quot;--&quot;).replace(&quot;\u2015&quot;, &quot;--&quot;)</span>
+<span class="nc" id="L104">                .split(&quot;\\n\\n&quot;);</span>
+
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        for (String entry1 : entries) {</span>
+
+<span class="nc bnc" id="L108" title="All 4 branches missed.">            if (entry1.trim().isEmpty() || !entry1.contains(&quot;-&quot;)) {</span>
+<span class="nc" id="L109">                continue;</span>
+            }
+
+<span class="nc" id="L112">            String type = &quot;misc&quot;;</span>
+<span class="nc" id="L113">            String author = &quot;&quot;;</span>
+<span class="nc" id="L114">            String editor = &quot;&quot;;</span>
+<span class="nc" id="L115">            String comment = &quot;&quot;;</span>
+<span class="nc" id="L116">            Map&lt;String, String&gt; hm = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L118">            String[] fields = entry1.split(&quot;\n&quot;);</span>
+
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            for (int j = 0; j &lt; fields.length; j++) {</span>
+
+<span class="nc" id="L122">                StringBuilder current = new StringBuilder(fields[j]);</span>
+<span class="nc" id="L123">                boolean done = false;</span>
+
+<span class="nc bnc" id="L125" title="All 4 branches missed.">                while (!done &amp;&amp; (j &lt; (fields.length - 1))) {</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                    if (fields[j + 1].length() &lt;= 4) {</span>
+<span class="nc" id="L127">                        j++;</span>
+<span class="nc" id="L128">                        continue;</span>
+                    }
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                    if (fields[j + 1].charAt(4) != '-') {</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">                        if ((current.length() &gt; 0)</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">                                &amp;&amp; !Character.isWhitespace(current.charAt(current.length() - 1))) {</span>
+<span class="nc" id="L133">                            current.append(' ');</span>
+                        }
+<span class="nc" id="L135">                        current.append(fields[j + 1].trim());</span>
+<span class="nc" id="L136">                        j++;</span>
+<span class="nc" id="L137">                    } else {</span>
+<span class="nc" id="L138">                        done = true;</span>
+                    }
+                }
+<span class="nc" id="L141">                String entry = current.toString();</span>
+
+<span class="nc" id="L143">                String lab = entry.substring(0, entry.indexOf('-')).trim();</span>
+<span class="nc" id="L144">                String val = entry.substring(entry.indexOf('-') + 1).trim();</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">                if (&quot;PT&quot;.equals(lab)) {</span>
+<span class="nc" id="L146">                    val = val.toLowerCase();</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                    if (&quot;book&quot;.equals(val)) {</span>
+<span class="nc" id="L148">                        type = &quot;book&quot;;</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">                    } else if (&quot;journal article&quot;.equals(val)</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">                            || &quot;classical article&quot;.equals(val)</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">                            || &quot;corrected and republished article&quot;.equals(val)</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">                            || &quot;historical article&quot;.equals(val)</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">                            || &quot;introductory journal article&quot;.equals(val)</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                            || &quot;newspaper article&quot;.equals(val)) {</span>
+<span class="nc" id="L155">                        type = &quot;article&quot;;</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                    } else if (&quot;clinical conference&quot;.equals(val)</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">                            || &quot;consensus development conference&quot;.equals(val)</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                            || &quot;consensus development conference, nih&quot;.equals(val)) {</span>
+<span class="nc" id="L159">                        type = &quot;conference&quot;;</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">                    } else if (&quot;technical report&quot;.equals(val)) {</span>
+<span class="nc" id="L161">                        type = &quot;techreport&quot;;</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                    } else if (&quot;editorial&quot;.equals(val)) {</span>
+<span class="nc" id="L163">                        type = &quot;inproceedings&quot;;//&quot;incollection&quot;;&quot;inbook&quot;;</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">                    } else if (&quot;overall&quot;.equals(val)) {</span>
+<span class="nc" id="L165">                        type = &quot;proceedings&quot;;</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">                    } else if (&quot;&quot;.equals(type)) {</span>
+<span class="nc" id="L167">                        type = &quot;other&quot;;</span>
+                    }
+
+<span class="nc bnc" id="L170" title="All 2 branches missed.">                } else if (&quot;TI&quot;.equals(lab)) {</span>
+<span class="nc" id="L171">                    String oldVal = hm.get(&quot;title&quot;);</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                    if (oldVal == null) {</span>
+<span class="nc" id="L173">                        hm.put(&quot;title&quot;, val);</span>
+<span class="nc" id="L174">                    } else {</span>
+<span class="nc bnc" id="L175" title="All 6 branches missed.">                        if (oldVal.endsWith(&quot;:&quot;) || oldVal.endsWith(&quot;.&quot;) || oldVal.endsWith(&quot;?&quot;)) {</span>
+<span class="nc" id="L176">                            hm.put(&quot;title&quot;, oldVal + &quot; &quot; + val);</span>
+<span class="nc" id="L177">                        } else {</span>
+<span class="nc" id="L178">                            hm.put(&quot;title&quot;, oldVal + &quot;: &quot; + val);</span>
+                        }
+                    }
+<span class="nc" id="L181">                }</span>
+                // =
+                // val;
+<span class="nc bnc" id="L184" title="All 4 branches missed.">                else if (&quot;BTI&quot;.equals(lab) || &quot;CTI&quot;.equals(lab)) {</span>
+<span class="nc" id="L185">                    hm.put(&quot;booktitle&quot;, val);</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">                } else if (&quot;FAU&quot;.equals(lab)) {</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">                    if (&quot;&quot;.equals(author)) {</span>
+<span class="nc" id="L188">                        author = val;</span>
+<span class="nc" id="L189">                    } else {</span>
+<span class="nc" id="L190">                        author += &quot; and &quot; + val;</span>
+                    }
+<span class="nc bnc" id="L192" title="All 2 branches missed.">                } else if (&quot;FED&quot;.equals(lab)) {</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                    if (&quot;&quot;.equals(editor)) {</span>
+<span class="nc" id="L194">                        editor = val;</span>
+<span class="nc" id="L195">                    } else {</span>
+<span class="nc" id="L196">                        editor += &quot; and &quot; + val;</span>
+                    }
+<span class="nc bnc" id="L198" title="All 2 branches missed.">                } else if (&quot;JT&quot;.equals(lab)) {</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">                    if (&quot;inproceedings&quot;.equals(type)) {</span>
+<span class="nc" id="L200">                        hm.put(&quot;booktitle&quot;, val);</span>
+<span class="nc" id="L201">                    } else {</span>
+<span class="nc" id="L202">                        hm.put(&quot;journal&quot;, val);</span>
+                    }
+<span class="nc bnc" id="L204" title="All 2 branches missed.">                } else if (&quot;PG&quot;.equals(lab)) {</span>
+<span class="nc" id="L205">                    hm.put(&quot;pages&quot;, val);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                } else if (&quot;PL&quot;.equals(lab)) {</span>
+<span class="nc" id="L207">                    hm.put(&quot;address&quot;, val);</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">                } else if (&quot;IS&quot;.equals(lab)) {</span>
+<span class="nc" id="L209">                    hm.put(&quot;issn&quot;, val);</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">                } else if (&quot;VI&quot;.equals(lab)) {</span>
+<span class="nc" id="L211">                    hm.put(&quot;volume&quot;, val);</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">                } else if (&quot;AB&quot;.equals(lab)) {</span>
+<span class="nc" id="L213">                    String oldAb = hm.get(&quot;abstract&quot;);</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">                    if (oldAb == null) {</span>
+<span class="nc" id="L215">                        hm.put(&quot;abstract&quot;, val);</span>
+<span class="nc" id="L216">                    } else {</span>
+<span class="nc" id="L217">                        hm.put(&quot;abstract&quot;, oldAb + Globals.NEWLINE + val);</span>
+                    }
+<span class="nc bnc" id="L219" title="All 2 branches missed.">                } else if (&quot;DP&quot;.equals(lab)) {</span>
+<span class="nc" id="L220">                    String[] parts = val.split(&quot; &quot;);</span>
+<span class="nc" id="L221">                    hm.put(&quot;year&quot;, parts[0]);</span>
+<span class="nc bnc" id="L222" title="All 4 branches missed.">                    if ((parts.length &gt; 1) &amp;&amp; !parts[1].isEmpty()) {</span>
+<span class="nc" id="L223">                        hm.put(&quot;month&quot;, parts[1]);</span>
+                    }
+<span class="nc bnc" id="L225" title="All 4 branches missed.">                } else if (&quot;MH&quot;.equals(lab) || &quot;OT&quot;.equals(lab)) {</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">                    if (!hm.containsKey(&quot;keywords&quot;)) {</span>
+<span class="nc" id="L227">                        hm.put(&quot;keywords&quot;, val);</span>
+<span class="nc" id="L228">                    } else {</span>
+<span class="nc" id="L229">                        String kw = hm.get(&quot;keywords&quot;);</span>
+<span class="nc" id="L230">                        hm.put(&quot;keywords&quot;, kw + &quot;, &quot; + val);</span>
+                    }
+<span class="nc bnc" id="L232" title="All 6 branches missed.">                } else if (&quot;CON&quot;.equals(lab) || &quot;CIN&quot;.equals(lab) || &quot;EIN&quot;.equals(lab)</span>
+<span class="nc bnc" id="L233" title="All 6 branches missed.">                        || &quot;EFR&quot;.equals(lab) || &quot;CRI&quot;.equals(lab) || &quot;CRF&quot;.equals(lab)</span>
+<span class="nc bnc" id="L234" title="All 6 branches missed.">                        || &quot;PRIN&quot;.equals(lab) || &quot;PROF&quot;.equals(lab) || &quot;RPI&quot;.equals(lab)</span>
+<span class="nc bnc" id="L235" title="All 6 branches missed.">                        || &quot;RPF&quot;.equals(lab) || &quot;RIN&quot;.equals(lab) || &quot;ROF&quot;.equals(lab)</span>
+<span class="nc bnc" id="L236" title="All 6 branches missed.">                        || &quot;UIN&quot;.equals(lab) || &quot;UOF&quot;.equals(lab) || &quot;SPIN&quot;.equals(lab)</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">                        || &quot;ORI&quot;.equals(lab)) {</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">                    if (!comment.isEmpty()) {</span>
+<span class="nc" id="L239">                        comment = comment + &quot;\n&quot;;</span>
+                    }
+<span class="nc" id="L241">                    comment = comment + val;</span>
+<span class="nc" id="L242">                }</span>
+                //                // Added ID import 2005.12.01, Morten Alver:
+                //                else if (lab.equals(&quot;ID&quot;))
+                //                    hm.put(&quot;refid&quot;, val);
+                //                    // Added doi import (sciencedirect.com) 2011.01.10, Alexander Hug &lt;alexander@alexanderhug.info&gt;
+<span class="nc bnc" id="L247" title="All 2 branches missed.">                else if (&quot;AID&quot;.equals(lab)) {</span>
+<span class="nc" id="L248">                    String doi = val;</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">                    if (doi.startsWith(&quot;doi:&quot;)) {</span>
+<span class="nc" id="L250">                        doi = doi.replaceAll(&quot;(?i)doi:&quot;, &quot;&quot;).trim();</span>
+<span class="nc" id="L251">                        hm.put(&quot;doi&quot;, doi);</span>
+                    }
+                }
+            }
+            // fix authors
+<span class="nc bnc" id="L256" title="All 2 branches missed.">            if (!author.isEmpty()) {</span>
+<span class="nc" id="L257">                author = AuthorList.fixAuthorLastNameFirst(author);</span>
+<span class="nc" id="L258">                hm.put(&quot;author&quot;, author);</span>
+            }
+<span class="nc bnc" id="L260" title="All 2 branches missed.">            if (!editor.isEmpty()) {</span>
+<span class="nc" id="L261">                editor = AuthorList.fixAuthorLastNameFirst(editor);</span>
+<span class="nc" id="L262">                hm.put(&quot;editor&quot;, editor);</span>
+            }
+<span class="nc bnc" id="L264" title="All 2 branches missed.">            if (!comment.isEmpty()) {</span>
+<span class="nc" id="L265">                hm.put(&quot;comment&quot;, comment);</span>
+            }
+
+<span class="nc" id="L268">            BibEntry b = new BibEntry(DEFAULT_BIBTEXENTRY_ID, type); // id assumes an existing database so don't</span>
+
+            // Remove empty fields:
+<span class="nc" id="L271">            List&lt;Object&gt; toRemove = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">            for (Map.Entry&lt;String, String&gt; key : hm.entrySet()) {</span>
+<span class="nc" id="L273">                String content = key.getValue();</span>
+                // content can never be null so only check if content is empty
+<span class="nc bnc" id="L275" title="All 2 branches missed.">                if (content.trim().isEmpty()) {</span>
+<span class="nc" id="L276">                    toRemove.add(key.getKey());</span>
+                }
+            }
+<span class="nc bnc" id="L279" title="All 2 branches missed.">            for (Object aToRemove : toRemove) {</span>
+<span class="nc" id="L280">                hm.remove(aToRemove);</span>
+            }
+
+            // create one here
+<span class="nc" id="L284">            b.setField(hm);</span>
+<span class="nc" id="L285">            bibitems.add(b);</span>
+
+        }
+
+<span class="nc" id="L289">        return bibitems;</span>
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

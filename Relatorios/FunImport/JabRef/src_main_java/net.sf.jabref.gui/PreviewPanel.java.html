@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>PreviewPanel.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">PreviewPanel.java</span></div><h1>PreviewPanel.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui;
+
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.print.PrinterException;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyVetoException;
+import java.beans.VetoableChangeListener;
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
+import javax.print.attribute.standard.JobName;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JEditorPane;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JToolBar;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.event.HyperlinkEvent;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefExecutorService;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.exporter.ExportFormats;
+import net.sf.jabref.gui.desktop.JabRefDesktop;
+import net.sf.jabref.gui.fieldeditors.PreviewPanelTransferHandler;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.layout.Layout;
+import net.sf.jabref.logic.layout.LayoutHelper;
+import net.sf.jabref.logic.search.SearchQueryHighlightListener;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Displays an BibEntry using the given layout format.
+ */
+public class PreviewPanel extends JPanel implements VetoableChangeListener, SearchQueryHighlightListener, EntryContainer {
+
+<span class="fc" id="L74">    private static final Log LOGGER = LogFactory.getLog(PreviewPanel.class);</span>
+
+    /**
+     * The bibtex entry currently shown
+     */
+<span class="fc" id="L79">    private Optional&lt;BibEntry&gt; entry = Optional.empty();</span>
+
+    /**
+     * If a database is set, the preview will attempt to resolve strings in the
+     * previewed entry using that database.
+     */
+<span class="fc" id="L85">    private Optional&lt;BibDatabaseContext&gt; databaseContext = Optional.empty();</span>
+
+<span class="fc" id="L87">    private Optional&lt;Layout&gt; layout = Optional.empty();</span>
+
+    /**
+     * must not be null, must always be set during constructor, but can change over time
+     */
+    private String layoutFile;
+
+    private final Optional&lt;BasePanel&gt; basePanel;
+
+    private JEditorPane previewPane;
+
+    private final JScrollPane scrollPane;
+
+    private final PrintAction printAction;
+
+    private final CloseAction closeAction;
+
+    private final CopyPreviewAction copyPreviewAction;
+
+<span class="fc" id="L106">    private Optional&lt;Pattern&gt; highlightPattern = Optional.empty();</span>
+
+
+    /**
+     * @param databaseContext
+     *            (may be null) Optionally used to resolve strings and for resolving pdf directories for links.
+     * @param entry
+     *            (may be null) If given this entry is shown otherwise you have
+     *            to call setEntry to make something visible.
+     * @param panel
+     *            (may be null) If not given no toolbar is shown on the right
+     *            hand side.
+     * @param layoutFile
+     *            (must be given) Used for layout
+     */
+    public PreviewPanel(BibDatabaseContext databaseContext, BibEntry entry,
+                        BasePanel panel, String layoutFile) {
+<span class="fc" id="L123">        this(panel, databaseContext, layoutFile);</span>
+<span class="fc" id="L124">        setEntry(entry);</span>
+<span class="fc" id="L125">    }</span>
+
+    /**
+     *
+     * @param panel
+     *            (may be null) If not given no toolbar is shown on the right
+     *            hand side.
+     * @param databaseContext
+     *            (may be null) Used for resolving pdf directories for links.
+     * @param layoutFile
+     *            (must be given) Used for layout
+     */
+    public PreviewPanel(BasePanel panel, BibDatabaseContext databaseContext, String layoutFile) {
+<span class="fc" id="L138">        super(new BorderLayout(), true);</span>
+
+<span class="fc" id="L140">        this.databaseContext = Optional.ofNullable(databaseContext);</span>
+<span class="fc" id="L141">        this.layoutFile = Objects.requireNonNull(layoutFile);</span>
+<span class="fc" id="L142">        updateLayout();</span>
+
+<span class="fc" id="L144">        this.closeAction = new CloseAction();</span>
+<span class="fc" id="L145">        this.printAction = new PrintAction();</span>
+<span class="fc" id="L146">        this.copyPreviewAction = new CopyPreviewAction();</span>
+
+<span class="fc" id="L148">        this.basePanel = Optional.ofNullable(panel);</span>
+
+<span class="fc" id="L150">        createPreviewPane();</span>
+
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (panel != null) {</span>
+            // dropped files handler only created for main window
+            // not for Windows as like the search results window
+<span class="fc" id="L155">            this.previewPane.setTransferHandler(new PreviewPanelTransferHandler(panel.frame(), this, this.previewPane.getTransferHandler()));</span>
+        }
+
+        // Set up scroll pane for preview pane
+<span class="fc" id="L159">        scrollPane = new JScrollPane(previewPane,</span>
+<span class="fc" id="L160">                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="fc" id="L161">                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+<span class="fc" id="L162">        scrollPane.setBorder(null);</span>
+
+        /*
+         * If we have been given a panel and the preference option
+         * previewPrintButton is set, show the tool bar
+         */
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (this.basePanel.isPresent()</span>
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">                &amp;&amp; JabRefPreferences.getInstance().getBoolean(JabRefPreferences.PREVIEW_PRINT_BUTTON)) {</span>
+<span class="nc" id="L170">            add(createToolBar(), BorderLayout.LINE_START);</span>
+        }
+
+<span class="fc" id="L173">        add(scrollPane, BorderLayout.CENTER);</span>
+
+<span class="fc" id="L175">        this.createKeyBindings();</span>
+<span class="fc" id="L176">    }</span>
+
+    private void createKeyBindings(){
+<span class="fc" id="L179">        ActionMap actionMap = this.getActionMap();</span>
+<span class="fc" id="L180">        InputMap inputMap = this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+
+<span class="fc" id="L182">        final String close = &quot;close&quot;;</span>
+<span class="fc" id="L183">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), close);</span>
+<span class="fc" id="L184">        actionMap.put(close, this.closeAction);</span>
+
+<span class="fc" id="L186">        final String copy = &quot;copy&quot;;</span>
+<span class="fc" id="L187">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.COPY_PREVIEW), copy);</span>
+<span class="fc" id="L188">        actionMap.put(copy, this.copyPreviewAction);</span>
+
+<span class="fc" id="L190">        final String print = &quot;print&quot;;</span>
+<span class="fc" id="L191">        inputMap.put(Globals.getKeyPrefs().getKey(KeyBinding.PRINT_ENTRY_PREVIEW), print);</span>
+<span class="fc" id="L192">        actionMap.put(print, this.printAction);</span>
+<span class="fc" id="L193">    }</span>
+
+    private JPopupMenu createPopupMenu() {
+<span class="fc" id="L196">        JPopupMenu menu = new JPopupMenu();</span>
+<span class="fc" id="L197">        menu.add(this.printAction);</span>
+<span class="fc" id="L198">        menu.add(this.copyPreviewAction);</span>
+<span class="fc" id="L199">        this.basePanel.ifPresent(p -&gt; menu.add(p.frame().getSwitchPreviewAction()));</span>
+<span class="fc" id="L200">        return menu;</span>
+    }
+
+    private JToolBar createToolBar() {
+<span class="nc" id="L204">        JToolBar toolBar = new OSXCompatibleToolbar(SwingConstants.VERTICAL);</span>
+<span class="nc" id="L205">        toolBar.setMargin(new Insets(0, 0, 0, 2));</span>
+<span class="nc" id="L206">        toolBar.setFloatable(false);</span>
+
+        // Add actions (and thus buttons)
+<span class="nc" id="L209">        toolBar.add(this.closeAction);</span>
+<span class="nc" id="L210">        toolBar.addSeparator();</span>
+<span class="nc" id="L211">        toolBar.add(this.copyPreviewAction);</span>
+<span class="nc" id="L212">        toolBar.addSeparator();</span>
+<span class="nc" id="L213">        toolBar.add(this.printAction);</span>
+
+<span class="nc" id="L215">        Component[] comps = toolBar.getComponents();</span>
+
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        for (Component comp : comps) {</span>
+<span class="nc" id="L218">            ((JComponent) comp).setOpaque(false);</span>
+        }
+
+<span class="nc" id="L221">        return toolBar;</span>
+    }
+
+    private void createPreviewPane() {
+<span class="fc" id="L225">        previewPane = new JEditorPane() {</span>
+            @Override
+            public Dimension getPreferredScrollableViewportSize() {
+<span class="fc" id="L228">                return getPreferredSize();</span>
+            }
+
+        };
+<span class="fc" id="L232">        previewPane.setMargin(new Insets(3, 3, 3, 3));</span>
+
+<span class="fc" id="L234">        previewPane.setComponentPopupMenu(createPopupMenu());</span>
+
+<span class="fc" id="L236">        previewPane.setEditable(false);</span>
+<span class="fc" id="L237">        previewPane.setDragEnabled(true); // this has an effect only, if no custom transfer handler is registered. We keep the statement if the transfer handler is removed.</span>
+<span class="fc" id="L238">        previewPane.setContentType(&quot;text/html&quot;);</span>
+<span class="fc" id="L239">        previewPane.addHyperlinkListener(hyperlinkEvent -&gt; {</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">            if ((hyperlinkEvent.getEventType() == HyperlinkEvent.EventType.ACTIVATED) &amp;&amp; PreviewPanel.this.databaseContext</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">                    .isPresent()) {</span>
+                try {
+<span class="nc" id="L243">                    String address = hyperlinkEvent.getURL().toString();</span>
+<span class="nc" id="L244">                    JabRefDesktop.openExternalViewer(PreviewPanel.this.databaseContext.get(), address, &quot;url&quot;);</span>
+<span class="nc" id="L245">                } catch (IOException e) {</span>
+<span class="nc" id="L246">                    LOGGER.warn(&quot;Could not open external viewer&quot;, e);</span>
+                }
+            }
+<span class="nc" id="L249">        });</span>
+
+<span class="fc" id="L251">    }</span>
+
+    public void setDatabaseContext(BibDatabaseContext databaseContext) {
+<span class="nc" id="L254">        this.databaseContext = Optional.ofNullable(databaseContext);</span>
+<span class="nc" id="L255">    }</span>
+
+    public void updateLayout(String layoutFormat) {
+<span class="nc" id="L258">        layoutFile = layoutFormat;</span>
+<span class="nc" id="L259">        updateLayout();</span>
+<span class="nc" id="L260">    }</span>
+
+    private void updateLayout() {
+<span class="fc" id="L263">        StringReader sr = new StringReader(layoutFile.replace(&quot;__NEWLINE__&quot;, &quot;\n&quot;));</span>
+        try {
+<span class="fc" id="L265">            layout = Optional</span>
+<span class="fc" id="L266">                    .of(new LayoutHelper(sr, Globals.journalAbbreviationLoader.getRepository()).getLayoutFromText());</span>
+<span class="pc" id="L267">        } catch (IOException e) {</span>
+<span class="nc" id="L268">            layout = Optional.empty();</span>
+<span class="nc" id="L269">            LOGGER.debug(&quot;no layout could be set&quot;, e);</span>
+        }
+<span class="fc" id="L271">    }</span>
+
+    public void setLayout(Layout layout) {
+<span class="nc" id="L274">        this.layout = Optional.of(layout);</span>
+<span class="nc" id="L275">    }</span>
+
+    public void setEntry(BibEntry newEntry) {
+<span class="pc bpc" id="L278" title="3 of 4 branches missed.">        if(entry.isPresent() &amp;&amp; (entry.get() != newEntry)) {</span>
+<span class="nc" id="L279">            entry.ifPresent(e -&gt; e.removePropertyChangeListener(this));</span>
+<span class="nc" id="L280">            newEntry.addPropertyChangeListener(this);</span>
+        }
+<span class="fc" id="L282">        entry = Optional.ofNullable(newEntry);</span>
+
+<span class="fc" id="L284">        updateLayout();</span>
+<span class="fc" id="L285">        update();</span>
+<span class="fc" id="L286">    }</span>
+
+    @Override
+    public BibEntry getEntry() {
+<span class="nc" id="L290">        return this.entry.orElse(null);</span>
+    }
+
+    public void update() {
+<span class="fc" id="L294">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L295">        ExportFormats.entryNumber = 1; // Set entry number in case that is included in the preview layout.</span>
+<span class="fc" id="L296">        entry.ifPresent(entry -&gt;</span>
+<span class="fc" id="L297">                layout.ifPresent(layout -&gt; sb.append(layout</span>
+<span class="fc" id="L298">                        .doLayout(entry, databaseContext.map(BibDatabaseContext::getDatabase).orElse(null),</span>
+<span class="fc" id="L299">                                highlightPattern)))</span>
+        );
+<span class="fc" id="L301">        String newValue = sb.toString();</span>
+
+<span class="fc" id="L303">        previewPane.setText(newValue);</span>
+<span class="fc" id="L304">        previewPane.revalidate();</span>
+
+        // Scroll to top:
+<span class="fc" id="L307">        scrollToTop();</span>
+<span class="fc" id="L308">    }</span>
+
+    private void scrollToTop() {
+<span class="fc" id="L311">        SwingUtilities.invokeLater(() -&gt; scrollPane.getVerticalScrollBar().setValue(0));</span>
+<span class="fc" id="L312">    }</span>
+
+    /**
+     * The PreviewPanel has registered itself as an event listener with the
+     * currently displayed BibEntry. If the entry changes, an event is
+     * received here, and we can update the preview immediately.
+     */
+    @Override
+    public void vetoableChange(PropertyChangeEvent evt)
+            throws PropertyVetoException {
+        // TODO updating here is not really necessary isn't it?
+        // Only if we are visible.
+<span class="nc" id="L324">        update();</span>
+<span class="nc" id="L325">    }</span>
+
+    @Override
+    public void highlightPattern(Optional&lt;Pattern&gt; newPattern) {
+<span class="fc" id="L329">        this.highlightPattern = newPattern;</span>
+<span class="fc" id="L330">        update();</span>
+<span class="fc" id="L331">    }</span>
+
+    class PrintAction extends AbstractAction {
+<span class="fc" id="L334">        public PrintAction() {</span>
+<span class="fc" id="L335">            super(Localization.lang(&quot;Print entry preview&quot;), IconTheme.JabRefIcon.PRINTED.getIcon());</span>
+
+<span class="fc" id="L337">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Print entry preview&quot;));</span>
+<span class="fc" id="L338">            putValue(Action.ACCELERATOR_KEY, Globals.getKeyPrefs().getKey(KeyBinding.PRINT_ENTRY_PREVIEW));</span>
+<span class="fc" id="L339">        }</span>
+
+
+        @Override
+        public void actionPerformed(ActionEvent arg0) {
+
+            // Background this, as it takes a while.
+<span class="nc" id="L346">            JabRefExecutorService.INSTANCE.execute(() -&gt; {</span>
+                try {
+<span class="nc" id="L348">                    PrintRequestAttributeSet pras = new HashPrintRequestAttributeSet();</span>
+<span class="nc" id="L349">                    pras.add(new JobName(entry.map(BibEntry::getCiteKey).orElse(&quot;NO ENTRY&quot;), null));</span>
+<span class="nc" id="L350">                    previewPane.print(null, null, true, null, pras, false);</span>
+
+<span class="nc" id="L352">                } catch (PrinterException e) {</span>
+                    // Inform the user... we don't know what to do.
+<span class="nc" id="L354">                    JOptionPane.showMessageDialog(PreviewPanel.this,</span>
+<span class="nc" id="L355">                            Localization.lang(&quot;Could not print preview&quot;) + &quot;.\n&quot; + e.getMessage(),</span>
+<span class="nc" id="L356">                            Localization.lang(&quot;Print entry preview&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L357">                    LOGGER.info(&quot;Could not print preview&quot;, e);</span>
+                }
+<span class="nc" id="L359">            });</span>
+<span class="nc" id="L360">        }</span>
+
+    }
+
+    class CloseAction extends AbstractAction {
+
+<span class="fc" id="L366">        public CloseAction() {</span>
+<span class="fc" id="L367">            super(Localization.lang(&quot;Close window&quot;), IconTheme.JabRefIcon.CLOSE.getSmallIcon());</span>
+<span class="fc" id="L368">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Close window&quot;));</span>
+<span class="fc" id="L369">        }</span>
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L372">            basePanel.ifPresent(BasePanel::hideBottomComponent);</span>
+<span class="nc" id="L373">        }</span>
+
+
+    }
+
+    class CopyPreviewAction extends AbstractAction {
+
+<span class="fc" id="L380">        public CopyPreviewAction() {</span>
+<span class="fc" id="L381">            super(Localization.lang(&quot;Copy preview&quot;), IconTheme.JabRefIcon.COPY.getSmallIcon());</span>
+<span class="fc" id="L382">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Copy preview&quot;));</span>
+<span class="fc" id="L383">            putValue(Action.ACCELERATOR_KEY, Globals.getKeyPrefs().getKey(KeyBinding.COPY_PREVIEW));</span>
+<span class="fc" id="L384">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L388">            previewPane.selectAll();</span>
+<span class="nc" id="L389">            previewPane.copy();</span>
+<span class="nc" id="L390">            previewPane.select(0, -1);</span>
+<span class="nc" id="L391">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

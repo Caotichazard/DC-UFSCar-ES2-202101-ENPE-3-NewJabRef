@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MainTableDataModel.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.maintable</a> &gt; <span class="el_source">MainTableDataModel.java</span></div><h1>MainTableDataModel.java</h1><pre class="source lang-java linenums">package net.sf.jabref.gui.maintable;
+
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.gui.groups.GroupMatcher;
+import net.sf.jabref.gui.search.HitOrMissComparator;
+import net.sf.jabref.gui.search.matchers.EverythingMatcher;
+import net.sf.jabref.gui.search.matchers.SearchMatcher;
+import net.sf.jabref.gui.util.comparator.IsMarkedComparator;
+import net.sf.jabref.model.database.DatabaseChangeListener;
+import net.sf.jabref.model.entry.BibEntry;
+
+import ca.odell.glazedlists.BasicEventList;
+import ca.odell.glazedlists.EventList;
+import ca.odell.glazedlists.FilterList;
+import ca.odell.glazedlists.SortedList;
+import ca.odell.glazedlists.matchers.Matcher;
+
+public class MainTableDataModel {
+
+    private final ListSynchronizer listSynchronizer;
+    private final SortedList&lt;BibEntry&gt; sortedForUserDefinedTableColumnSorting;
+    private final SortedList&lt;BibEntry&gt; sortedForMarkingSearchGrouping;
+    private final StartStopListFilterAction filterSearchToggle;
+    private final StartStopListFilterAction filterGroupToggle;
+    private final EventList&lt;BibEntry&gt; finalList;
+<span class="fc" id="L32">    private final FilterAndSortingState filterAndSortingState = new FilterAndSortingState();</span>
+
+<span class="fc" id="L34">    public MainTableDataModel(BibDatabaseContext context) {</span>
+<span class="fc" id="L35">        List&lt;BibEntry&gt; entries = context.getDatabase().getEntries();</span>
+
+<span class="fc" id="L37">        EventList&lt;BibEntry&gt; initialEventList = new BasicEventList&lt;&gt;();</span>
+<span class="fc" id="L38">        initialEventList.addAll(entries);</span>
+
+<span class="fc" id="L40">        listSynchronizer = new ListSynchronizer(initialEventList);</span>
+
+        // This SortedList has a Comparator controlled by the TableComparatorChooser
+        // we are going to install, which responds to user sorting selections:
+<span class="fc" id="L44">        sortedForUserDefinedTableColumnSorting = new SortedList&lt;&gt;(initialEventList, null);</span>
+        // This SortedList applies afterwards, and floats marked entries:
+<span class="fc" id="L46">        sortedForMarkingSearchGrouping = new SortedList&lt;&gt;(sortedForUserDefinedTableColumnSorting, null);</span>
+
+<span class="fc" id="L48">        FilterList&lt;BibEntry&gt; groupFilterList = new FilterList&lt;&gt;(sortedForMarkingSearchGrouping, EverythingMatcher.INSTANCE);</span>
+<span class="fc" id="L49">        filterGroupToggle = new StartStopListFilterAction(groupFilterList, GroupMatcher.INSTANCE,</span>
+<span class="fc" id="L50">                EverythingMatcher.INSTANCE);</span>
+<span class="fc" id="L51">        FilterList&lt;BibEntry&gt; searchFilterList = new FilterList&lt;&gt;(groupFilterList, EverythingMatcher.INSTANCE);</span>
+<span class="fc" id="L52">        filterSearchToggle = new StartStopListFilterAction(searchFilterList, SearchMatcher.INSTANCE,</span>
+<span class="fc" id="L53">                EverythingMatcher.INSTANCE);</span>
+
+<span class="fc" id="L55">        finalList = searchFilterList;</span>
+<span class="fc" id="L56">    }</span>
+
+    public void updateSortOrder() {
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        Comparator&lt;BibEntry&gt; markingComparator = filterAndSortingState.markingState ? IsMarkedComparator.INSTANCE : null;</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        Comparator&lt;BibEntry&gt; searchComparator = getSearchState() == DisplayOption.FLOAT ? new HitOrMissComparator(SearchMatcher.INSTANCE) : null;</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        Comparator&lt;BibEntry&gt; groupingComparator = getGroupingState() == DisplayOption.FLOAT ? new HitOrMissComparator(GroupMatcher.INSTANCE) : null;</span>
+<span class="fc" id="L62">        GenericCompositeComparator comparator = new GenericCompositeComparator(</span>
+<span class="fc" id="L63">                markingComparator,</span>
+<span class="fc" id="L64">                searchComparator,</span>
+<span class="fc" id="L65">                groupingComparator</span>
+        );
+
+<span class="fc" id="L68">        sortedForMarkingSearchGrouping.getReadWriteLock().writeLock().lock();</span>
+        try {
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">            if (sortedForMarkingSearchGrouping.getComparator() != comparator) {</span>
+<span class="fc" id="L71">                sortedForMarkingSearchGrouping.setComparator(comparator);</span>
+            }
+<span class="fc" id="L73">        } finally {</span>
+<span class="fc" id="L74">            sortedForMarkingSearchGrouping.getReadWriteLock().writeLock().unlock();</span>
+        }
+<span class="fc" id="L76">    }</span>
+
+    public void updateSearchState(DisplayOption searchState) {
+<span class="nc" id="L79">        Objects.requireNonNull(searchState);</span>
+
+        // fail fast
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (filterAndSortingState.searchState == searchState) {</span>
+<span class="nc" id="L83">            return;</span>
+        }
+
+<span class="nc" id="L86">        boolean updateSortOrder = false;</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if (filterAndSortingState.searchState == DisplayOption.FLOAT) {</span>
+<span class="nc" id="L88">            updateSortOrder = true;</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        } else if (filterAndSortingState.searchState == DisplayOption.FILTER) {</span>
+<span class="nc" id="L90">            filterSearchToggle.stop();</span>
+        }
+
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (searchState == DisplayOption.FLOAT) {</span>
+<span class="nc" id="L94">            updateSortOrder = true;</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        } else if (searchState == DisplayOption.FILTER) {</span>
+<span class="nc" id="L96">            filterSearchToggle.start();</span>
+        }
+
+<span class="nc" id="L99">        filterAndSortingState.searchState = searchState;</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        if (updateSortOrder) {</span>
+<span class="nc" id="L101">            updateSortOrder();</span>
+        }
+<span class="nc" id="L103">    }</span>
+
+    public void updateGroupingState(DisplayOption groupingState) {
+<span class="nc" id="L106">        Objects.requireNonNull(groupingState);</span>
+
+        // fail fast
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (filterAndSortingState.groupingState == groupingState) {</span>
+<span class="nc" id="L110">            return;</span>
+        }
+
+<span class="nc" id="L113">        boolean updateSortOrder = false;</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (filterAndSortingState.groupingState == DisplayOption.FLOAT) {</span>
+<span class="nc" id="L115">            updateSortOrder = true;</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        } else if (filterAndSortingState.groupingState == DisplayOption.FILTER) {</span>
+<span class="nc" id="L117">            filterGroupToggle.stop();</span>
+        }
+
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (groupingState == DisplayOption.FLOAT) {</span>
+<span class="nc" id="L121">            updateSortOrder = true;</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        } else if (groupingState == DisplayOption.FILTER) {</span>
+<span class="nc" id="L123">            filterGroupToggle.start();</span>
+        }
+
+<span class="nc" id="L126">        filterAndSortingState.groupingState = groupingState;</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (updateSortOrder) {</span>
+<span class="nc" id="L128">            updateSortOrder();</span>
+        }
+<span class="nc" id="L130">    }</span>
+
+    public DisplayOption getSearchState() {
+<span class="fc" id="L133">        return filterAndSortingState.searchState;</span>
+    }
+
+    DisplayOption getGroupingState() {
+<span class="fc" id="L137">        return filterAndSortingState.groupingState;</span>
+    }
+
+    public DatabaseChangeListener getEventList() {
+<span class="fc" id="L141">        return this.listSynchronizer;</span>
+    }
+
+    public void updateMarkingState(boolean floatMarkedEntries) {
+        // fail fast
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">        if (filterAndSortingState.markingState == floatMarkedEntries) {</span>
+<span class="nc" id="L147">            return;</span>
+        }
+
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">        if (floatMarkedEntries) {</span>
+<span class="fc" id="L151">            filterAndSortingState.markingState = true;</span>
+<span class="fc" id="L152">        } else {</span>
+<span class="nc" id="L153">            filterAndSortingState.markingState = false;</span>
+        }
+<span class="fc" id="L155">        updateSortOrder();</span>
+<span class="fc" id="L156">    }</span>
+
+    EventList&lt;BibEntry&gt; getTableRows() {
+<span class="fc" id="L159">        return finalList;</span>
+    }
+
+    /**
+     * Returns the List of entries sorted by a user-selected term. This is the
+     * sorting before marking, search etc. applies.
+     * &lt;p&gt;
+     * Note: The returned List must not be modified from the outside
+     *
+     * @return The sorted list of entries.
+     */
+    SortedList&lt;BibEntry&gt; getSortedForUserDefinedTableColumnSorting() {
+<span class="fc" id="L171">        return sortedForUserDefinedTableColumnSorting;</span>
+    }
+
+    public void updateGroupFilter() {
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        if(getGroupingState() == DisplayOption.FILTER) {</span>
+<span class="nc" id="L176">            filterGroupToggle.start();</span>
+<span class="nc" id="L177">        } else {</span>
+<span class="nc" id="L178">            filterGroupToggle.stop();</span>
+        }
+<span class="nc" id="L180">    }</span>
+
+<span class="fc" id="L182">    public enum DisplayOption {</span>
+<span class="fc" id="L183">        FLOAT, FILTER, DISABLED</span>
+    }
+
+<span class="fc" id="L186">    static class FilterAndSortingState {</span>
+        // at the beginning, everything is disabled
+<span class="fc" id="L188">        private DisplayOption searchState = DisplayOption.DISABLED;</span>
+<span class="fc" id="L189">        private DisplayOption groupingState = DisplayOption.DISABLED;</span>
+<span class="fc" id="L190">        private boolean markingState = false;</span>
+    }
+
+    private static class GenericCompositeComparator implements Comparator&lt;BibEntry&gt; {
+
+        private final List&lt;Comparator&lt;BibEntry&gt;&gt; comparators;
+
+<span class="fc" id="L197">        public GenericCompositeComparator(Comparator&lt;BibEntry&gt;... comparators) {</span>
+<span class="fc" id="L198">            this.comparators = Arrays.asList(comparators).stream().filter(Objects::nonNull).collect(Collectors.toList());</span>
+<span class="fc" id="L199">        }</span>
+
+        @Override
+        public int compare(BibEntry lhs, BibEntry rhs) {
+<span class="nc bnc" id="L203" title="All 2 branches missed.">            for (Comparator&lt;BibEntry&gt; comp : comparators) {</span>
+<span class="nc" id="L204">                int result = comp.compare(lhs, rhs);</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">                if (result != 0) {</span>
+<span class="nc" id="L206">                    return result;</span>
+                }
+            }
+<span class="nc" id="L209">            return 0;</span>
+        }
+    }
+
+    private static class StartStopListFilterAction {
+
+        private final Matcher&lt;BibEntry&gt; active;
+        private final Matcher&lt;BibEntry&gt; inactive;
+        private FilterList&lt;BibEntry&gt; list;
+
+<span class="fc" id="L219">        private StartStopListFilterAction(FilterList&lt;BibEntry&gt; list, Matcher&lt;BibEntry&gt; active, Matcher&lt;BibEntry&gt; inactive) {</span>
+<span class="fc" id="L220">            this.list = list;</span>
+<span class="fc" id="L221">            this.active = active;</span>
+<span class="fc" id="L222">            this.inactive = inactive;</span>
+
+<span class="fc" id="L224">            list.setMatcher(inactive);</span>
+<span class="fc" id="L225">        }</span>
+
+        public void start() {
+<span class="nc" id="L228">            update(active);</span>
+<span class="nc" id="L229">        }</span>
+
+        public void stop() {
+<span class="nc" id="L232">            update(inactive);</span>
+<span class="nc" id="L233">        }</span>
+
+        private void update(Matcher&lt;BibEntry&gt; comparator) {
+<span class="nc" id="L236">            list.getReadWriteLock().writeLock().lock();</span>
+            try {
+<span class="nc" id="L238">                list.setMatcher(comparator);</span>
+<span class="nc" id="L239">            } finally {</span>
+<span class="nc" id="L240">                list.getReadWriteLock().writeLock().unlock();</span>
+            }
+<span class="nc" id="L242">        }</span>
+    }
+
+    private static class StartStopListSortAction {
+
+        private final Comparator&lt;BibEntry&gt; active;
+        private SortedList&lt;BibEntry&gt; list;
+
+<span class="nc" id="L250">        private StartStopListSortAction(SortedList&lt;BibEntry&gt; list, Comparator&lt;BibEntry&gt; active) {</span>
+<span class="nc" id="L251">            this.list = Objects.requireNonNull(list);</span>
+<span class="nc" id="L252">            this.active = Objects.requireNonNull(active);</span>
+<span class="nc" id="L253">        }</span>
+
+        public void start() {
+<span class="nc" id="L256">            update(active);</span>
+<span class="nc" id="L257">        }</span>
+
+        public void stop() {
+<span class="nc" id="L260">            update(null);</span>
+<span class="nc" id="L261">        }</span>
+
+        private void update(Comparator&lt;BibEntry&gt; comparator) {
+<span class="nc" id="L264">            list.getReadWriteLock().writeLock().lock();</span>
+            try {
+<span class="nc bnc" id="L266" title="All 2 branches missed.">                if (list.getComparator() != comparator) {</span>
+<span class="nc" id="L267">                    list.setComparator(comparator);</span>
+                }
+<span class="nc" id="L269">            } finally {</span>
+<span class="nc" id="L270">                list.getReadWriteLock().writeLock().unlock();</span>
+            }
+<span class="nc" id="L272">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AdvancedCiteDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.openoffice</a> &gt; <span class="el_source">AdvancedCiteDialog.java</span></div><h1>AdvancedCiteDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.openoffice;
+
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+/**
+ * Dialog for adding citation with page number info.
+ */
+class AdvancedCiteDialog {
+
+<span class="nc" id="L45">    private static boolean defaultInPar = true;</span>
+    private boolean okPressed;
+    private final JDialog diag;
+<span class="nc" id="L48">    private final JTextField pageInfo = new JTextField(15);</span>
+
+
+<span class="nc" id="L51">    public AdvancedCiteDialog(JabRefFrame parent) {</span>
+<span class="nc" id="L52">        diag = new JDialog(parent, Localization.lang(&quot;Cite special&quot;), true);</span>
+<span class="nc" id="L53">        ButtonGroup bg = new ButtonGroup();</span>
+<span class="nc" id="L54">        JRadioButton inPar = new JRadioButton(Localization.lang(&quot;Cite selected entries between parenthesis&quot;));</span>
+<span class="nc" id="L55">        JRadioButton inText = new JRadioButton(Localization.lang(&quot;Cite selected entries with in-text citation&quot;));</span>
+<span class="nc" id="L56">        bg.add(inPar);</span>
+<span class="nc" id="L57">        bg.add(inText);</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (defaultInPar) {</span>
+<span class="nc" id="L59">            inPar.setSelected(true);</span>
+<span class="nc" id="L60">        } else {</span>
+<span class="nc" id="L61">            inText.setSelected(true);</span>
+        }
+
+<span class="nc" id="L64">        inPar.addChangeListener(changeEvent -&gt; defaultInPar = inPar.isSelected());</span>
+
+<span class="nc" id="L66">        FormBuilder builder = FormBuilder.create()</span>
+<span class="nc" id="L67">                .layout(new FormLayout(&quot;left:pref, 4dlu, fill:pref&quot;, &quot;pref, 4dlu, pref, 4dlu, pref&quot;));</span>
+<span class="nc" id="L68">        builder.add(inPar).xyw(1, 1, 3);</span>
+<span class="nc" id="L69">        builder.add(inText).xyw(1, 3, 3);</span>
+<span class="nc" id="L70">        builder.add(Localization.lang(&quot;Extra information (e.g. page number)&quot;) + &quot;:&quot;).xy(1, 5);</span>
+<span class="nc" id="L71">        builder.add(pageInfo).xy(3, 5);</span>
+<span class="nc" id="L72">        builder.padding(&quot;10dlu, 10dlu, 10dlu, 10dlu&quot;);</span>
+<span class="nc" id="L73">        diag.getContentPane().add(builder.getPanel(), BorderLayout.CENTER);</span>
+
+<span class="nc" id="L75">        ButtonBarBuilder bb = new ButtonBarBuilder();</span>
+<span class="nc" id="L76">        bb.addGlue();</span>
+<span class="nc" id="L77">        JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+<span class="nc" id="L78">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L79">        bb.addButton(ok);</span>
+<span class="nc" id="L80">        bb.addButton(cancel);</span>
+<span class="nc" id="L81">        bb.addGlue();</span>
+<span class="nc" id="L82">        bb.padding(&quot;5dlu, 5dlu, 5dlu, 5dlu&quot;);</span>
+<span class="nc" id="L83">        diag.getContentPane().add(bb.getPanel(), BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L85">        diag.pack();</span>
+
+<span class="nc" id="L87">        ActionListener okAction = actionEvent -&gt; {</span>
+<span class="nc" id="L88">                okPressed = true;</span>
+<span class="nc" id="L89">                diag.dispose();</span>
+<span class="nc" id="L90">        };</span>
+
+<span class="nc" id="L92">        ok.addActionListener(okAction);</span>
+<span class="nc" id="L93">        pageInfo.addActionListener(okAction);</span>
+<span class="nc" id="L94">        inPar.addActionListener(okAction);</span>
+<span class="nc" id="L95">        inText.addActionListener(okAction);</span>
+<span class="nc" id="L96">        Action cancelAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L100">                okPressed = false;</span>
+<span class="nc" id="L101">                diag.dispose();</span>
+<span class="nc" id="L102">            }</span>
+        };
+<span class="nc" id="L104">        cancel.addActionListener(cancelAction);</span>
+<span class="nc" id="L105">        builder.getPanel().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)</span>
+<span class="nc" id="L106">                .put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L107">        builder.getPanel().getActionMap().put(&quot;close&quot;, cancelAction);</span>
+
+<span class="nc" id="L109">    }</span>
+
+    public void showDialog() {
+<span class="nc" id="L112">        diag.setLocationRelativeTo(diag.getParent());</span>
+<span class="nc" id="L113">        diag.setVisible(true);</span>
+<span class="nc" id="L114">    }</span>
+
+    public boolean canceled() {
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        return !okPressed;</span>
+    }
+
+    public String getPageInfo() {
+<span class="nc" id="L121">        return pageInfo.getText().trim();</span>
+    }
+
+    public boolean isInParenthesisCite() {
+<span class="nc" id="L125">        return defaultInPar;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

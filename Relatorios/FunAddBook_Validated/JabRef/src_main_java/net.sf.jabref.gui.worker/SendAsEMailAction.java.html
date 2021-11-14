@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SendAsEMailAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.worker</a> &gt; <span class="el_source">SendAsEMailAction.java</span></div><h1>SendAsEMailAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.worker;
+
+import java.awt.Desktop;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.bibtex.BibEntryWriter;
+import net.sf.jabref.exporter.LatexFieldFormatter;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.desktop.JabRefDesktop;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Sends the selected entry as email - by Oliver Kopp
+ *
+ * It uses the mailto:-mechanism
+ *
+ * Microsoft Outlook does not support attachments via mailto
+ * Therefore, the folder(s), where the file(s) belonging to the entry are stored,
+ * are opened. This feature is disabled by default and can be switched on at
+ * preferences/external programs
+ */
+public class SendAsEMailAction extends AbstractWorker {
+
+<span class="fc" id="L52">    private static final Log LOGGER = LogFactory.getLog(SendAsEMailAction.class);</span>
+
+    private String message;
+    private final JabRefFrame frame;
+
+
+<span class="fc" id="L58">    public SendAsEMailAction(JabRefFrame frame) {</span>
+<span class="fc" id="L59">        this.frame = frame;</span>
+<span class="fc" id="L60">    }</span>
+
+    @Override
+    public void run() {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (!Desktop.isDesktopSupported()) {</span>
+<span class="nc" id="L65">            message = Localization.lang(&quot;Error creating email&quot;);</span>
+<span class="nc" id="L66">            return;</span>
+        }
+
+<span class="nc" id="L69">        BasePanel panel = frame.getCurrentBasePanel();</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (panel == null) {</span>
+<span class="nc" id="L71">            return;</span>
+        }
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (panel.getSelectedEntries().isEmpty()) {</span>
+<span class="nc" id="L74">            message = Localization.lang(&quot;This operation requires one or more entries to be selected.&quot;);</span>
+<span class="nc" id="L75">            return;</span>
+        }
+
+<span class="nc" id="L78">        StringWriter sw = new StringWriter();</span>
+<span class="nc" id="L79">        List&lt;BibEntry&gt; bes = panel.getSelectedEntries();</span>
+
+        // write the entries using sw, which is used later to form the email content
+<span class="nc" id="L82">        BibEntryWriter bibtexEntryWriter = new BibEntryWriter(new LatexFieldFormatter(), true);</span>
+
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        for (BibEntry entry : bes) {</span>
+            try {
+<span class="nc" id="L86">                bibtexEntryWriter.write(entry, sw, panel.getBibDatabaseContext().getMode());</span>
+<span class="nc" id="L87">            } catch (IOException e) {</span>
+<span class="nc" id="L88">                LOGGER.warn(&quot;Problem creating BibTeX file for mailing.&quot;, e);</span>
+            }
+        }
+
+<span class="nc" id="L92">        List&lt;String&gt; attachments = new ArrayList&lt;&gt;();</span>
+
+        // open folders is needed to indirectly support email programs, which cannot handle
+        //   the unofficial &quot;mailto:attachment&quot; property
+<span class="nc" id="L96">        boolean openFolders = JabRefPreferences.getInstance().getBoolean(JabRefPreferences.OPEN_FOLDERS_OF_ATTACHED_FILES);</span>
+
+<span class="nc" id="L98">        List&lt;File&gt; fileList = FileUtil.getListOfLinkedFiles(bes,</span>
+<span class="nc" id="L99">                frame.getCurrentBasePanel().getBibDatabaseContext().getFileDirectory());</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        for (File f : fileList) {</span>
+<span class="nc" id="L101">            attachments.add(f.getPath());</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (openFolders) {</span>
+                try {
+<span class="nc" id="L104">                    JabRefDesktop.openFolderAndSelectFile(f.getAbsolutePath());</span>
+<span class="nc" id="L105">                } catch (IOException e) {</span>
+<span class="nc" id="L106">                    LOGGER.debug(&quot;Cannot open file&quot;, e);</span>
+                }
+            }
+        }
+
+<span class="nc" id="L111">        String mailTo = &quot;?Body=&quot;.concat(sw.getBuffer().toString());</span>
+<span class="nc" id="L112">        mailTo = mailTo.concat(&quot;&amp;Subject=&quot;);</span>
+<span class="nc" id="L113">        mailTo = mailTo.concat(JabRefPreferences.getInstance().get(JabRefPreferences.EMAIL_SUBJECT));</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        for (String path : attachments) {</span>
+<span class="nc" id="L115">            mailTo = mailTo.concat(&quot;&amp;Attachment=\&quot;&quot;).concat(path);</span>
+<span class="nc" id="L116">            mailTo = mailTo.concat(&quot;\&quot;&quot;);</span>
+        }
+
+        URI uriMailTo;
+        try {
+<span class="nc" id="L121">            uriMailTo = new URI(&quot;mailto&quot;, mailTo, null);</span>
+<span class="nc" id="L122">        } catch (URISyntaxException e1) {</span>
+<span class="nc" id="L123">            message = Localization.lang(&quot;Error creating email&quot;);</span>
+<span class="nc" id="L124">            LOGGER.warn(message, e1);</span>
+<span class="nc" id="L125">            return;</span>
+        }
+
+<span class="nc" id="L128">        Desktop desktop = Desktop.getDesktop();</span>
+        try {
+<span class="nc" id="L130">            desktop.mail(uriMailTo);</span>
+<span class="nc" id="L131">        } catch (IOException e) {</span>
+<span class="nc" id="L132">            message = Localization.lang(&quot;Error creating email&quot;);</span>
+<span class="nc" id="L133">            LOGGER.warn(message, e);</span>
+<span class="nc" id="L134">            return;</span>
+        }
+
+<span class="nc" id="L137">        message = String.format(&quot;%s: %d&quot;, Localization.lang(&quot;Entries added to an email&quot;), bes.size());</span>
+<span class="nc" id="L138">    }</span>
+
+    @Override
+    public void update() {
+<span class="nc" id="L142">        frame.output(message);</span>
+<span class="nc" id="L143">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

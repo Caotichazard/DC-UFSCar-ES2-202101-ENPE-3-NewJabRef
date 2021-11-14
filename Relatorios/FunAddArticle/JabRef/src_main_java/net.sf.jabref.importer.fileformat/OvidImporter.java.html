@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>OvidImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">OvidImporter.java</span></div><h1>OvidImporter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer.fileformat;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.importer.ImportFormatReader;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.model.entry.AuthorList;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.IdGenerator;
+
+/**
+ * Imports an Ovid file.
+ */
+<span class="fc" id="L37">public class OvidImporter extends ImportFormat {</span>
+
+<span class="fc" id="L39">    private static final Pattern OVID_SOURCE_PATTERN = Pattern</span>
+<span class="fc" id="L40">            .compile(&quot;Source ([ \\w&amp;\\-,:]+)\\.[ ]+([0-9]+)\\(([\\w\\-]+)\\):([0-9]+\\-?[0-9]+?)\\,.*([0-9][0-9][0-9][0-9])&quot;);</span>
+
+<span class="fc" id="L42">    private static final Pattern OVID_SOURCE_PATTERN_NO_ISSUE = Pattern</span>
+<span class="fc" id="L43">            .compile(&quot;Source ([ \\w&amp;\\-,:]+)\\.[ ]+([0-9]+):([0-9]+\\-?[0-9]+?)\\,.*([0-9][0-9][0-9][0-9])&quot;);</span>
+
+<span class="fc" id="L45">    private static final Pattern OVID_SOURCE_PATTERN_2 = Pattern.compile(</span>
+<span class="fc" id="L46">            &quot;([ \\w&amp;\\-,]+)\\. Vol ([0-9]+)\\(([\\w\\-]+)\\) ([A-Za-z]+) ([0-9][0-9][0-9][0-9]), ([0-9]+\\-?[0-9]+)&quot;);</span>
+
+<span class="fc" id="L48">    private static final Pattern INCOLLECTION_PATTERN = Pattern.compile(</span>
+<span class="fc" id="L49">            &quot;(.+)\\(([0-9][0-9][0-9][0-9])\\)\\. ([ \\w&amp;\\-,:]+)\\.[ ]+\\(pp. ([0-9]+\\-?[0-9]+?)\\).[A-Za-z0-9, ]+pp\\. &quot;</span>
+                    + &quot;([\\w, ]+): ([\\w, ]+)&quot;);
+<span class="fc" id="L51">    private static final Pattern BOOK_PATTERN = Pattern.compile(</span>
+<span class="fc" id="L52">            &quot;\\(([0-9][0-9][0-9][0-9])\\)\\. [A-Za-z, ]+([0-9]+) pp\\. ([\\w, ]+): ([\\w, ]+)&quot;);</span>
+
+    private static final String OVID_PATTERN_STRING = &quot;&lt;[0-9]+&gt;&quot;;
+<span class="fc" id="L55">    private static final Pattern OVID_PATTERN = Pattern.compile(OVID_PATTERN_STRING);</span>
+
+<span class="fc" id="L57">    private static final int MAX_ITEMS = 50;</span>
+    /**
+     * Return the name of this import format.
+     */
+    @Override
+    public String getFormatName() {
+<span class="fc" id="L63">        return &quot;Ovid&quot;;</span>
+    }
+
+    /*
+     *  (non-Javadoc)
+     * @see net.sf.jabref.imports.ImportFormat#getCLIId()
+     */
+    @Override
+    public String getCLIId() {
+<span class="nc" id="L72">        return &quot;ovid&quot;;</span>
+    }
+
+
+
+    /**
+     * Check whether the source is in the correct format for this importer.
+     */
+    @Override
+    public boolean isRecognizedFormat(InputStream stream) throws IOException {
+
+<span class="nc" id="L83">        try (BufferedReader in = new BufferedReader(ImportFormatReader.getReaderDefaultEncoding(stream))) {</span>
+            String str;
+<span class="nc" id="L85">            int i = 0;</span>
+<span class="nc bnc" id="L86" title="All 4 branches missed.">            while (((str = in.readLine()) != null) &amp;&amp; (i &lt; MAX_ITEMS)) {</span>
+
+<span class="nc bnc" id="L88" title="All 2 branches missed.">                if (OvidImporter.OVID_PATTERN.matcher(str).find()) {</span>
+<span class="nc" id="L89">                    return true;</span>
+                }
+
+<span class="nc" id="L92">                i++;</span>
+            }
+        }
+<span class="nc" id="L95">        return false;</span>
+    }
+
+    /**
+     * Parse the entries in the source, and return a List of BibEntry
+     * objects.
+     */
+    @Override
+    public List&lt;BibEntry&gt; importEntries(InputStream stream, OutputPrinter status) throws IOException {
+<span class="nc" id="L104">        List&lt;BibEntry&gt; bibitems = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L105">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L106">        try (BufferedReader in = new BufferedReader(ImportFormatReader.getReaderDefaultEncoding(stream))) {</span>
+            String line;
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            while ((line = in.readLine()) != null) {</span>
+<span class="nc bnc" id="L109" title="All 4 branches missed.">                if (!line.isEmpty() &amp;&amp; (line.charAt(0) != ' ')) {</span>
+<span class="nc" id="L110">                    sb.append(&quot;__NEWFIELD__&quot;);</span>
+                }
+<span class="nc" id="L112">                sb.append(line);</span>
+<span class="nc" id="L113">                sb.append('\n');</span>
+            }
+        }
+
+<span class="nc" id="L117">        String[] items = sb.toString().split(OVID_PATTERN_STRING);</span>
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        for (int i = 1; i &lt; items.length; i++) {</span>
+<span class="nc" id="L120">            Map&lt;String, String&gt; h = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L121">            String[] fields = items[i].split(&quot;__NEWFIELD__&quot;);</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">            for (String field : fields) {</span>
+<span class="nc" id="L123">                int linebreak = field.indexOf('\n');</span>
+<span class="nc" id="L124">                String fieldName = field.substring(0, linebreak).trim();</span>
+<span class="nc" id="L125">                String content = field.substring(linebreak).trim();</span>
+
+                // Check if this is the author field (due to a minor special treatment for this field):
+<span class="nc bnc" id="L128" title="All 2 branches missed.">                boolean isAuthor = (fieldName.indexOf(&quot;Author&quot;) == 0)</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                        &amp;&amp; !fieldName.contains(&quot;Author Keywords&quot;)</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                        &amp;&amp; !fieldName.contains(&quot;Author e-mail&quot;);</span>
+
+                // Remove unnecessary dots at the end of lines, unless this is the author field,
+                // in which case a dot at the end could be significant:
+<span class="nc bnc" id="L134" title="All 4 branches missed.">                if (!isAuthor &amp;&amp; content.endsWith(&quot;.&quot;)) {</span>
+<span class="nc" id="L135">                    content = content.substring(0, content.length() - 1);</span>
+                }
+<span class="nc bnc" id="L137" title="All 2 branches missed.">                if (isAuthor) {</span>
+
+<span class="nc" id="L139">                    h.put(&quot;author&quot;, content);</span>
+
+<span class="nc bnc" id="L141" title="All 2 branches missed.">                } else if (fieldName.startsWith(&quot;Title&quot;)) {</span>
+<span class="nc" id="L142">                    content = content.replaceAll(&quot;\\[.+\\]&quot;, &quot;&quot;).trim();</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">                    if (content.endsWith(&quot;.&quot;)) {</span>
+<span class="nc" id="L144">                        content = content.substring(0, content.length() - 1);</span>
+                    }
+<span class="nc" id="L146">                    h.put(&quot;title&quot;, content);</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                } else if (fieldName.startsWith(&quot;Chapter Title&quot;)) {</span>
+<span class="nc" id="L148">                    h.put(&quot;chaptertitle&quot;, content);</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">                } else if (fieldName.startsWith(&quot;Source&quot;)) {</span>
+                    Matcher matcher;
+<span class="nc bnc" id="L151" title="All 2 branches missed.">                    if ((matcher = OvidImporter.OVID_SOURCE_PATTERN.matcher(content)).find()) {</span>
+<span class="nc" id="L152">                        h.put(&quot;journal&quot;, matcher.group(1));</span>
+<span class="nc" id="L153">                        h.put(&quot;volume&quot;, matcher.group(2));</span>
+<span class="nc" id="L154">                        h.put(&quot;issue&quot;, matcher.group(3));</span>
+<span class="nc" id="L155">                        h.put(&quot;pages&quot;, matcher.group(4));</span>
+<span class="nc" id="L156">                        h.put(&quot;year&quot;, matcher.group(5));</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">                    } else if ((matcher = OvidImporter.OVID_SOURCE_PATTERN_NO_ISSUE.matcher(content)).find()) {// may be missing the issue</span>
+<span class="nc" id="L158">                        h.put(&quot;journal&quot;, matcher.group(1));</span>
+<span class="nc" id="L159">                        h.put(&quot;volume&quot;, matcher.group(2));</span>
+<span class="nc" id="L160">                        h.put(&quot;pages&quot;, matcher.group(3));</span>
+<span class="nc" id="L161">                        h.put(&quot;year&quot;, matcher.group(4));</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                    } else if ((matcher = OvidImporter.OVID_SOURCE_PATTERN_2.matcher(content)).find()) {</span>
+
+<span class="nc" id="L164">                        h.put(&quot;journal&quot;, matcher.group(1));</span>
+<span class="nc" id="L165">                        h.put(&quot;volume&quot;, matcher.group(2));</span>
+<span class="nc" id="L166">                        h.put(&quot;issue&quot;, matcher.group(3));</span>
+<span class="nc" id="L167">                        h.put(&quot;month&quot;, matcher.group(4));</span>
+<span class="nc" id="L168">                        h.put(&quot;year&quot;, matcher.group(5));</span>
+<span class="nc" id="L169">                        h.put(&quot;pages&quot;, matcher.group(6));</span>
+
+<span class="nc bnc" id="L171" title="All 2 branches missed.">                    } else if ((matcher = OvidImporter.INCOLLECTION_PATTERN.matcher(content)).find()) {</span>
+<span class="nc" id="L172">                        h.put(&quot;editor&quot;, matcher.group(1).replace(&quot; (Ed)&quot;, &quot;&quot;));</span>
+<span class="nc" id="L173">                        h.put(&quot;year&quot;, matcher.group(2));</span>
+<span class="nc" id="L174">                        h.put(&quot;booktitle&quot;, matcher.group(3));</span>
+<span class="nc" id="L175">                        h.put(&quot;pages&quot;, matcher.group(4));</span>
+<span class="nc" id="L176">                        h.put(&quot;address&quot;, matcher.group(5));</span>
+<span class="nc" id="L177">                        h.put(&quot;publisher&quot;, matcher.group(6));</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                    } else if ((matcher = OvidImporter.BOOK_PATTERN.matcher(content)).find()) {</span>
+<span class="nc" id="L179">                        h.put(&quot;year&quot;, matcher.group(1));</span>
+<span class="nc" id="L180">                        h.put(&quot;pages&quot;, matcher.group(2));</span>
+<span class="nc" id="L181">                        h.put(&quot;address&quot;, matcher.group(3));</span>
+<span class="nc" id="L182">                        h.put(&quot;publisher&quot;, matcher.group(4));</span>
+
+                    }
+                    // Add double hyphens to page ranges:
+<span class="nc bnc" id="L186" title="All 2 branches missed.">                    if (h.get(&quot;pages&quot;) != null) {</span>
+<span class="nc" id="L187">                        h.put(&quot;pages&quot;, h.get(&quot;pages&quot;).replace(&quot;-&quot;, &quot;--&quot;));</span>
+                    }
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                } else if (&quot;Abstract&quot;.equals(fieldName)) {</span>
+<span class="nc" id="L191">                    h.put(&quot;abstract&quot;, content);</span>
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                } else if (&quot;Publication Type&quot;.equals(fieldName)) {</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">                    if (content.contains(&quot;Book&quot;)) {</span>
+<span class="nc" id="L195">                        h.put(&quot;entrytype&quot;, &quot;book&quot;);</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">                    } else if (content.contains(&quot;Journal&quot;)) {</span>
+<span class="nc" id="L197">                        h.put(&quot;entrytype&quot;, &quot;article&quot;);</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">                    } else if (content.contains(&quot;Conference Paper&quot;)) {</span>
+<span class="nc" id="L199">                        h.put(&quot;entrytype&quot;, &quot;inproceedings&quot;);</span>
+                    }
+<span class="nc bnc" id="L201" title="All 2 branches missed.">                } else if (fieldName.startsWith(&quot;Language&quot;)) {</span>
+<span class="nc" id="L202">                    h.put(&quot;language&quot;, content);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">                } else if (fieldName.startsWith(&quot;Author Keywords&quot;)) {</span>
+<span class="nc" id="L204">                    content = content.replace(&quot;;&quot;, &quot;,&quot;).replace(&quot;  &quot;, &quot; &quot;);</span>
+<span class="nc" id="L205">                    h.put(&quot;keywords&quot;, content);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                } else if (fieldName.startsWith(&quot;ISSN&quot;)) {</span>
+<span class="nc" id="L207">                    h.put(&quot;issn&quot;, content);</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">                } else if (fieldName.startsWith(&quot;DOI Number&quot;)) {</span>
+<span class="nc" id="L209">                    h.put(&quot;doi&quot;, content);</span>
+                }
+            }
+
+            // Now we need to check if a book entry has given editors in the author field;
+            // if so, rearrange:
+<span class="nc" id="L215">            String auth = h.get(&quot;author&quot;);</span>
+<span class="nc bnc" id="L216" title="All 4 branches missed.">            if ((auth != null) &amp;&amp; auth.contains(&quot; [Ed]&quot;)) {</span>
+<span class="nc" id="L217">                h.remove(&quot;author&quot;);</span>
+<span class="nc" id="L218">                h.put(&quot;editor&quot;, auth.replace(&quot; [Ed]&quot;, &quot;&quot;));</span>
+            }
+
+            // Rearrange names properly:
+<span class="nc" id="L222">            auth = h.get(&quot;author&quot;);</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">            if (auth != null) {</span>
+<span class="nc" id="L224">                h.put(&quot;author&quot;, fixNames(auth));</span>
+            }
+<span class="nc" id="L226">            auth = h.get(&quot;editor&quot;);</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">            if (auth != null) {</span>
+<span class="nc" id="L228">                h.put(&quot;editor&quot;, fixNames(auth));</span>
+            }
+
+            // Set the entrytype properly:
+<span class="nc bnc" id="L232" title="All 2 branches missed.">            String entryType = h.containsKey(&quot;entrytype&quot;) ? h.get(&quot;entrytype&quot;) : &quot;misc&quot;;</span>
+<span class="nc" id="L233">            h.remove(&quot;entrytype&quot;);</span>
+<span class="nc bnc" id="L234" title="All 4 branches missed.">            if (&quot;book&quot;.equals(entryType) &amp;&amp; h.containsKey(&quot;chaptertitle&quot;)) {</span>
+                // This means we have an &quot;incollection&quot; entry.
+<span class="nc" id="L236">                entryType = &quot;incollection&quot;;</span>
+                // Move the &quot;chaptertitle&quot; to just &quot;title&quot;:
+<span class="nc" id="L238">                h.put(&quot;title&quot;, h.remove(&quot;chaptertitle&quot;));</span>
+            }
+<span class="nc" id="L240">            BibEntry b = new BibEntry(IdGenerator.next(), entryType);</span>
+<span class="nc" id="L241">            b.setField(h);</span>
+
+<span class="nc" id="L243">            bibitems.add(b);</span>
+
+        }
+
+<span class="nc" id="L247">        return bibitems;</span>
+    }
+
+    /**
+     * Convert a string of author names into a BibTeX-compatible format.
+     * @param content The name string.
+     * @return The formatted names.
+     */
+    private static String fixNames(String content) {
+        String names;
+<span class="nc bnc" id="L257" title="All 2 branches missed.">        if (content.indexOf(';') &gt; 0) { //LN FN; [LN FN;]*</span>
+<span class="nc" id="L258">            names = content.replaceAll(&quot;[^\\.A-Za-z,;\\- ]&quot;, &quot;&quot;).replace(&quot;;&quot;, &quot; and&quot;);</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">        } else if (content.indexOf(&quot;  &quot;) &gt; 0) {</span>
+<span class="nc" id="L260">            String[] sNames = content.split(&quot;  &quot;);</span>
+<span class="nc" id="L261">            StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">            for (int i = 0; i &lt; sNames.length; i++) {</span>
+<span class="nc bnc" id="L263" title="All 2 branches missed.">                if (i &gt; 0) {</span>
+<span class="nc" id="L264">                    sb.append(&quot; and &quot;);</span>
+                }
+<span class="nc" id="L266">                sb.append(sNames[i].replaceFirst(&quot; &quot;, &quot;, &quot;));</span>
+            }
+<span class="nc" id="L268">            names = sb.toString();</span>
+<span class="nc" id="L269">        } else {</span>
+<span class="nc" id="L270">            names = content;</span>
+        }
+<span class="nc" id="L272">        return AuthorList.fixAuthorLastNameFirst(names);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

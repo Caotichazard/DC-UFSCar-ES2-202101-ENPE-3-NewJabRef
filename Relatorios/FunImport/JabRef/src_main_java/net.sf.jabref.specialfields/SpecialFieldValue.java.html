@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SpecialFieldValue.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.specialfields</a> &gt; <span class="el_source">SpecialFieldValue.java</span></div><h1>SpecialFieldValue.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.specialfields;
+
+import java.util.Optional;
+
+import javax.swing.Icon;
+import javax.swing.JLabel;
+
+import net.sf.jabref.gui.JabRefFrame;
+
+public class SpecialFieldValue {
+
+    private final SpecialField field;
+
+    // keyword used at keyword field
+    private final String keyword;
+
+    // action belonging to this value
+    private final String actionName;
+
+    // localized menu string used at menu / button
+    private final String menuString;
+
+    private SpecialFieldAction action;
+
+    private SpecialFieldMenuAction menuAction;
+
+    private final Icon icon;
+
+    private final String toolTipText;
+
+
+    // value when used in a separate vield
+    //private String fieldValue;
+
+    /**
+     *
+     * @param field The special field this value is a value of
+     * @param keyword - The keyword to be used at BibTex's keyword field. May be &quot;null&quot; if no keyword is to be set
+     * @param actionName - the action to call
+     * @param menuString - the string to display at a menu
+     * @param icon - the icon of this value
+     * @param toolTipText - the tool tip text
+     */
+<span class="fc" id="L59">    public SpecialFieldValue(</span>
+            SpecialField field,
+            String keyword,
+            String actionName,
+            String menuString,
+            Icon icon,
+            String toolTipText) {
+<span class="fc" id="L66">        this.field = field;</span>
+<span class="fc" id="L67">        this.keyword = keyword;</span>
+<span class="fc" id="L68">        this.actionName = actionName;</span>
+<span class="fc" id="L69">        this.menuString = menuString;</span>
+<span class="fc" id="L70">        this.icon = icon;</span>
+<span class="fc" id="L71">        this.toolTipText = toolTipText;</span>
+<span class="fc" id="L72">    }</span>
+
+    public Optional&lt;String&gt; getKeyword() {
+<span class="fc" id="L75">        return Optional.ofNullable(this.keyword);</span>
+    }
+
+    public String getActionName() {
+<span class="fc" id="L79">        return this.actionName;</span>
+    }
+
+    public String getMenuString() {
+<span class="fc" id="L83">        return this.menuString;</span>
+    }
+
+    public JLabel createLabel() {
+<span class="nc" id="L87">        JLabel label = new JLabel(this.icon);</span>
+<span class="nc" id="L88">        label.setToolTipText(this.toolTipText);</span>
+<span class="nc" id="L89">        return label;</span>
+    }
+
+    public Optional&lt;String&gt; getFieldValue() {
+<span class="fc" id="L93">        return Optional.ofNullable(this.keyword);</span>
+    }
+
+    public Icon getIcon() {
+<span class="fc" id="L97">        return this.icon;</span>
+    }
+
+    public String getToolTipText() {
+<span class="fc" id="L101">        return this.toolTipText;</span>
+    }
+
+    public SpecialFieldAction getAction(JabRefFrame frame) {
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (this.action == null) {</span>
+<span class="fc" id="L106">            action = new SpecialFieldAction(frame, this.field, this.getFieldValue().orElse(null),</span>
+                    // if field contains only one value, it has to be nulled
+                    // otherwise, another setting does not empty the field
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">                    this.field.getValues().size() == 1,</span>
+<span class="fc" id="L110">                    this.getMenuString(),</span>
+<span class="fc" id="L111">                    this.field.TEXT_DONE_PATTERN);</span>
+        }
+<span class="fc" id="L113">        return action;</span>
+    }
+
+    public SpecialFieldMenuAction getMenuAction(JabRefFrame frame) {
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">        if (this.menuAction == null) {</span>
+<span class="fc" id="L118">            this.menuAction = new SpecialFieldMenuAction(this, frame);</span>
+        }
+<span class="fc" id="L120">        return this.menuAction;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

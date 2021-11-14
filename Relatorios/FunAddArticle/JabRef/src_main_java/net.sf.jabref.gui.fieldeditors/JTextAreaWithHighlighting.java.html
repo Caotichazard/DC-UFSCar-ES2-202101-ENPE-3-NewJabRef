@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>JTextAreaWithHighlighting.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.fieldeditors</a> &gt; <span class="el_source">JTextAreaWithHighlighting.java</span></div><h1>JTextAreaWithHighlighting.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.fieldeditors;
+
+import java.awt.event.ActionEvent;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.AbstractAction;
+import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Document;
+import javax.swing.text.Highlighter;
+import javax.swing.text.Keymap;
+import javax.swing.undo.CannotRedoException;
+import javax.swing.undo.CannotUndoException;
+import javax.swing.undo.UndoManager;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.actions.Actions;
+import net.sf.jabref.gui.actions.PasteAction;
+import net.sf.jabref.logic.search.SearchQueryHighlightListener;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+public class JTextAreaWithHighlighting extends JTextArea implements SearchQueryHighlightListener {
+
+<span class="fc" id="L46">    private static final Log LOGGER = LogFactory.getLog(JTextAreaWithHighlighting.class);</span>
+
+<span class="fc" id="L48">    private Optional&lt;Pattern&gt; highlightPattern = Optional.empty();</span>
+
+    private UndoManager undo;
+
+    public JTextAreaWithHighlighting() {
+<span class="fc" id="L53">        super();</span>
+<span class="fc" id="L54">        setupUndoRedo();</span>
+<span class="fc" id="L55">        setupPasteListener();</span>
+<span class="fc" id="L56">    }</span>
+
+    JTextAreaWithHighlighting(String text) {
+<span class="fc" id="L59">        super(text);</span>
+<span class="fc" id="L60">        setupUndoRedo();</span>
+<span class="fc" id="L61">        setupPasteListener();</span>
+<span class="fc" id="L62">    }</span>
+
+    private void setupPasteListener() {
+        //register &quot;Paste&quot; action
+<span class="fc" id="L66">        getActionMap().put(Actions.PASTE, new PasteAction(this));</span>
+        // Bind paste command to KeyBinds.PASTE
+<span class="fc" id="L68">        getInputMap().put(Globals.getKeyPrefs().getKey(net.sf.jabref.gui.keyboard.KeyBinding.PASTE), Actions.PASTE);</span>
+<span class="fc" id="L69">    }</span>
+
+    private void setupUndoRedo() {
+<span class="fc" id="L72">        undo = new UndoManager();</span>
+<span class="fc" id="L73">        Document doc = getDocument();</span>
+
+        // Listen for undo and redo events
+<span class="fc" id="L76">        doc.addUndoableEditListener(evt -&gt; undo.addEdit(evt.getEdit()));</span>
+
+        // Create an undo action and add it to the text component
+<span class="fc" id="L79">        getActionMap().put(&quot;Undo&quot;, new AbstractAction(&quot;Undo&quot;) {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                try {
+<span class="nc bnc" id="L84" title="All 2 branches missed.">                    if (undo.canUndo()) {</span>
+<span class="nc" id="L85">                        undo.undo();</span>
+                    }
+<span class="nc" id="L87">                } catch (CannotUndoException ignored) {</span>
+                    // Ignored
+                }
+<span class="nc" id="L90">            }</span>
+        });
+
+        // Bind the undo action to ctl-Z
+<span class="fc" id="L94">        getInputMap().put(Globals.getKeyPrefs().getKey(net.sf.jabref.gui.keyboard.KeyBinding.UNDO), &quot;Undo&quot;);</span>
+
+        // Create a redo action and add it to the text component
+<span class="fc" id="L97">        getActionMap().put(&quot;Redo&quot;, new AbstractAction(Actions.REDO) {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                try {
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                    if (undo.canRedo()) {</span>
+<span class="nc" id="L103">                        undo.redo();</span>
+                    }
+<span class="nc" id="L105">                } catch (CannotRedoException ignored) {</span>
+                    // Ignored
+                }
+<span class="nc" id="L108">            }</span>
+        });
+
+        // Bind the redo action to ctrl-Y
+<span class="fc" id="L112">        boolean bind = true;</span>
+<span class="fc" id="L113">        KeyStroke redoKey = Globals.getKeyPrefs().getKey(net.sf.jabref.gui.keyboard.KeyBinding.REDO);</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.EDITOR_EMACS_KEYBINDINGS)) {</span>
+            // If emacs is enabled, check if we have a conflict at keys
+            // If yes, do not bind
+            // Typically, we have: CTRL+y is &quot;yank&quot; in emacs and REDO in 'normal' settings
+            // The Emacs key bindings are stored in the keymap, not in the input map.
+<span class="nc" id="L119">            Keymap keymap = getKeymap();</span>
+<span class="nc" id="L120">            KeyStroke[] keys = keymap.getBoundKeyStrokes();</span>
+<span class="nc" id="L121">            int i = 0;</span>
+<span class="nc bnc" id="L122" title="All 4 branches missed.">            while ((i &lt; keys.length) &amp;&amp; !keys[i].equals(redoKey)) {</span>
+<span class="nc" id="L123">                i++;</span>
+            }
+<span class="nc bnc" id="L125" title="All 2 branches missed.">            if (i &lt; keys.length) {</span>
+                // conflict found -&gt; do not bind
+<span class="nc" id="L127">                bind = false;</span>
+            }
+        }
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        if (bind) {</span>
+<span class="fc" id="L131">            getInputMap().put(redoKey, &quot;Redo&quot;);</span>
+        }
+<span class="fc" id="L133">    }</span>
+
+    /**
+     * Highlight words in the Textarea
+     *
+     * @param words to highlight
+     */
+    private void highLight() {
+        // highlight all characters that appear in charsToHighlight
+<span class="fc" id="L142">        Highlighter highlighter = getHighlighter();</span>
+<span class="fc" id="L143">        highlighter.removeAllHighlights();</span>
+
+<span class="pc bpc" id="L145" title="2 of 4 branches missed.">        if ((highlightPattern == null) || !highlightPattern.isPresent()) {</span>
+<span class="fc" id="L146">            return;</span>
+        }
+<span class="nc" id="L148">        String content = getText();</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (content.isEmpty()) {</span>
+<span class="nc" id="L150">            return;</span>
+        }
+
+<span class="nc" id="L153">        highlightPattern.ifPresent(pattern -&gt; {</span>
+<span class="nc" id="L154">            Matcher matcher = pattern.matcher(content);</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">            while (matcher.find()) {</span>
+                try {
+<span class="nc" id="L157">                    highlighter.addHighlight(matcher.start(), matcher.end(), DefaultHighlighter.DefaultPainter);</span>
+<span class="nc" id="L158">                } catch (BadLocationException ble) {</span>
+                    // should not occur if matcher works right
+<span class="nc" id="L160">                    LOGGER.warn(&quot;Highlighting not possible, bad location&quot;, ble);</span>
+                }
+            }
+<span class="nc" id="L163">        });</span>
+
+<span class="nc" id="L165">    }</span>
+
+    @Override
+    public void setText(String text) {
+<span class="fc" id="L169">        super.setText(text);</span>
+<span class="fc" id="L170">        highLight();</span>
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">        if (undo != null) {</span>
+<span class="fc" id="L172">            undo.discardAllEdits();</span>
+        }
+<span class="fc" id="L174">    }</span>
+
+    @Override
+    public void highlightPattern(Optional&lt;Pattern&gt; highlightPattern) {
+<span class="fc" id="L178">        this.highlightPattern = highlightPattern;</span>
+<span class="fc" id="L179">        highLight();</span>
+<span class="fc" id="L180">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

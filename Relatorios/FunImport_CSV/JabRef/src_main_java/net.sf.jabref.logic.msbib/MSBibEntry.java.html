@@ -1,0 +1,1158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MSBibEntry.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.msbib</a> &gt; <span class="el_source">MSBibEntry.java</span></div><h1>MSBibEntry.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.msbib;
+
+import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import net.sf.jabref.importer.fileformat.ImportFormat;
+import net.sf.jabref.logic.layout.LayoutFormatter;
+import net.sf.jabref.logic.layout.format.RemoveBrackets;
+import net.sf.jabref.logic.layout.format.XMLChars;
+import net.sf.jabref.logic.mods.PageNumbers;
+import net.sf.jabref.logic.mods.PersonName;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.BibtexEntryTypes;
+import net.sf.jabref.model.entry.EntryType;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+/**
+ * Date: May 15, 2007; May 03, 2007
+ * &lt;p&gt;
+ * History
+ * May 03, 2007 - Added export functionality
+ * May 15, 2007 - Added import functionality
+ * May 16, 2007 - Changed all interger entries to strings,
+ * except LCID which must be an integer.
+ * To avoid exception during integer parsing
+ * the exception is caught and LCID is set to zero.
+ * Jan 06, 2012 - Changed the XML element ConferenceName to present
+ * the Booktitle instead of the organization field content
+ *
+ * @author S M Mahbub Murshed (udvranto@yahoo.com)
+ * @version 2.0.0
+ * @see &lt;a href=&quot;http://mahbub.wordpress.com/2007/03/24/details-of-microsoft-office-2007-bibliographic-format-compared-to-bibtex/&quot;&gt;ms office 2007 bibliography format compared to bibtex&lt;/a&gt;
+ * @see &lt;a href=&quot;http://mahbub.wordpress.com/2007/03/22/deciphering-microsoft-office-2007-bibliography-format/&quot;&gt;deciphering ms office 2007 bibliography format&lt;/a&gt;
+ * See http://www.ecma-international.org/publications/standards/Ecma-376.htm
+ */
+class MSBibEntry {
+<span class="nc" id="L75">    private static final Log LOGGER = LogFactory.getLog(MSBibEntry.class);</span>
+
+<span class="nc" id="L77">    private String sourceType = &quot;Misc&quot;;</span>
+    private String bibTexEntry;
+
+    private String tag;
+<span class="nc" id="L81">    private static final String GUID = null;</span>
+<span class="nc" id="L82">    private int LCID = -1;</span>
+
+    private List&lt;PersonName&gt; authors;
+    private List&lt;PersonName&gt; bookAuthors;
+    private List&lt;PersonName&gt; editors;
+    private List&lt;PersonName&gt; translators;
+    private List&lt;PersonName&gt; producerNames;
+    private List&lt;PersonName&gt; composers;
+    private List&lt;PersonName&gt; conductors;
+    private List&lt;PersonName&gt; performers;
+    private List&lt;PersonName&gt; writers;
+    private List&lt;PersonName&gt; directors;
+    private List&lt;PersonName&gt; compilers;
+    private List&lt;PersonName&gt; interviewers;
+    private List&lt;PersonName&gt; interviewees;
+    private List&lt;PersonName&gt; inventors;
+    private List&lt;PersonName&gt; counsels;
+
+    private String title;
+    private String year;
+    private String month;
+    private String day;
+
+    private String shortTitle;
+    private String comments;
+
+    private PageNumbers pages;
+    private String volume;
+    private String numberOfVolumes;
+    private String edition;
+    private String standardNumber;
+    private String publisher;
+
+    private String address;
+    private String bookTitle;
+    private String chapterNumber;
+    private String journalName;
+    private String issue;
+    private String periodicalTitle;
+    private String conferenceName;
+    private String department;
+    private String institution;
+    private String thesisType;
+    private String internetSiteTitle;
+    private String dateAccessed;
+    private String url;
+    private String productionCompany;
+    private String publicationTitle;
+    private String medium;
+    private String albumTitle;
+    private String recordingNumber;
+    private String theater;
+    private String distributor;
+    private String broadcastTitle;
+    private String broadcaster;
+    private String station;
+    private String type;
+    private String patentNumber;
+    private String court;
+    private String reporter;
+    private String caseNumber;
+    private String abbreviatedCaseNumber;
+    private String bibTexSeries;
+    private String bibTexAbstract;
+    private String bibTexKeyWords;
+    private String bibTexCrossRef;
+    private String bibTex_HowPublished;
+    private String bibTexAffiliation;
+    private String bibTexContents;
+    private String bibTexCopyright;
+    private String bibTexPrice;
+    private String bibTexSize;
+
+    /* SM 2010.10 intype, paper support */
+    private String bibTexInType;
+    private String bibTexPaper;
+
+    private static final String BIBTEX = &quot;BIBTEX_&quot;;
+    private static final String MSBIB = &quot;msbib-&quot;;
+
+    private static final String B_COLON = &quot;b:&quot;;
+
+    // reduced subset, supports only &quot;CITY , STATE, COUNTRY&quot;
+    // \b(\w+)\s?[,]?\s?(\w+)\s?[,]?\s?(\w+)\b
+    // WORD SPACE , SPACE WORD SPACE , SPACE WORD
+    // tested using http://www.javaregex.com/test.html
+<span class="nc" id="L168">    private static final Pattern ADDRESS_PATTERN = Pattern.compile(&quot;\\b(\\w+)\\s*[,]?\\s*(\\w+)\\s*[,]?\\s*(\\w+)\\b&quot;);</span>
+
+    // Allows 20.3-2007|||20/3-  2007 etc.
+    // (\d{1,2})\s?[.,-/]\s?(\d{1,2})\s?[.,-/]\s?(\d{2,4})
+    // 1-2 DIGITS SPACE SEPERATOR SPACE 1-2 DIGITS SPACE SEPERATOR SPACE 2-4 DIGITS
+    // tested using http://www.javaregex.com/test.html
+<span class="nc" id="L174">    private static final Pattern DATE_PATTERN = Pattern</span>
+<span class="nc" id="L175">            .compile(&quot;(\\d{1,2})\\s*[.,-/]\\s*(\\d{1,2})\\s*[.,-/]\\s*(\\d{2,4})&quot;);</span>
+
+
+<span class="nc" id="L178">    public MSBibEntry(BibEntry bibtex) {</span>
+<span class="nc" id="L179">        populateFromBibtex(bibtex);</span>
+<span class="nc" id="L180">    }</span>
+
+<span class="nc" id="L182">    public MSBibEntry(Element entry, String bcol) {</span>
+<span class="nc" id="L183">        populateFromXml(entry, bcol);</span>
+<span class="nc" id="L184">    }</span>
+
+    private String getFromXml(String name, Element entry) {
+<span class="nc" id="L187">        String value = null;</span>
+<span class="nc" id="L188">        NodeList nodeLst = entry.getElementsByTagName(name);</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">        if (nodeLst.getLength() &gt; 0) {</span>
+<span class="nc" id="L190">            value = nodeLst.item(0).getTextContent();</span>
+        }
+<span class="nc" id="L192">        return value;</span>
+    }
+
+    private void populateFromXml(Element entry, String bcol) {
+        String temp;
+
+<span class="nc" id="L198">        sourceType = getFromXml(bcol + &quot;SourceType&quot;, entry);</span>
+
+<span class="nc" id="L200">        tag = getFromXml(bcol + &quot;Tag&quot;, entry);</span>
+
+<span class="nc" id="L202">        temp = getFromXml(bcol + &quot;LCID&quot;, entry);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">        if (temp != null) {</span>
+            try {
+<span class="nc" id="L205">                LCID = Integer.parseInt(temp);</span>
+<span class="nc" id="L206">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L207">                LCID = -1;</span>
+            }
+        }
+
+<span class="nc" id="L211">        title = getFromXml(bcol + &quot;Title&quot;, entry);</span>
+<span class="nc" id="L212">        year = getFromXml(bcol + &quot;Year&quot;, entry);</span>
+<span class="nc" id="L213">        month = getFromXml(bcol + &quot;Month&quot;, entry);</span>
+<span class="nc" id="L214">        day = getFromXml(bcol + &quot;Day&quot;, entry);</span>
+
+<span class="nc" id="L216">        shortTitle = getFromXml(bcol + &quot;ShortTitle&quot;, entry);</span>
+<span class="nc" id="L217">        comments = getFromXml(bcol + &quot;Comments&quot;, entry);</span>
+
+<span class="nc" id="L219">        temp = getFromXml(bcol + &quot;Pages&quot;, entry);</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">        if (temp != null) {</span>
+<span class="nc" id="L221">            pages = new PageNumbers(temp);</span>
+        }
+
+<span class="nc" id="L224">        volume = getFromXml(bcol + &quot;Volume&quot;, entry);</span>
+
+<span class="nc" id="L226">        numberOfVolumes = getFromXml(bcol + &quot;NumberVolumes&quot;, entry);</span>
+
+<span class="nc" id="L228">        edition = getFromXml(bcol + &quot;Edition&quot;, entry);</span>
+
+<span class="nc" id="L230">        standardNumber = getFromXml(bcol + &quot;StandardNumber&quot;, entry);</span>
+
+<span class="nc" id="L232">        publisher = getFromXml(bcol + &quot;Publisher&quot;, entry);</span>
+
+<span class="nc" id="L234">        String city = getFromXml(bcol + &quot;City&quot;, entry);</span>
+<span class="nc" id="L235">        String state = getFromXml(bcol + &quot;StateProvince&quot;, entry);</span>
+<span class="nc" id="L236">        String country = getFromXml(bcol + &quot;CountryRegion&quot;, entry);</span>
+<span class="nc" id="L237">        StringBuffer addressBuffer = new StringBuffer();</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">        if (city != null) {</span>
+<span class="nc" id="L239">            addressBuffer.append(city).append(&quot;, &quot;);</span>
+        }
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        if (state != null) {</span>
+<span class="nc" id="L242">            addressBuffer.append(state).append(' ');</span>
+        }
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        if (country != null) {</span>
+<span class="nc" id="L245">            addressBuffer.append(country);</span>
+        }
+<span class="nc" id="L247">        address = addressBuffer.toString().trim();</span>
+<span class="nc bnc" id="L248" title="All 4 branches missed.">        if (address.isEmpty() || &quot;,&quot;.equals(address)) {</span>
+<span class="nc" id="L249">            address = null;</span>
+        }
+
+<span class="nc" id="L252">        bookTitle = getFromXml(bcol + &quot;BookTitle&quot;, entry);</span>
+
+<span class="nc" id="L254">        chapterNumber = getFromXml(bcol + &quot;ChapterNumber&quot;, entry);</span>
+
+<span class="nc" id="L256">        journalName = getFromXml(bcol + &quot;JournalName&quot;, entry);</span>
+
+<span class="nc" id="L258">        issue = getFromXml(bcol + &quot;Issue&quot;, entry);</span>
+
+<span class="nc" id="L260">        periodicalTitle = getFromXml(bcol + &quot;PeriodicalTitle&quot;, entry);</span>
+
+<span class="nc" id="L262">        conferenceName = getFromXml(bcol + &quot;ConferenceName&quot;, entry);</span>
+<span class="nc" id="L263">        department = getFromXml(bcol + &quot;Department&quot;, entry);</span>
+<span class="nc" id="L264">        institution = getFromXml(bcol + &quot;Institution&quot;, entry);</span>
+
+<span class="nc" id="L266">        thesisType = getFromXml(bcol + &quot;ThesisType&quot;, entry);</span>
+<span class="nc" id="L267">        internetSiteTitle = getFromXml(bcol + &quot;InternetSiteTitle&quot;, entry);</span>
+<span class="nc" id="L268">        String month = getFromXml(bcol + &quot;MonthAccessed&quot;, entry);</span>
+<span class="nc" id="L269">        String day = getFromXml(bcol + &quot;DayAccessed&quot;, entry);</span>
+<span class="nc" id="L270">        String year = getFromXml(bcol + &quot;YearAccessed&quot;, entry);</span>
+<span class="nc" id="L271">        dateAccessed = &quot;&quot;;</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">        if (month != null) {</span>
+<span class="nc" id="L273">            dateAccessed += month + ' ';</span>
+        }
+<span class="nc bnc" id="L275" title="All 2 branches missed.">        if (day != null) {</span>
+<span class="nc" id="L276">            dateAccessed += day + &quot;, &quot;;</span>
+        }
+<span class="nc bnc" id="L278" title="All 2 branches missed.">        if (year != null) {</span>
+<span class="nc" id="L279">            dateAccessed += year;</span>
+        }
+<span class="nc" id="L281">        dateAccessed = dateAccessed.trim();</span>
+<span class="nc bnc" id="L282" title="All 4 branches missed.">        if (dateAccessed.isEmpty() || &quot;,&quot;.equals(dateAccessed)) {</span>
+<span class="nc" id="L283">            dateAccessed = null;</span>
+        }
+
+<span class="nc" id="L286">        url = getFromXml(bcol + &quot;URL&quot;, entry);</span>
+<span class="nc" id="L287">        productionCompany = getFromXml(bcol + &quot;ProductionCompany&quot;, entry);</span>
+
+<span class="nc" id="L289">        publicationTitle = getFromXml(bcol + &quot;PublicationTitle&quot;, entry);</span>
+<span class="nc" id="L290">        medium = getFromXml(bcol + &quot;Medium&quot;, entry);</span>
+<span class="nc" id="L291">        albumTitle = getFromXml(bcol + &quot;AlbumTitle&quot;, entry);</span>
+<span class="nc" id="L292">        recordingNumber = getFromXml(bcol + &quot;RecordingNumber&quot;, entry);</span>
+<span class="nc" id="L293">        theater = getFromXml(bcol + &quot;Theater&quot;, entry);</span>
+<span class="nc" id="L294">        distributor = getFromXml(bcol + &quot;Distributor&quot;, entry);</span>
+<span class="nc" id="L295">        broadcastTitle = getFromXml(bcol + &quot;BroadcastTitle&quot;, entry);</span>
+<span class="nc" id="L296">        broadcaster = getFromXml(bcol + &quot;Broadcaster&quot;, entry);</span>
+<span class="nc" id="L297">        station = getFromXml(bcol + &quot;Station&quot;, entry);</span>
+<span class="nc" id="L298">        type = getFromXml(bcol + &quot;Type&quot;, entry);</span>
+<span class="nc" id="L299">        patentNumber = getFromXml(bcol + &quot;PatentNumber&quot;, entry);</span>
+<span class="nc" id="L300">        court = getFromXml(bcol + &quot;Court&quot;, entry);</span>
+<span class="nc" id="L301">        reporter = getFromXml(bcol + &quot;Reporter&quot;, entry);</span>
+<span class="nc" id="L302">        caseNumber = getFromXml(bcol + &quot;CaseNumber&quot;, entry);</span>
+<span class="nc" id="L303">        abbreviatedCaseNumber = getFromXml(bcol + &quot;AbbreviatedCaseNumber&quot;, entry);</span>
+<span class="nc" id="L304">        bibTexSeries = getFromXml(bcol + BIBTEX + &quot;Series&quot;, entry);</span>
+<span class="nc" id="L305">        bibTexAbstract = getFromXml(bcol + BIBTEX + &quot;Abstract&quot;, entry);</span>
+<span class="nc" id="L306">        bibTexKeyWords = getFromXml(bcol + BIBTEX + &quot;KeyWords&quot;, entry);</span>
+<span class="nc" id="L307">        bibTexCrossRef = getFromXml(bcol + BIBTEX + &quot;CrossRef&quot;, entry);</span>
+<span class="nc" id="L308">        bibTex_HowPublished = getFromXml(bcol + BIBTEX + &quot;HowPublished&quot;, entry);</span>
+<span class="nc" id="L309">        bibTexAffiliation = getFromXml(bcol + BIBTEX + &quot;Affiliation&quot;, entry);</span>
+<span class="nc" id="L310">        bibTexContents = getFromXml(bcol + BIBTEX + &quot;Contents&quot;, entry);</span>
+<span class="nc" id="L311">        bibTexCopyright = getFromXml(bcol + BIBTEX + &quot;Copyright&quot;, entry);</span>
+<span class="nc" id="L312">        bibTexPrice = getFromXml(bcol + BIBTEX + &quot;Price&quot;, entry);</span>
+<span class="nc" id="L313">        bibTexSize = getFromXml(bcol + BIBTEX + &quot;Size&quot;, entry);</span>
+
+<span class="nc" id="L315">        NodeList nodeLst = entry.getElementsByTagName(bcol + &quot;Author&quot;);</span>
+<span class="nc bnc" id="L316" title="All 2 branches missed.">        if (nodeLst.getLength() &gt; 0) {</span>
+<span class="nc" id="L317">            getAuthors((Element) nodeLst.item(0), bcol);</span>
+        }
+<span class="nc" id="L319">    }</span>
+
+    private void populateFromBibtex(BibEntry bibtex) {
+
+<span class="nc" id="L323">        sourceType = getMSBibSourceType(bibtex);</span>
+
+<span class="nc bnc" id="L325" title="All 2 branches missed.">        if (bibtex.hasField(BibEntry.KEY_FIELD)) {</span>
+<span class="nc" id="L326">            tag = bibtex.getCiteKey();</span>
+        }
+
+<span class="nc bnc" id="L329" title="All 2 branches missed.">        if (bibtex.hasField(&quot;language&quot;)) {</span>
+<span class="nc" id="L330">            LCID = getLCID(bibtex.getField(&quot;language&quot;));</span>
+        }
+
+<span class="nc bnc" id="L333" title="All 2 branches missed.">        if (bibtex.hasField(&quot;title&quot;)) {</span>
+<span class="nc" id="L334">            String temp = bibtex.getField(&quot;title&quot;);</span>
+            // TODO: remove LaTex syntax
+<span class="nc" id="L336">            title = new RemoveBrackets().format(temp);</span>
+        }
+<span class="nc bnc" id="L338" title="All 2 branches missed.">        if (bibtex.hasField(&quot;year&quot;)) {</span>
+<span class="nc" id="L339">            year = bibtex.getField(&quot;year&quot;);</span>
+        }
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        if (bibtex.hasField(&quot;month&quot;)) {</span>
+<span class="nc" id="L342">            month = bibtex.getField(&quot;month&quot;);</span>
+        }
+<span class="nc bnc" id="L344" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;day&quot;)) {</span>
+<span class="nc" id="L345">            day = bibtex.getField(MSBIB + &quot;day&quot;);</span>
+        }
+
+<span class="nc bnc" id="L348" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;shorttitle&quot;)) {</span>
+<span class="nc" id="L349">            shortTitle = bibtex.getField(MSBIB + &quot;shorttitle&quot;);</span>
+        }
+<span class="nc bnc" id="L351" title="All 2 branches missed.">        if (bibtex.hasField(&quot;note&quot;)) {</span>
+<span class="nc" id="L352">            comments = bibtex.getField(&quot;note&quot;);</span>
+        }
+
+<span class="nc bnc" id="L355" title="All 2 branches missed.">        if (bibtex.hasField(&quot;pages&quot;)) {</span>
+<span class="nc" id="L356">            pages = new PageNumbers(bibtex.getField(&quot;pages&quot;));</span>
+        }
+
+<span class="nc bnc" id="L359" title="All 2 branches missed.">        if (bibtex.hasField(&quot;volume&quot;)) {</span>
+<span class="nc" id="L360">            volume = bibtex.getField(&quot;volume&quot;);</span>
+        }
+
+<span class="nc bnc" id="L363" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;numberofvolume&quot;)) {</span>
+<span class="nc" id="L364">            numberOfVolumes = bibtex.getField(MSBIB + &quot;numberofvolume&quot;);</span>
+        }
+
+<span class="nc bnc" id="L367" title="All 2 branches missed.">        if (bibtex.hasField(&quot;edition&quot;)) {</span>
+<span class="nc" id="L368">            edition = bibtex.getField(&quot;edition&quot;);</span>
+        }
+
+<span class="nc" id="L371">        standardNumber = &quot;&quot;;</span>
+<span class="nc bnc" id="L372" title="All 2 branches missed.">        if (bibtex.hasField(&quot;isbn&quot;)) {</span>
+<span class="nc" id="L373">            standardNumber += &quot; ISBN: &quot; + bibtex.getField(&quot;isbn&quot;); /* SM: 2010.10: lower case */</span>
+        }
+<span class="nc bnc" id="L375" title="All 2 branches missed.">        if (bibtex.hasField(&quot;issn&quot;)) {</span>
+<span class="nc" id="L376">            standardNumber += &quot; ISSN: &quot; + bibtex.getField(&quot;issn&quot;); /* SM: 2010.10: lower case */</span>
+        }
+<span class="nc bnc" id="L378" title="All 2 branches missed.">        if (bibtex.hasField(&quot;lccn&quot;)) {</span>
+<span class="nc" id="L379">            standardNumber += &quot; LCCN: &quot; + bibtex.getField(&quot;lccn&quot;); /* SM: 2010.10: lower case */</span>
+        }
+<span class="nc bnc" id="L381" title="All 2 branches missed.">        if (bibtex.hasField(&quot;mrnumber&quot;)) {</span>
+<span class="nc" id="L382">            standardNumber += &quot; MRN: &quot; + bibtex.getField(&quot;mrnumber&quot;);</span>
+        }
+        /* SM: 2010.10 begin DOI support */
+<span class="nc bnc" id="L385" title="All 2 branches missed.">        if (bibtex.hasField(&quot;doi&quot;)) {</span>
+<span class="nc" id="L386">            standardNumber += &quot; DOI: &quot; + bibtex.getField(&quot;doi&quot;);</span>
+        }
+        /* SM: 2010.10 end DOI support */
+<span class="nc bnc" id="L389" title="All 2 branches missed.">        if (standardNumber.isEmpty()) {</span>
+<span class="nc" id="L390">            standardNumber = null;</span>
+        }
+
+<span class="nc bnc" id="L393" title="All 2 branches missed.">        if (bibtex.hasField(&quot;publisher&quot;)) {</span>
+<span class="nc" id="L394">            publisher = bibtex.getField(&quot;publisher&quot;);</span>
+        }
+
+<span class="nc bnc" id="L397" title="All 2 branches missed.">        if (bibtex.hasField(&quot;address&quot;)) {</span>
+<span class="nc" id="L398">            address = bibtex.getField(&quot;address&quot;);</span>
+        }
+
+<span class="nc bnc" id="L401" title="All 2 branches missed.">        if (bibtex.hasField(&quot;booktitle&quot;)) {</span>
+<span class="nc" id="L402">            bookTitle = bibtex.getField(&quot;booktitle&quot;);</span>
+        }
+
+<span class="nc bnc" id="L405" title="All 2 branches missed.">        if (bibtex.hasField(&quot;chapter&quot;)) {</span>
+<span class="nc" id="L406">            chapterNumber = bibtex.getField(&quot;chapter&quot;);</span>
+        }
+
+<span class="nc bnc" id="L409" title="All 2 branches missed.">        if (bibtex.hasField(&quot;journal&quot;)) {</span>
+<span class="nc" id="L410">            journalName = bibtex.getField(&quot;journal&quot;);</span>
+        }
+
+<span class="nc bnc" id="L413" title="All 2 branches missed.">        if (bibtex.hasField(&quot;number&quot;)) {</span>
+<span class="nc" id="L414">            issue = bibtex.getField(&quot;number&quot;);</span>
+        }
+
+<span class="nc bnc" id="L417" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;periodical&quot;)) {</span>
+<span class="nc" id="L418">            periodicalTitle = bibtex.getField(MSBIB + &quot;periodical&quot;);</span>
+        }
+
+<span class="nc bnc" id="L421" title="All 2 branches missed.">        if (bibtex.hasField(&quot;booktitle&quot;)) {</span>
+<span class="nc" id="L422">            conferenceName = bibtex.getField(&quot;booktitle&quot;);</span>
+        }
+<span class="nc bnc" id="L424" title="All 2 branches missed.">        if (bibtex.hasField(&quot;school&quot;)) {</span>
+<span class="nc" id="L425">            department = bibtex.getField(&quot;school&quot;);</span>
+        }
+<span class="nc bnc" id="L427" title="All 2 branches missed.">        if (bibtex.hasField(&quot;institution&quot;)) {</span>
+<span class="nc" id="L428">            institution = bibtex.getField(&quot;institution&quot;);</span>
+        }
+
+        /* SM: 2010.10 Modified for default source types */
+<span class="nc bnc" id="L432" title="All 2 branches missed.">        if (bibtex.hasField(&quot;type&quot;)) {</span>
+<span class="nc" id="L433">            thesisType = bibtex.getField(&quot;type&quot;);</span>
+<span class="nc" id="L434">        } else {</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">            if (&quot;techreport&quot;.equalsIgnoreCase(bibtex.getType())) {</span>
+<span class="nc" id="L436">                thesisType = &quot;Tech. rep.&quot;;</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">            } else if (&quot;mastersthesis&quot;.equalsIgnoreCase(bibtex.getType())) {</span>
+<span class="nc" id="L438">                thesisType = &quot;Master's thesis&quot;;</span>
+<span class="nc bnc" id="L439" title="All 2 branches missed.">            } else if (&quot;phdthesis&quot;.equalsIgnoreCase(bibtex.getType())) {</span>
+<span class="nc" id="L440">                thesisType = &quot;Ph.D. dissertation&quot;;</span>
+<span class="nc bnc" id="L441" title="All 2 branches missed.">            } else if (&quot;unpublished&quot;.equalsIgnoreCase(bibtex.getType())) {</span>
+<span class="nc" id="L442">                thesisType = &quot;unpublished&quot;;</span>
+            }
+        }
+
+<span class="nc bnc" id="L446" title="All 4 branches missed.">        if ((&quot;InternetSite&quot;.equals(sourceType) || &quot;DocumentFromInternetSite&quot;.equals(sourceType))</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">                &amp;&amp; (bibtex.hasField(&quot;title&quot;))) {</span>
+<span class="nc" id="L448">            internetSiteTitle = bibtex.getField(&quot;title&quot;);</span>
+        }
+<span class="nc bnc" id="L450" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;accessed&quot;)) {</span>
+<span class="nc" id="L451">            dateAccessed = bibtex.getField(MSBIB + &quot;accessed&quot;);</span>
+        }
+<span class="nc bnc" id="L453" title="All 2 branches missed.">        if (bibtex.hasField(&quot;url&quot;)) {</span>
+<span class="nc" id="L454">            url = bibtex.getField(&quot;url&quot;); /* SM: 2010.10: lower case */</span>
+        }
+<span class="nc bnc" id="L456" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;productioncompany&quot;)) {</span>
+<span class="nc" id="L457">            productionCompany = bibtex.getField(MSBIB + &quot;productioncompany&quot;);</span>
+        }
+
+<span class="nc bnc" id="L460" title="All 2 branches missed.">        if ((&quot;ElectronicSource&quot;.equals(sourceType)</span>
+<span class="nc bnc" id="L461" title="All 2 branches missed.">                || &quot;Art&quot;.equals(sourceType)</span>
+<span class="nc bnc" id="L462" title="All 2 branches missed.">                || &quot;Misc&quot;.equals(sourceType))</span>
+<span class="nc bnc" id="L463" title="All 2 branches missed.">                &amp;&amp; (bibtex.hasField(&quot;title&quot;))) {</span>
+<span class="nc" id="L464">            publicationTitle = bibtex.getField(&quot;title&quot;);</span>
+        }
+<span class="nc bnc" id="L466" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;medium&quot;)) {</span>
+<span class="nc" id="L467">            medium = bibtex.getField(MSBIB + &quot;medium&quot;);</span>
+        }
+<span class="nc bnc" id="L469" title="All 4 branches missed.">        if (&quot;SoundRecording&quot;.equals(sourceType) &amp;&amp; (bibtex.hasField(&quot;title&quot;))) {</span>
+<span class="nc" id="L470">            albumTitle = bibtex.getField(&quot;title&quot;);</span>
+        }
+<span class="nc bnc" id="L472" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;recordingnumber&quot;)) {</span>
+<span class="nc" id="L473">            recordingNumber = bibtex.getField(MSBIB + &quot;recordingnumber&quot;);</span>
+        }
+<span class="nc bnc" id="L475" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;theater&quot;)) {</span>
+<span class="nc" id="L476">            theater = bibtex.getField(MSBIB + &quot;theater&quot;);</span>
+        }
+<span class="nc bnc" id="L478" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;distributor&quot;)) {</span>
+<span class="nc" id="L479">            distributor = bibtex.getField(MSBIB + &quot;distributor&quot;);</span>
+        }
+<span class="nc bnc" id="L481" title="All 4 branches missed.">        if (&quot;Interview&quot;.equals(sourceType) &amp;&amp; (bibtex.hasField(&quot;title&quot;))) {</span>
+<span class="nc" id="L482">            broadcastTitle = bibtex.getField(&quot;title&quot;);</span>
+        }
+<span class="nc bnc" id="L484" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;broadcaster&quot;)) {</span>
+<span class="nc" id="L485">            broadcaster = bibtex.getField(MSBIB + &quot;broadcaster&quot;);</span>
+        }
+<span class="nc bnc" id="L487" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;station&quot;)) {</span>
+<span class="nc" id="L488">            station = bibtex.getField(MSBIB + &quot;station&quot;);</span>
+        }
+<span class="nc bnc" id="L490" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;type&quot;)) {</span>
+<span class="nc" id="L491">            type = bibtex.getField(MSBIB + &quot;type&quot;);</span>
+        }
+<span class="nc bnc" id="L493" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;patentnumber&quot;)) {</span>
+<span class="nc" id="L494">            patentNumber = bibtex.getField(MSBIB + &quot;patentnumber&quot;);</span>
+        }
+<span class="nc bnc" id="L496" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;court&quot;)) {</span>
+<span class="nc" id="L497">            court = bibtex.getField(MSBIB + &quot;court&quot;);</span>
+        }
+<span class="nc bnc" id="L499" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;reporter&quot;)) {</span>
+<span class="nc" id="L500">            reporter = bibtex.getField(MSBIB + &quot;reporter&quot;);</span>
+        }
+<span class="nc bnc" id="L502" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;casenumber&quot;)) {</span>
+<span class="nc" id="L503">            caseNumber = bibtex.getField(MSBIB + &quot;casenumber&quot;);</span>
+        }
+<span class="nc bnc" id="L505" title="All 2 branches missed.">        if (bibtex.hasField(MSBIB + &quot;abbreviatedcasenumber&quot;)) {</span>
+<span class="nc" id="L506">            abbreviatedCaseNumber = bibtex.getField(MSBIB + &quot;abbreviatedcasenumber&quot;);</span>
+        }
+
+<span class="nc bnc" id="L509" title="All 2 branches missed.">        if (bibtex.hasField(&quot;series&quot;)) {</span>
+<span class="nc" id="L510">            bibTexSeries = bibtex.getField(&quot;series&quot;);</span>
+        }
+<span class="nc bnc" id="L512" title="All 2 branches missed.">        if (bibtex.hasField(&quot;abstract&quot;)) {</span>
+<span class="nc" id="L513">            bibTexAbstract = bibtex.getField(&quot;abstract&quot;);</span>
+        }
+<span class="nc bnc" id="L515" title="All 2 branches missed.">        if (bibtex.hasField(&quot;keywords&quot;)) {</span>
+<span class="nc" id="L516">            bibTexKeyWords = bibtex.getField(&quot;keywords&quot;);</span>
+        }
+<span class="nc bnc" id="L518" title="All 2 branches missed.">        if (bibtex.hasField(&quot;crossref&quot;)) {</span>
+<span class="nc" id="L519">            bibTexCrossRef = bibtex.getField(&quot;crossref&quot;);</span>
+        }
+<span class="nc bnc" id="L521" title="All 2 branches missed.">        if (bibtex.hasField(&quot;howpublished&quot;)) {</span>
+<span class="nc" id="L522">            bibTex_HowPublished = bibtex.getField(&quot;howpublished&quot;);</span>
+        }
+<span class="nc bnc" id="L524" title="All 2 branches missed.">        if (bibtex.hasField(&quot;affiliation&quot;)) {</span>
+<span class="nc" id="L525">            bibTexAffiliation = bibtex.getField(&quot;affiliation&quot;);</span>
+        }
+<span class="nc bnc" id="L527" title="All 2 branches missed.">        if (bibtex.hasField(&quot;contents&quot;)) {</span>
+<span class="nc" id="L528">            bibTexContents = bibtex.getField(&quot;contents&quot;);</span>
+        }
+<span class="nc bnc" id="L530" title="All 2 branches missed.">        if (bibtex.hasField(&quot;copyright&quot;)) {</span>
+<span class="nc" id="L531">            bibTexCopyright = bibtex.getField(&quot;copyright&quot;);</span>
+        }
+<span class="nc bnc" id="L533" title="All 2 branches missed.">        if (bibtex.hasField(&quot;price&quot;)) {</span>
+<span class="nc" id="L534">            bibTexPrice = bibtex.getField(&quot;price&quot;);</span>
+        }
+<span class="nc bnc" id="L536" title="All 2 branches missed.">        if (bibtex.hasField(&quot;size&quot;)) {</span>
+<span class="nc" id="L537">            bibTexSize = bibtex.getField(&quot;size&quot;);</span>
+        }
+
+        /* SM: 2010.10 end intype, paper support */
+<span class="nc bnc" id="L541" title="All 2 branches missed.">        if (bibtex.hasField(&quot;intype&quot;)) {</span>
+<span class="nc" id="L542">            bibTexInType = bibtex.getField(&quot;intype&quot;);</span>
+        }
+<span class="nc bnc" id="L544" title="All 2 branches missed.">        if (bibtex.hasField(&quot;paper&quot;)) {</span>
+<span class="nc" id="L545">            bibTexPaper = bibtex.getField(&quot;paper&quot;);</span>
+        }
+
+<span class="nc bnc" id="L548" title="All 2 branches missed.">        if (bibtex.hasField(&quot;author&quot;)) {</span>
+<span class="nc" id="L549">            authors = getAuthors(bibtex.getField(&quot;author&quot;));</span>
+        }
+<span class="nc bnc" id="L551" title="All 2 branches missed.">        if (bibtex.hasField(&quot;editor&quot;)) {</span>
+<span class="nc" id="L552">            editors = getAuthors(bibtex.getField(&quot;editor&quot;));</span>
+        }
+
+<span class="nc" id="L555">        boolean FORMATXML = false;</span>
+<span class="nc bnc" id="L556" title="All 2 branches missed.">        if (FORMATXML) {</span>
+<span class="nc" id="L557">            title = format(title);</span>
+<span class="nc" id="L558">            bibTexAbstract = format(bibTexAbstract);</span>
+        }
+<span class="nc" id="L560">    }</span>
+
+    private String format(String value) {
+<span class="nc bnc" id="L563" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L564">            return null;</span>
+        }
+        String result;
+<span class="nc" id="L567">        LayoutFormatter chars = new XMLChars();</span>
+<span class="nc" id="L568">        result = chars.format(value);</span>
+<span class="nc" id="L569">        return result;</span>
+    }
+
+    // http://www.microsoft.com/globaldev/reference/lcid-all.mspx
+    private int getLCID(String language) {
+        // TODO: add language to LCID mapping
+
+<span class="nc" id="L576">        return 0;</span>
+    }
+
+    // http://www.microsoft.com/globaldev/reference/lcid-all.mspx
+    private String getLanguage(int LCID) {
+        // TODO: add language to LCID mapping
+
+<span class="nc" id="L583">        return &quot;english&quot;;</span>
+    }
+
+    private List&lt;PersonName&gt; getSpecificAuthors(String type, Element authors, String bcol) {
+<span class="nc" id="L587">        List&lt;PersonName&gt; result = null;</span>
+<span class="nc" id="L588">        NodeList nodeLst = authors.getElementsByTagName(bcol + type);</span>
+<span class="nc bnc" id="L589" title="All 2 branches missed.">        if (nodeLst.getLength() &lt;= 0) {</span>
+<span class="nc" id="L590">            return result;</span>
+        }
+<span class="nc" id="L592">        nodeLst = ((Element) nodeLst.item(0)).getElementsByTagName(bcol + &quot;NameList&quot;);</span>
+<span class="nc bnc" id="L593" title="All 2 branches missed.">        if (nodeLst.getLength() &lt;= 0) {</span>
+<span class="nc" id="L594">            return result;</span>
+        }
+<span class="nc" id="L596">        NodeList person = ((Element) nodeLst.item(0)).getElementsByTagName(bcol + &quot;Person&quot;);</span>
+<span class="nc bnc" id="L597" title="All 2 branches missed.">        if (person.getLength() &lt;= 0) {</span>
+<span class="nc" id="L598">            return result;</span>
+        }
+
+<span class="nc" id="L601">        result = new LinkedList&lt;&gt;();</span>
+<span class="nc bnc" id="L602" title="All 2 branches missed.">        for (int i = 0; i &lt; person.getLength(); i++) {</span>
+<span class="nc" id="L603">            NodeList firstName = ((Element) person.item(i)).getElementsByTagName(bcol + &quot;First&quot;);</span>
+<span class="nc" id="L604">            NodeList lastName = ((Element) person.item(i)).getElementsByTagName(bcol + &quot;Last&quot;);</span>
+<span class="nc" id="L605">            NodeList middleName = ((Element) person.item(i)).getElementsByTagName(bcol + &quot;Middle&quot;);</span>
+<span class="nc" id="L606">            PersonName name = new PersonName();</span>
+<span class="nc bnc" id="L607" title="All 2 branches missed.">            if (firstName.getLength() &gt; 0) {</span>
+<span class="nc" id="L608">                name.setFirstname(firstName.item(0).getTextContent());</span>
+            }
+<span class="nc bnc" id="L610" title="All 2 branches missed.">            if (middleName.getLength() &gt; 0) {</span>
+<span class="nc" id="L611">                name.setMiddlename(middleName.item(0).getTextContent());</span>
+            }
+<span class="nc bnc" id="L613" title="All 2 branches missed.">            if (lastName.getLength() &gt; 0) {</span>
+<span class="nc" id="L614">                name.setSurname(lastName.item(0).getTextContent());</span>
+            }
+<span class="nc" id="L616">            result.add(name);</span>
+        }
+
+<span class="nc" id="L619">        return result;</span>
+    }
+
+    private void getAuthors(Element authorsElem, String bcol) {
+<span class="nc" id="L623">        authors = getSpecificAuthors(&quot;Author&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L624">        bookAuthors = getSpecificAuthors(&quot;BookAuthor&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L625">        editors = getSpecificAuthors(&quot;Editor&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L626">        translators = getSpecificAuthors(&quot;Translator&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L627">        producerNames = getSpecificAuthors(&quot;ProducerName&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L628">        composers = getSpecificAuthors(&quot;Composer&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L629">        conductors = getSpecificAuthors(&quot;Conductor&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L630">        performers = getSpecificAuthors(&quot;Performer&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L631">        writers = getSpecificAuthors(&quot;Writer&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L632">        directors = getSpecificAuthors(&quot;Director&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L633">        compilers = getSpecificAuthors(&quot;Compiler&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L634">        interviewers = getSpecificAuthors(&quot;Interviewer&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L635">        interviewees = getSpecificAuthors(&quot;Interviewee&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L636">        inventors = getSpecificAuthors(&quot;Inventor&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L637">        counsels = getSpecificAuthors(&quot;Counsel&quot;, authorsElem, bcol);</span>
+<span class="nc" id="L638">    }</span>
+
+    private List&lt;PersonName&gt; getAuthors(String authors) {
+<span class="nc" id="L641">        List&lt;PersonName&gt; result = new LinkedList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L643" title="All 2 branches missed.">        if (authors.contains(&quot; and &quot;)) {</span>
+<span class="nc" id="L644">            String[] names = authors.split(&quot; and &quot;);</span>
+<span class="nc bnc" id="L645" title="All 2 branches missed.">            for (String name : names) {</span>
+<span class="nc" id="L646">                result.add(new PersonName(name));</span>
+            }
+<span class="nc" id="L648">        } else {</span>
+<span class="nc" id="L649">            result.add(new PersonName(authors));</span>
+        }
+<span class="nc" id="L651">        return result;</span>
+    }
+
+    private String getMSBibSourceType(BibEntry bibtex) {
+<span class="nc" id="L655">        String bibtexType = bibtex.getType();</span>
+
+<span class="nc" id="L657">        String result = &quot;Misc&quot;;</span>
+<span class="nc bnc" id="L658" title="All 2 branches missed.">        if (&quot;book&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L659">            result = &quot;Book&quot;;</span>
+<span class="nc bnc" id="L660" title="All 2 branches missed.">        } else if (&quot;inbook&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L661">            result = &quot;BookSection&quot;;</span>
+<span class="nc" id="L662">            bibTexEntry = &quot;inbook&quot;;</span>
+<span class="nc bnc" id="L663" title="All 2 branches missed.">        } /* SM 2010.10: generalized */ else if (&quot;booklet&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L664">            result = &quot;BookSection&quot;;</span>
+<span class="nc" id="L665">            bibTexEntry = &quot;booklet&quot;;</span>
+<span class="nc bnc" id="L666" title="All 2 branches missed.">        } else if (&quot;incollection&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L667">            result = &quot;BookSection&quot;;</span>
+<span class="nc" id="L668">            bibTexEntry = &quot;incollection&quot;;</span>
+<span class="nc bnc" id="L669" title="All 2 branches missed.">        } else if (&quot;article&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L670">            result = &quot;JournalArticle&quot;;</span>
+<span class="nc bnc" id="L671" title="All 2 branches missed.">        } else if (&quot;inproceedings&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L672">            result = &quot;ConferenceProceedings&quot;;</span>
+<span class="nc" id="L673">            bibTexEntry = &quot;inproceedings&quot;;</span>
+<span class="nc bnc" id="L674" title="All 2 branches missed.">        } /* SM 2010.10: generalized */ else if (&quot;conference&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L675">            result = &quot;ConferenceProceedings&quot;;</span>
+<span class="nc" id="L676">            bibTexEntry = &quot;conference&quot;;</span>
+<span class="nc bnc" id="L677" title="All 2 branches missed.">        } else if (&quot;proceedings&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L678">            result = &quot;ConferenceProceedings&quot;;</span>
+<span class="nc" id="L679">            bibTexEntry = &quot;proceedings&quot;;</span>
+<span class="nc bnc" id="L680" title="All 2 branches missed.">        } else if (&quot;collection&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L681">            result = &quot;ConferenceProceedings&quot;;</span>
+<span class="nc" id="L682">            bibTexEntry = &quot;collection&quot;;</span>
+<span class="nc bnc" id="L683" title="All 2 branches missed.">        } else if (&quot;techreport&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L684">            result = &quot;Report&quot;;</span>
+<span class="nc" id="L685">            bibTexEntry = &quot;techreport&quot;;</span>
+<span class="nc bnc" id="L686" title="All 2 branches missed.">        } /* SM 2010.10: generalized */ else if (&quot;manual&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L687">            result = &quot;Report&quot;;</span>
+<span class="nc" id="L688">            bibTexEntry = &quot;manual&quot;;</span>
+<span class="nc bnc" id="L689" title="All 2 branches missed.">        } else if (&quot;mastersthesis&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L690">            result = &quot;Report&quot;;</span>
+<span class="nc" id="L691">            bibTexEntry = &quot;mastersthesis&quot;;</span>
+<span class="nc bnc" id="L692" title="All 2 branches missed.">        } else if (&quot;phdthesis&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L693">            result = &quot;Report&quot;;</span>
+<span class="nc" id="L694">            bibTexEntry = &quot;phdthesis&quot;;</span>
+<span class="nc bnc" id="L695" title="All 2 branches missed.">        } else if (&quot;unpublished&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L696">            result = &quot;Report&quot;;</span>
+<span class="nc" id="L697">            bibTexEntry = &quot;unpublished&quot;;</span>
+<span class="nc bnc" id="L698" title="All 2 branches missed.">        } else if (&quot;patent&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L699">            result = &quot;Patent&quot;;</span>
+<span class="nc bnc" id="L700" title="All 2 branches missed.">        } else if (&quot;misc&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L701">            result = &quot;Misc&quot;;</span>
+<span class="nc bnc" id="L702" title="All 2 branches missed.">        } else if (&quot;electronic&quot;.equalsIgnoreCase(bibtexType)) {</span>
+<span class="nc" id="L703">            result = &quot;Misc&quot;;</span>
+<span class="nc" id="L704">            bibTexEntry = &quot;electronic&quot;;</span>
+        }
+
+<span class="nc" id="L707">        return result;</span>
+    }
+
+    private Node getDOMrepresentation() {
+<span class="nc" id="L711">        Node result = null;</span>
+        try {
+<span class="nc" id="L713">            DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();</span>
+
+<span class="nc" id="L715">            result = getDOMrepresentation(documentBuilder.newDocument());</span>
+<span class="nc" id="L716">        } catch (ParserConfigurationException e) {</span>
+<span class="nc" id="L717">            LOGGER.warn(&quot;Could not create DocumentBuilder&quot;, e);</span>
+        }
+<span class="nc" id="L719">        return result;</span>
+    }
+
+    private void addField(Document document, Element parent, String name, String value) {
+<span class="nc bnc" id="L723" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L724">            return;</span>
+        }
+<span class="nc" id="L726">        Element elem = document.createElement(B_COLON + name);</span>
+<span class="nc" id="L727">        elem.appendChild(document.createTextNode(StringUtil.stripNonValidXMLCharacters(value)));</span>
+<span class="nc" id="L728">        parent.appendChild(elem);</span>
+<span class="nc" id="L729">    }</span>
+
+    private void addAuthor(Document document, Element allAuthors, String entryName, List&lt;PersonName&gt; authorsLst) {
+<span class="nc bnc" id="L732" title="All 2 branches missed.">        if (authorsLst == null) {</span>
+<span class="nc" id="L733">            return;</span>
+        }
+<span class="nc" id="L735">        Element authorTop = document.createElement(B_COLON + entryName);</span>
+<span class="nc" id="L736">        Element nameList = document.createElement(B_COLON + &quot;NameList&quot;);</span>
+<span class="nc bnc" id="L737" title="All 2 branches missed.">        for (PersonName name : authorsLst) {</span>
+<span class="nc" id="L738">            Element person = document.createElement(B_COLON + &quot;Person&quot;);</span>
+<span class="nc" id="L739">            addField(document, person, &quot;Last&quot;, name.getSurname());</span>
+<span class="nc" id="L740">            addField(document, person, &quot;Middle&quot;, name.getMiddlename());</span>
+<span class="nc" id="L741">            addField(document, person, &quot;First&quot;, name.getFirstname());</span>
+<span class="nc" id="L742">            nameList.appendChild(person);</span>
+        }
+<span class="nc" id="L744">        authorTop.appendChild(nameList);</span>
+
+<span class="nc" id="L746">        allAuthors.appendChild(authorTop);</span>
+<span class="nc" id="L747">    }</span>
+
+    private void addAddress(Document document, Element parent, String address) {
+<span class="nc bnc" id="L750" title="All 2 branches missed.">        if (address == null) {</span>
+<span class="nc" id="L751">            return;</span>
+        }
+
+<span class="nc" id="L754">        Matcher matcher = ADDRESS_PATTERN.matcher(address);</span>
+<span class="nc bnc" id="L755" title="All 4 branches missed.">        if (matcher.matches() &amp;&amp; (matcher.groupCount() &gt; 3)) {</span>
+<span class="nc" id="L756">            addField(document, parent, &quot;City&quot;, matcher.group(1));</span>
+<span class="nc" id="L757">            addField(document, parent, &quot;StateProvince&quot;, matcher.group(2));</span>
+<span class="nc" id="L758">            addField(document, parent, &quot;CountryRegion&quot;, matcher.group(3));</span>
+<span class="nc" id="L759">        } else {</span>
+            /* SM: 2010.10 generalized */
+<span class="nc" id="L761">            addField(document, parent, &quot;City&quot;, address);</span>
+        }
+<span class="nc" id="L763">    }</span>
+
+    private void addDate(Document document, Element parent, String date, String extra) {
+<span class="nc bnc" id="L766" title="All 2 branches missed.">        if (date == null) {</span>
+<span class="nc" id="L767">            return;</span>
+        }
+
+<span class="nc" id="L770">        Matcher matcher = DATE_PATTERN.matcher(date);</span>
+<span class="nc bnc" id="L771" title="All 4 branches missed.">        if (matcher.matches() &amp;&amp; (matcher.groupCount() &gt; 3)) {</span>
+<span class="nc" id="L772">            addField(document, parent, &quot;Month&quot; + extra, matcher.group(1));</span>
+<span class="nc" id="L773">            addField(document, parent, &quot;Day&quot; + extra, matcher.group(2));</span>
+<span class="nc" id="L774">            addField(document, parent, &quot;Year&quot; + extra, matcher.group(3));</span>
+        }
+<span class="nc" id="L776">    }</span>
+
+    public Element getDOMrepresentation(Document document) {
+
+
+<span class="nc" id="L781">        Element msbibEntry = document.createElement(B_COLON + &quot;Source&quot;);</span>
+
+<span class="nc" id="L783">        addField(document, msbibEntry, &quot;SourceType&quot;, sourceType);</span>
+<span class="nc" id="L784">        addField(document, msbibEntry, BIBTEX + &quot;Entry&quot;, bibTexEntry);</span>
+
+<span class="nc" id="L786">        addField(document, msbibEntry, &quot;Tag&quot;, tag);</span>
+<span class="nc" id="L787">        addField(document, msbibEntry, &quot;GUID&quot;, GUID);</span>
+<span class="nc bnc" id="L788" title="All 2 branches missed.">        if (LCID &gt;= 0) {</span>
+<span class="nc" id="L789">            addField(document, msbibEntry, &quot;LCID&quot;, Integer.toString(LCID));</span>
+        }
+<span class="nc" id="L791">        addField(document, msbibEntry, &quot;Title&quot;, title);</span>
+<span class="nc" id="L792">        addField(document, msbibEntry, &quot;Year&quot;, year);</span>
+<span class="nc" id="L793">        addField(document, msbibEntry, &quot;ShortTitle&quot;, shortTitle);</span>
+<span class="nc" id="L794">        addField(document, msbibEntry, &quot;Comments&quot;, comments);</span>
+
+<span class="nc" id="L796">        Element allAuthors = document.createElement(B_COLON + &quot;Author&quot;);</span>
+
+<span class="nc" id="L798">        addAuthor(document, allAuthors, &quot;Author&quot;, authors);</span>
+<span class="nc" id="L799">        String bookAuthor = &quot;BookAuthor&quot;;</span>
+<span class="nc" id="L800">        addAuthor(document, allAuthors, bookAuthor, bookAuthors);</span>
+<span class="nc" id="L801">        addAuthor(document, allAuthors, &quot;Editor&quot;, editors);</span>
+<span class="nc" id="L802">        addAuthor(document, allAuthors, &quot;Translator&quot;, translators);</span>
+<span class="nc" id="L803">        addAuthor(document, allAuthors, &quot;ProducerName&quot;, producerNames);</span>
+<span class="nc" id="L804">        addAuthor(document, allAuthors, &quot;Composer&quot;, composers);</span>
+<span class="nc" id="L805">        addAuthor(document, allAuthors, &quot;Conductor&quot;, conductors);</span>
+<span class="nc" id="L806">        addAuthor(document, allAuthors, &quot;Performer&quot;, performers);</span>
+<span class="nc" id="L807">        addAuthor(document, allAuthors, &quot;Writer&quot;, writers);</span>
+<span class="nc" id="L808">        addAuthor(document, allAuthors, &quot;Director&quot;, directors);</span>
+<span class="nc" id="L809">        addAuthor(document, allAuthors, &quot;Compiler&quot;, compilers);</span>
+<span class="nc" id="L810">        addAuthor(document, allAuthors, &quot;Interviewer&quot;, interviewers);</span>
+<span class="nc" id="L811">        addAuthor(document, allAuthors, &quot;Interviewee&quot;, interviewees);</span>
+<span class="nc" id="L812">        addAuthor(document, allAuthors, &quot;Inventor&quot;, inventors);</span>
+<span class="nc" id="L813">        addAuthor(document, allAuthors, &quot;Counsel&quot;, counsels);</span>
+
+<span class="nc" id="L815">        msbibEntry.appendChild(allAuthors);</span>
+
+<span class="nc bnc" id="L817" title="All 2 branches missed.">        if (pages != null) {</span>
+<span class="nc" id="L818">            addField(document, msbibEntry, &quot;Pages&quot;, pages.toString(&quot;-&quot;));</span>
+        }
+<span class="nc" id="L820">        addField(document, msbibEntry, &quot;Volume&quot;, volume);</span>
+<span class="nc" id="L821">        addField(document, msbibEntry, &quot;NumberVolumes&quot;, numberOfVolumes);</span>
+<span class="nc" id="L822">        addField(document, msbibEntry, &quot;Edition&quot;, edition);</span>
+<span class="nc" id="L823">        addField(document, msbibEntry, &quot;StandardNumber&quot;, standardNumber);</span>
+<span class="nc" id="L824">        addField(document, msbibEntry, &quot;Publisher&quot;, publisher);</span>
+
+<span class="nc" id="L826">        addAddress(document, msbibEntry, address);</span>
+
+<span class="nc" id="L828">        addField(document, msbibEntry, &quot;BookTitle&quot;, bookTitle);</span>
+<span class="nc" id="L829">        addField(document, msbibEntry, &quot;ChapterNumber&quot;, chapterNumber);</span>
+
+<span class="nc" id="L831">        addField(document, msbibEntry, &quot;JournalName&quot;, journalName);</span>
+<span class="nc" id="L832">        addField(document, msbibEntry, &quot;Issue&quot;, issue);</span>
+<span class="nc" id="L833">        addField(document, msbibEntry, &quot;PeriodicalTitle&quot;, periodicalTitle);</span>
+<span class="nc" id="L834">        addField(document, msbibEntry, &quot;ConferenceName&quot;, conferenceName);</span>
+
+<span class="nc" id="L836">        addField(document, msbibEntry, &quot;Department&quot;, department);</span>
+<span class="nc" id="L837">        addField(document, msbibEntry, &quot;Institution&quot;, institution);</span>
+<span class="nc" id="L838">        addField(document, msbibEntry, &quot;ThesisType&quot;, thesisType);</span>
+<span class="nc" id="L839">        addField(document, msbibEntry, &quot;InternetSiteTitle&quot;, internetSiteTitle);</span>
+
+<span class="nc" id="L841">        addDate(document, msbibEntry, dateAccessed, &quot;Accessed&quot;);</span>
+
+            /* SM 2010.10 added month export */
+<span class="nc" id="L844">        addField(document, msbibEntry, &quot;Month&quot;, month);</span>
+
+<span class="nc" id="L846">        addField(document, msbibEntry, &quot;URL&quot;, url);</span>
+<span class="nc" id="L847">        addField(document, msbibEntry, &quot;ProductionCompany&quot;, productionCompany);</span>
+<span class="nc" id="L848">        addField(document, msbibEntry, &quot;PublicationTitle&quot;, publicationTitle);</span>
+<span class="nc" id="L849">        addField(document, msbibEntry, &quot;Medium&quot;, medium);</span>
+<span class="nc" id="L850">        addField(document, msbibEntry, &quot;AlbumTitle&quot;, albumTitle);</span>
+<span class="nc" id="L851">        addField(document, msbibEntry, &quot;RecordingNumber&quot;, recordingNumber);</span>
+<span class="nc" id="L852">        addField(document, msbibEntry, &quot;Theater&quot;, theater);</span>
+<span class="nc" id="L853">        addField(document, msbibEntry, &quot;Distributor&quot;, distributor);</span>
+<span class="nc" id="L854">        addField(document, msbibEntry, &quot;BroadcastTitle&quot;, broadcastTitle);</span>
+<span class="nc" id="L855">        addField(document, msbibEntry, &quot;Broadcaster&quot;, broadcaster);</span>
+<span class="nc" id="L856">        addField(document, msbibEntry, &quot;Station&quot;, station);</span>
+<span class="nc" id="L857">        addField(document, msbibEntry, &quot;Type&quot;, type);</span>
+<span class="nc" id="L858">        addField(document, msbibEntry, &quot;PatentNumber&quot;, patentNumber);</span>
+<span class="nc" id="L859">        addField(document, msbibEntry, &quot;Court&quot;, court);</span>
+<span class="nc" id="L860">        addField(document, msbibEntry, &quot;Reporter&quot;, reporter);</span>
+<span class="nc" id="L861">        addField(document, msbibEntry, &quot;CaseNumber&quot;, caseNumber);</span>
+<span class="nc" id="L862">        addField(document, msbibEntry, &quot;AbbreviatedCaseNumber&quot;, abbreviatedCaseNumber);</span>
+
+<span class="nc" id="L864">        addField(document, msbibEntry, BIBTEX + &quot;Series&quot;, bibTexSeries);</span>
+<span class="nc" id="L865">        addField(document, msbibEntry, BIBTEX + &quot;Abstract&quot;, bibTexAbstract);</span>
+<span class="nc" id="L866">        addField(document, msbibEntry, BIBTEX + &quot;KeyWords&quot;, bibTexKeyWords);</span>
+<span class="nc" id="L867">        addField(document, msbibEntry, BIBTEX + &quot;CrossRef&quot;, bibTexCrossRef);</span>
+<span class="nc" id="L868">        addField(document, msbibEntry, BIBTEX + &quot;HowPublished&quot;, bibTex_HowPublished);</span>
+<span class="nc" id="L869">        addField(document, msbibEntry, BIBTEX + &quot;Affiliation&quot;, bibTexAffiliation);</span>
+<span class="nc" id="L870">        addField(document, msbibEntry, BIBTEX + &quot;Contents&quot;, bibTexContents);</span>
+<span class="nc" id="L871">        addField(document, msbibEntry, BIBTEX + &quot;Copyright&quot;, bibTexCopyright);</span>
+<span class="nc" id="L872">        addField(document, msbibEntry, BIBTEX + &quot;Price&quot;, bibTexPrice);</span>
+<span class="nc" id="L873">        addField(document, msbibEntry, BIBTEX + &quot;Size&quot;, bibTexSize);</span>
+
+            /* SM: 2010.10 end intype, paper support */
+<span class="nc" id="L876">        addField(document, msbibEntry, BIBTEX + &quot;InType&quot;, bibTexInType);</span>
+<span class="nc" id="L877">        addField(document, msbibEntry, BIBTEX + &quot;Paper&quot;, bibTexPaper);</span>
+
+<span class="nc" id="L879">        return msbibEntry;</span>
+    }
+
+    private void parseSingleStandardNumber(String type, String bibtype, String standardNum, Map&lt;String, String&gt; map) {
+        // tested using http://www.javaregex.com/test.html
+<span class="nc" id="L884">        Pattern pattern = Pattern.compile(':' + type + &quot;:(.[^:]+)&quot;);</span>
+<span class="nc" id="L885">        Matcher matcher = pattern.matcher(standardNum);</span>
+<span class="nc bnc" id="L886" title="All 2 branches missed.">        if (matcher.matches()) {</span>
+<span class="nc" id="L887">            map.put(bibtype, matcher.group(1));</span>
+        }
+<span class="nc" id="L889">    }</span>
+
+    private void parseStandardNumber(String standardNum, Map&lt;String, String&gt; map) {
+<span class="nc bnc" id="L892" title="All 2 branches missed.">        if (standardNumber == null) {</span>
+<span class="nc" id="L893">            return;</span>
+        }
+<span class="nc" id="L895">        parseSingleStandardNumber(&quot;ISBN&quot;, &quot;isbn&quot;, standardNum, map); /* SM: 2010.10: lower case */</span>
+<span class="nc" id="L896">        parseSingleStandardNumber(&quot;ISSN&quot;, &quot;issn&quot;, standardNum, map); /* SM: 2010.10: lower case */</span>
+<span class="nc" id="L897">        parseSingleStandardNumber(&quot;LCCN&quot;, &quot;lccn&quot;, standardNum, map); /* SM: 2010.10: lower case */</span>
+<span class="nc" id="L898">        parseSingleStandardNumber(&quot;MRN&quot;, &quot;mrnumber&quot;, standardNum, map);</span>
+        /* SM: 2010.10 begin DOI support */
+<span class="nc" id="L900">        parseSingleStandardNumber(&quot;DOI&quot;, &quot;doi&quot;, standardNum, map);</span>
+        /* SM: 2010.10 end DOI support */
+<span class="nc" id="L902">    }</span>
+
+    private void addAuthor(Map&lt;String, String&gt; map, String type, List&lt;PersonName&gt; authors) {
+<span class="nc bnc" id="L905" title="All 2 branches missed.">        if (authors == null) {</span>
+<span class="nc" id="L906">            return;</span>
+        }
+<span class="nc" id="L908">        String allAuthors = authors.stream().map(name -&gt; name.getFullname()).collect(Collectors.joining(&quot; and &quot;));</span>
+
+<span class="nc" id="L910">        map.put(type, allAuthors);</span>
+<span class="nc" id="L911">    }</span>
+
+    private EntryType mapMSBibToBibtexType(String msbib) {
+        EntryType bibtex;
+<span class="nc bnc" id="L915" title="All 6 branches missed.">        switch (msbib) {</span>
+        case &quot;Book&quot;:
+<span class="nc" id="L917">            bibtex = BibtexEntryTypes.BOOK;</span>
+<span class="nc" id="L918">            break;</span>
+        case &quot;BookSection&quot;:
+<span class="nc" id="L920">            bibtex = BibtexEntryTypes.INBOOK;</span>
+<span class="nc" id="L921">            break;</span>
+        case &quot;JournalArticle&quot;:
+        case &quot;ArticleInAPeriodical&quot;:
+<span class="nc" id="L924">            bibtex = BibtexEntryTypes.ARTICLE;</span>
+<span class="nc" id="L925">            break;</span>
+        case &quot;ConferenceProceedings&quot;:
+<span class="nc" id="L927">            bibtex = BibtexEntryTypes.CONFERENCE;</span>
+<span class="nc" id="L928">            break;</span>
+        case &quot;Report&quot;:
+<span class="nc" id="L930">            bibtex = BibtexEntryTypes.TECHREPORT;</span>
+<span class="nc" id="L931">            break;</span>
+        case &quot;InternetSite&quot;:
+        case &quot;DocumentFromInternetSite&quot;:
+        case &quot;ElectronicSource&quot;:
+        case &quot;Art&quot;:
+        case &quot;SoundRecording&quot;:
+        case &quot;Performance&quot;:
+        case &quot;Film&quot;:
+        case &quot;Interview&quot;:
+        case &quot;Patent&quot;:
+        case &quot;Case&quot;:
+        default:
+<span class="nc" id="L943">            bibtex = BibtexEntryTypes.MISC;</span>
+            break;
+        }
+
+<span class="nc" id="L947">        return bibtex;</span>
+    }
+
+    public BibEntry getBibtexRepresentation() {
+
+        BibEntry entry;
+<span class="nc bnc" id="L953" title="All 2 branches missed.">        if (tag == null) {</span>
+<span class="nc" id="L954">            entry = new BibEntry(ImportFormat.DEFAULT_BIBTEXENTRY_ID, mapMSBibToBibtexType(sourceType).getName());</span>
+<span class="nc" id="L955">        } else {</span>
+<span class="nc" id="L956">            entry = new BibEntry(tag, mapMSBibToBibtexType(sourceType).getName()); // id assumes an existing database so don't</span>
+        }
+
+        // Todo: add check for BibTexEntry types
+
+<span class="nc" id="L961">        Map&lt;String, String&gt; hm = new HashMap&lt;&gt;();</span>
+
+<span class="nc bnc" id="L963" title="All 2 branches missed.">        if (tag != null) {</span>
+<span class="nc" id="L964">            hm.put(BibEntry.KEY_FIELD, tag);</span>
+        }
+
+<span class="nc bnc" id="L967" title="All 2 branches missed.">        if (LCID &gt;= 0) {</span>
+<span class="nc" id="L968">            hm.put(&quot;language&quot;, getLanguage(LCID));</span>
+        }
+<span class="nc bnc" id="L970" title="All 2 branches missed.">        if (title != null) {</span>
+<span class="nc" id="L971">            hm.put(&quot;title&quot;, title);</span>
+        }
+<span class="nc bnc" id="L973" title="All 2 branches missed.">        if (year != null) {</span>
+<span class="nc" id="L974">            hm.put(&quot;year&quot;, year);</span>
+        }
+<span class="nc bnc" id="L976" title="All 2 branches missed.">        if (shortTitle != null) {</span>
+<span class="nc" id="L977">            hm.put(MSBIB + &quot;shorttitle&quot;, shortTitle);</span>
+        }
+<span class="nc bnc" id="L979" title="All 2 branches missed.">        if (comments != null) {</span>
+<span class="nc" id="L980">            hm.put(&quot;note&quot;, comments);</span>
+        }
+
+<span class="nc" id="L983">        addAuthor(hm, &quot;author&quot;, authors);</span>
+<span class="nc" id="L984">        addAuthor(hm, MSBIB + &quot;bookauthor&quot;, bookAuthors);</span>
+<span class="nc" id="L985">        addAuthor(hm, &quot;editor&quot;, editors);</span>
+<span class="nc" id="L986">        addAuthor(hm, MSBIB + &quot;translator&quot;, translators);</span>
+<span class="nc" id="L987">        addAuthor(hm, MSBIB + &quot;producername&quot;, producerNames);</span>
+<span class="nc" id="L988">        addAuthor(hm, MSBIB + &quot;composer&quot;, composers);</span>
+<span class="nc" id="L989">        addAuthor(hm, MSBIB + &quot;conductor&quot;, conductors);</span>
+<span class="nc" id="L990">        addAuthor(hm, MSBIB + &quot;performer&quot;, performers);</span>
+<span class="nc" id="L991">        addAuthor(hm, MSBIB + &quot;writer&quot;, writers);</span>
+<span class="nc" id="L992">        addAuthor(hm, MSBIB + &quot;director&quot;, directors);</span>
+<span class="nc" id="L993">        addAuthor(hm, MSBIB + &quot;compiler&quot;, compilers);</span>
+<span class="nc" id="L994">        addAuthor(hm, MSBIB + &quot;interviewer&quot;, interviewers);</span>
+<span class="nc" id="L995">        addAuthor(hm, MSBIB + &quot;interviewee&quot;, interviewees);</span>
+<span class="nc" id="L996">        addAuthor(hm, MSBIB + &quot;inventor&quot;, inventors);</span>
+<span class="nc" id="L997">        addAuthor(hm, MSBIB + &quot;counsel&quot;, counsels);</span>
+
+<span class="nc bnc" id="L999" title="All 2 branches missed.">        if (pages != null) {</span>
+<span class="nc" id="L1000">            hm.put(&quot;pages&quot;, pages.toString(&quot;--&quot;));</span>
+        }
+<span class="nc bnc" id="L1002" title="All 2 branches missed.">        if (volume != null) {</span>
+<span class="nc" id="L1003">            hm.put(&quot;volume&quot;, volume);</span>
+        }
+<span class="nc bnc" id="L1005" title="All 2 branches missed.">        if (numberOfVolumes != null) {</span>
+<span class="nc" id="L1006">            hm.put(MSBIB + &quot;numberofvolume&quot;, numberOfVolumes);</span>
+        }
+<span class="nc bnc" id="L1008" title="All 2 branches missed.">        if (edition != null) {</span>
+<span class="nc" id="L1009">            hm.put(&quot;edition&quot;, edition);</span>
+        }
+<span class="nc bnc" id="L1011" title="All 2 branches missed.">        if (edition != null) {</span>
+<span class="nc" id="L1012">            hm.put(&quot;edition&quot;, edition);</span>
+        }
+<span class="nc" id="L1014">        parseStandardNumber(standardNumber, hm);</span>
+
+<span class="nc bnc" id="L1016" title="All 2 branches missed.">        if (publisher != null) {</span>
+<span class="nc" id="L1017">            hm.put(&quot;publisher&quot;, publisher);</span>
+        }
+<span class="nc bnc" id="L1019" title="All 2 branches missed.">        if (publisher != null) {</span>
+<span class="nc" id="L1020">            hm.put(&quot;publisher&quot;, publisher);</span>
+        }
+<span class="nc bnc" id="L1022" title="All 2 branches missed.">        if (address != null) {</span>
+<span class="nc" id="L1023">            hm.put(&quot;address&quot;, address);</span>
+        }
+<span class="nc bnc" id="L1025" title="All 2 branches missed.">        if (bookTitle != null) {</span>
+<span class="nc" id="L1026">            hm.put(&quot;booktitle&quot;, bookTitle);</span>
+        }
+<span class="nc bnc" id="L1028" title="All 2 branches missed.">        if (chapterNumber != null) {</span>
+<span class="nc" id="L1029">            hm.put(&quot;chapter&quot;, chapterNumber);</span>
+        }
+<span class="nc bnc" id="L1031" title="All 2 branches missed.">        if (journalName != null) {</span>
+<span class="nc" id="L1032">            hm.put(&quot;journal&quot;, journalName);</span>
+        }
+<span class="nc bnc" id="L1034" title="All 2 branches missed.">        if (issue != null) {</span>
+<span class="nc" id="L1035">            hm.put(&quot;number&quot;, issue);</span>
+        }
+<span class="nc bnc" id="L1037" title="All 2 branches missed.">        if (month != null) {</span>
+<span class="nc" id="L1038">            hm.put(&quot;month&quot;, month);</span>
+        }
+<span class="nc bnc" id="L1040" title="All 2 branches missed.">        if (periodicalTitle != null) {</span>
+<span class="nc" id="L1041">            hm.put(&quot;organization&quot;, periodicalTitle);</span>
+        }
+<span class="nc bnc" id="L1043" title="All 2 branches missed.">        if (conferenceName != null) {</span>
+<span class="nc" id="L1044">            hm.put(&quot;organization&quot;, conferenceName);</span>
+        }
+<span class="nc bnc" id="L1046" title="All 2 branches missed.">        if (department != null) {</span>
+<span class="nc" id="L1047">            hm.put(&quot;school&quot;, department);</span>
+        }
+<span class="nc bnc" id="L1049" title="All 2 branches missed.">        if (institution != null) {</span>
+<span class="nc" id="L1050">            hm.put(&quot;institution&quot;, institution);</span>
+        }
+
+<span class="nc bnc" id="L1053" title="All 2 branches missed.">        if (dateAccessed != null) {</span>
+<span class="nc" id="L1054">            hm.put(MSBIB + &quot;accessed&quot;, dateAccessed);</span>
+        }
+<span class="nc bnc" id="L1056" title="All 2 branches missed.">        if (url != null) {</span>
+<span class="nc" id="L1057">            hm.put(&quot;url&quot;, url);</span>
+        }
+<span class="nc bnc" id="L1059" title="All 2 branches missed.">        if (productionCompany != null) {</span>
+<span class="nc" id="L1060">            hm.put(MSBIB + &quot;productioncompany&quot;, productionCompany);</span>
+        }
+
+<span class="nc bnc" id="L1063" title="All 2 branches missed.">        if (medium != null) {</span>
+<span class="nc" id="L1064">            hm.put(MSBIB + &quot;medium&quot;, medium);</span>
+        }
+
+<span class="nc bnc" id="L1067" title="All 2 branches missed.">        if (recordingNumber != null) {</span>
+<span class="nc" id="L1068">            hm.put(MSBIB + &quot;recordingnumber&quot;, recordingNumber);</span>
+        }
+<span class="nc bnc" id="L1070" title="All 2 branches missed.">        if (theater != null) {</span>
+<span class="nc" id="L1071">            hm.put(MSBIB + &quot;theater&quot;, theater);</span>
+        }
+<span class="nc bnc" id="L1073" title="All 2 branches missed.">        if (distributor != null) {</span>
+<span class="nc" id="L1074">            hm.put(MSBIB + &quot;distributor&quot;, distributor);</span>
+        }
+
+<span class="nc bnc" id="L1077" title="All 2 branches missed.">        if (broadcaster != null) {</span>
+<span class="nc" id="L1078">            hm.put(MSBIB + &quot;broadcaster&quot;, broadcaster);</span>
+        }
+<span class="nc bnc" id="L1080" title="All 2 branches missed.">        if (station != null) {</span>
+<span class="nc" id="L1081">            hm.put(MSBIB + &quot;station&quot;, station);</span>
+        }
+<span class="nc bnc" id="L1083" title="All 2 branches missed.">        if (type != null) {</span>
+<span class="nc" id="L1084">            hm.put(MSBIB + &quot;type&quot;, type);</span>
+        }
+<span class="nc bnc" id="L1086" title="All 2 branches missed.">        if (patentNumber != null) {</span>
+<span class="nc" id="L1087">            hm.put(MSBIB + &quot;patentnumber&quot;, patentNumber);</span>
+        }
+<span class="nc bnc" id="L1089" title="All 2 branches missed.">        if (court != null) {</span>
+<span class="nc" id="L1090">            hm.put(MSBIB + &quot;court&quot;, court);</span>
+        }
+<span class="nc bnc" id="L1092" title="All 2 branches missed.">        if (reporter != null) {</span>
+<span class="nc" id="L1093">            hm.put(MSBIB + &quot;reporter&quot;, reporter);</span>
+        }
+<span class="nc bnc" id="L1095" title="All 2 branches missed.">        if (caseNumber != null) {</span>
+<span class="nc" id="L1096">            hm.put(MSBIB + &quot;casenumber&quot;, caseNumber);</span>
+        }
+<span class="nc bnc" id="L1098" title="All 2 branches missed.">        if (abbreviatedCaseNumber != null) {</span>
+<span class="nc" id="L1099">            hm.put(MSBIB + &quot;abbreviatedcasenumber&quot;, abbreviatedCaseNumber);</span>
+        }
+
+<span class="nc bnc" id="L1102" title="All 2 branches missed.">        if (bibTexSeries != null) {</span>
+<span class="nc" id="L1103">            hm.put(&quot;series&quot;, bibTexSeries);</span>
+        }
+<span class="nc bnc" id="L1105" title="All 2 branches missed.">        if (bibTexAbstract != null) {</span>
+<span class="nc" id="L1106">            hm.put(&quot;abstract&quot;, bibTexAbstract);</span>
+        }
+<span class="nc bnc" id="L1108" title="All 2 branches missed.">        if (bibTexKeyWords != null) {</span>
+<span class="nc" id="L1109">            hm.put(&quot;keywords&quot;, bibTexKeyWords);</span>
+        }
+<span class="nc bnc" id="L1111" title="All 2 branches missed.">        if (bibTexCrossRef != null) {</span>
+<span class="nc" id="L1112">            hm.put(&quot;crossref&quot;, bibTexCrossRef);</span>
+        }
+<span class="nc bnc" id="L1114" title="All 2 branches missed.">        if (bibTex_HowPublished != null) {</span>
+<span class="nc" id="L1115">            hm.put(&quot;howpublished&quot;, bibTex_HowPublished);</span>
+        }
+<span class="nc bnc" id="L1117" title="All 2 branches missed.">        if (bibTexAffiliation != null) {</span>
+<span class="nc" id="L1118">            hm.put(&quot;affiliation&quot;, bibTexAffiliation);</span>
+        }
+<span class="nc bnc" id="L1120" title="All 2 branches missed.">        if (bibTexContents != null) {</span>
+<span class="nc" id="L1121">            hm.put(&quot;contents&quot;, bibTexContents);</span>
+        }
+<span class="nc bnc" id="L1123" title="All 2 branches missed.">        if (bibTexCopyright != null) {</span>
+<span class="nc" id="L1124">            hm.put(&quot;copyright&quot;, bibTexCopyright);</span>
+        }
+<span class="nc bnc" id="L1126" title="All 2 branches missed.">        if (bibTexPrice != null) {</span>
+<span class="nc" id="L1127">            hm.put(&quot;price&quot;, bibTexPrice);</span>
+        }
+<span class="nc bnc" id="L1129" title="All 2 branches missed.">        if (bibTexSize != null) {</span>
+<span class="nc" id="L1130">            hm.put(&quot;size&quot;, bibTexSize);</span>
+        }
+
+<span class="nc" id="L1133">        entry.setField(hm);</span>
+<span class="nc" id="L1134">        return entry;</span>
+    }
+
+    /*
+     * render as XML
+     *
+     * TODO This is untested.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L1144">        StringWriter result = new StringWriter();</span>
+        try {
+<span class="nc" id="L1146">            DOMSource source = new DOMSource(getDOMrepresentation());</span>
+<span class="nc" id="L1147">            StreamResult streamResult = new StreamResult(result);</span>
+<span class="nc" id="L1148">            Transformer trans = TransformerFactory.newInstance().newTransformer();</span>
+<span class="nc" id="L1149">            trans.setOutputProperty(OutputKeys.INDENT, &quot;yes&quot;);</span>
+<span class="nc" id="L1150">            trans.transform(source, streamResult);</span>
+<span class="nc" id="L1151">        } catch (TransformerException e) {</span>
+<span class="nc" id="L1152">            LOGGER.warn(&quot;Could not build XML representation&quot;, e);</span>
+        }
+<span class="nc" id="L1154">        return result.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

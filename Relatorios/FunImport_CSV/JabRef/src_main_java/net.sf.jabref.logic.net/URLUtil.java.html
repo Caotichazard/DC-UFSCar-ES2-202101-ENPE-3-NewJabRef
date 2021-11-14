@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>URLUtil.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.net</a> &gt; <span class="el_source">URLUtil.java</span></div><h1>URLUtil.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.net;
+
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+
+<span class="nc" id="L25">public class URLUtil {</span>
+    private static final String URL_EXP = &quot;^(https?|ftp)://.+&quot;;
+
+    // Detect Google search URL
+    private static final String GOOGLE_SEARCH_EXP = &quot;^https?://(?:www\\.)?google\\.[\\.a-z]+?/url.*&quot;;
+
+    /**
+     * Cleans URLs returned by Google search.
+     *
+     * &lt;example&gt;
+     *  If you copy links from search results from Google, all links will be enriched with search meta data, e.g.
+     *  https://www.google.de/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;uact=8&amp;&amp;url=http%3A%2F%2Fwww.inrg.csie.ntu.edu.tw%2Falgorithm2014%2Fhomework%2FWagner-74.pdf&amp;ei=DifeVYHkDYWqU5W0j6gD&amp;usg=AFQjCNFl638rl5KVta1jIMWLyb4CPSZidg&amp;sig2=0hSSMw9XZXL3HJWwEcJtOg
+     * &lt;/example&gt;
+     *
+     * @param url the Google search URL string
+     * @return the cleaned Google URL or @code{url} if no search URL was detected
+     */
+    public static String cleanGoogleSearchURL(String url) {
+<span class="nc" id="L43">        Objects.requireNonNull(url);</span>
+
+<span class="nc bnc" id="L45" title="All 2 branches missed.">        if(!url.matches(GOOGLE_SEARCH_EXP)) {</span>
+<span class="nc" id="L46">            return url;</span>
+        }
+        // Extract destination URL
+        try {
+<span class="nc" id="L50">            URL searchURL = new URL(url);</span>
+            // URL parameters
+<span class="nc" id="L52">            String query = searchURL.getQuery();</span>
+            // no parameters
+<span class="nc bnc" id="L54" title="All 2 branches missed.">            if (query == null) {</span>
+<span class="nc" id="L55">                return url;</span>
+            }
+            // extract url parameter
+<span class="nc" id="L58">            String[] pairs = query.split(&quot;&amp;&quot;);</span>
+
+<span class="nc bnc" id="L60" title="All 2 branches missed.">            for (String pair: pairs) {</span>
+                // &quot;clean&quot; url is decoded value of &quot;url&quot; parameter
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                if (pair.startsWith(&quot;url=&quot;)) {</span>
+<span class="nc" id="L63">                    String value = pair.substring(pair.indexOf('=') + 1, pair.length());</span>
+
+<span class="nc" id="L65">                    String decode = URLDecoder.decode(value, StandardCharsets.UTF_8.name());</span>
+                    // url?
+<span class="nc bnc" id="L67" title="All 2 branches missed.">                    if(decode.matches(URL_EXP)) {</span>
+<span class="nc" id="L68">                        return decode;</span>
+                    }
+                }
+            }
+<span class="nc" id="L72">            return url;</span>
+<span class="nc" id="L73">        } catch (UnsupportedEncodingException | MalformedURLException e) {</span>
+<span class="nc" id="L74">            return url;</span>
+        }
+    }
+
+    /**
+     * Checks whether the given String is a URL.
+     * Currently only checks for a protocol String.
+     *
+     * @param url the String to check for a URL
+     * @return true if &lt;c&gt;url&lt;/c&gt; contains a valid URL
+     */
+    public static boolean isURL(String url) {
+<span class="nc" id="L86">        return url.contains(&quot;://&quot;);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GroupsTree.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.groups</a> &gt; <span class="el_source">GroupsTree.java</span></div><h1>GroupsTree.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.groups;
+
+import java.awt.Cursor;
+import java.awt.FontMetrics;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DragGestureEvent;
+import java.awt.dnd.DragGestureListener;
+import java.awt.dnd.DragGestureRecognizer;
+import java.awt.dnd.DragSource;
+import java.awt.dnd.DragSourceDragEvent;
+import java.awt.dnd.DragSourceDropEvent;
+import java.awt.dnd.DragSourceEvent;
+import java.awt.dnd.DragSourceListener;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetDragEvent;
+import java.awt.dnd.DropTargetDropEvent;
+import java.awt.dnd.DropTargetEvent;
+import java.awt.dnd.DropTargetListener;
+import java.awt.event.InputEvent;
+import java.io.IOException;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Optional;
+import java.util.Vector;
+
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
+import javax.swing.tree.TreePath;
+import javax.swing.tree.TreeSelectionModel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.logic.groups.AbstractGroup;
+import net.sf.jabref.logic.groups.EntriesGroupChange;
+import net.sf.jabref.logic.groups.MoveGroupChange;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.util.Util;
+
+public class GroupsTree extends JTree implements DragSourceListener,
+        DropTargetListener, DragGestureListener {
+
+    /** distance from component borders from which on autoscrolling starts. */
+    private static final int DRAG_SCROLL_ACTIVATION_MARGIN = 10;
+
+    /** number of pixels to scroll each time handler is called. */
+    private static final int DRAG_SCROLL_DISTANCE = 5;
+
+    /** time of last autoscroll event (for limiting speed). */
+    private static long lastDragAutoscroll;
+
+    /** minimum interval between two autoscroll events (for limiting speed). */
+    private static final long MIN_AUTOSCROLL_INTERVAL = 50L;
+
+    /**
+     * the point on which the cursor is currently idling during a drag
+     * operation.
+     */
+    private Point idlePoint;
+
+    /** time since which cursor is idling. */
+    private long idleStartTime;
+
+    /** max. distance cursor may move in x or y direction while idling. */
+    private static final int IDLE_MARGIN = 1;
+
+    /** idle time after which the node below is expanded. */
+    private static final long IDLE_TIME_TO_EXPAND_NODE = 1000L;
+
+    private final GroupSelector groupSelector;
+
+    private GroupTreeNodeViewModel dragNode;
+
+<span class="fc" id="L93">    private final GroupTreeCellRenderer localCellRenderer = new GroupTreeCellRenderer();</span>
+
+
+    /**
+     * @param groupSelector the parent UI component
+     */
+<span class="fc" id="L99">    public GroupsTree(GroupSelector groupSelector) {</span>
+        // Adjust height according to http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4760081
+<span class="fc" id="L101">        FontMetrics metrics = getFontMetrics(getFont());</span>
+<span class="fc" id="L102">        setRowHeight(Math.max(getRowHeight(), metrics.getHeight()));</span>
+
+<span class="fc" id="L104">        this.groupSelector = groupSelector;</span>
+<span class="fc" id="L105">        DragGestureRecognizer dgr = DragSource.getDefaultDragSource()</span>
+<span class="fc" id="L106">                .createDefaultDragGestureRecognizer(this,</span>
+<span class="fc" id="L107">                        DnDConstants.ACTION_MOVE, this);</span>
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        if (dgr != null) {</span>
+            // Eliminates right mouse clicks as valid actions
+<span class="fc" id="L110">            dgr.setSourceActions(dgr.getSourceActions() &amp; ~InputEvent.BUTTON3_MASK);</span>
+        }
+<span class="fc" id="L112">        new DropTarget(this, this);</span>
+<span class="fc" id="L113">        setCellRenderer(localCellRenderer);</span>
+<span class="fc" id="L114">        setFocusable(false);</span>
+<span class="fc" id="L115">        setToggleClickCount(0);</span>
+<span class="fc" id="L116">        ToolTipManager.sharedInstance().registerComponent(this);</span>
+<span class="fc" id="L117">        setShowsRootHandles(false);</span>
+<span class="fc" id="L118">        setVisibleRowCount(Globals.prefs.getInt(JabRefPreferences.GROUPS_VISIBLE_ROWS));</span>
+<span class="fc" id="L119">        getSelectionModel().setSelectionMode(</span>
+<span class="fc" id="L120">                TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);</span>
+<span class="fc" id="L121">    }</span>
+
+    @Override
+    public void dragEnter(DragSourceDragEvent dsde) {
+        // ignore
+<span class="nc" id="L126">    }</span>
+
+    /** This is for moving of nodes within myself */
+    @Override
+    public void dragOver(DragSourceDragEvent dsde) {
+<span class="nc" id="L131">        final Point p = dsde.getLocation(); // screen coordinates!</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (p != null) {</span>
+<span class="nc" id="L133">            SwingUtilities.convertPointFromScreen(p, this);</span>
+<span class="nc" id="L134">            final TreePath path = getPathForLocation(p.x, p.y);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            if (path == null) {</span>
+<span class="nc" id="L136">                dsde.getDragSourceContext().setCursor(DragSource.DefaultMoveNoDrop);</span>
+<span class="nc" id="L137">                return;</span>
+            }
+<span class="nc" id="L139">            final GroupTreeNodeViewModel target = (GroupTreeNodeViewModel) path.getLastPathComponent();</span>
+<span class="nc bnc" id="L140" title="All 6 branches missed.">            if ((target == null) || dragNode.getNode().isNodeDescendant(target.getNode()) || (dragNode.equals(target))) {</span>
+<span class="nc" id="L141">                dsde.getDragSourceContext().setCursor(DragSource.DefaultMoveNoDrop);</span>
+<span class="nc" id="L142">                return;</span>
+            }
+<span class="nc" id="L144">            dsde.getDragSourceContext().setCursor(DragSource.DefaultMoveDrop);</span>
+        }
+<span class="nc" id="L146">    }</span>
+
+    @Override
+    public void dropActionChanged(DragSourceDragEvent dsde) {
+        // ignore
+<span class="nc" id="L151">    }</span>
+
+    @Override
+    public void dragDropEnd(DragSourceDropEvent dsde) {
+<span class="nc" id="L155">        dragNode = null;</span>
+<span class="nc" id="L156">    }</span>
+
+    @Override
+    public void dragExit(DragSourceEvent dse) {
+        // ignore
+<span class="nc" id="L161">    }</span>
+
+    @Override
+    public void dragEnter(DropTargetDragEvent dtde) {
+        // ignore
+<span class="nc" id="L166">    }</span>
+
+    /** This handles dragging of nodes (from myself) or entries (from the table) */
+    @Override
+    public void dragOver(DropTargetDragEvent dtde) {
+<span class="nc" id="L171">        final Point cursor = dtde.getLocation();</span>
+<span class="nc" id="L172">        final long currentTime = System.currentTimeMillis();</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (idlePoint == null) {</span>
+<span class="nc" id="L174">            idlePoint = cursor;</span>
+        }
+
+        // determine node over which the user is dragging
+<span class="nc" id="L178">        final TreePath path = getPathForLocation(cursor.x, cursor.y);</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">        final GroupTreeNodeViewModel target = path == null ? null : (GroupTreeNodeViewModel) path.getLastPathComponent();</span>
+<span class="nc" id="L180">        setHighlight1Cell(target);</span>
+
+        // accept or reject
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        if (dtde.isDataFlavorSupported(GroupTreeNodeViewModel.FLAVOR)) {</span>
+            // accept: move nodes within tree
+<span class="nc" id="L185">            dtde.acceptDrag(DnDConstants.ACTION_MOVE);</span>
+<span class="nc" id="L186">        } else if (dtde</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">                .isDataFlavorSupported(TransferableEntrySelection.FLAVOR_INTERNAL)) {</span>
+            // check if node accepts explicit assignment
+<span class="nc bnc" id="L189" title="All 2 branches missed.">            if (path == null) {</span>
+<span class="nc" id="L190">                dtde.rejectDrag();</span>
+<span class="nc" id="L191">            } else {</span>
+                // this would be the place to check if the dragging entries
+                // maybe are in this group already, but I think that's not
+                // worth the bother (DropTargetDragEvent does not provide
+                // access to the drag object)...
+                // it might even be irritating to the user.
+<span class="nc bnc" id="L197" title="All 2 branches missed.">                if (target.getNode().supportsAddingEntries()) {</span>
+                    // accept: assignment from EntryTable
+<span class="nc" id="L199">                    dtde.acceptDrag(DnDConstants.ACTION_LINK);</span>
+<span class="nc" id="L200">                } else {</span>
+<span class="nc" id="L201">                    dtde.rejectDrag();</span>
+                }
+            }
+<span class="nc" id="L204">        } else {</span>
+<span class="nc" id="L205">            dtde.rejectDrag();</span>
+        }
+
+        // auto open
+<span class="nc bnc" id="L209" title="All 2 branches missed.">        if ((Math.abs(cursor.x - idlePoint.x) &lt; GroupsTree.IDLE_MARGIN)</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">                &amp;&amp; (Math.abs(cursor.y - idlePoint.y) &lt; GroupsTree.IDLE_MARGIN)) {</span>
+<span class="nc bnc" id="L211" title="All 4 branches missed.">            if (((currentTime - idleStartTime) &gt;= GroupsTree.IDLE_TIME_TO_EXPAND_NODE) &amp;&amp; (path != null)) {</span>
+<span class="nc" id="L212">                expandPath(path);</span>
+            }
+<span class="nc" id="L214">        } else {</span>
+<span class="nc" id="L215">            idlePoint = cursor;</span>
+<span class="nc" id="L216">            idleStartTime = currentTime;</span>
+        }
+
+        // autoscrolling
+<span class="nc bnc" id="L220" title="All 2 branches missed.">        if ((currentTime - GroupsTree.lastDragAutoscroll) &lt; GroupsTree.MIN_AUTOSCROLL_INTERVAL) {</span>
+<span class="nc" id="L221">            return;</span>
+        }
+<span class="nc" id="L223">        final Rectangle r = getVisibleRect();</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        final boolean scrollUp = (cursor.y - r.y) &lt; GroupsTree.DRAG_SCROLL_ACTIVATION_MARGIN;</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        final boolean scrollDown = ((r.y + r.height) - cursor.y) &lt; GroupsTree.DRAG_SCROLL_ACTIVATION_MARGIN;</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        final boolean scrollLeft = (cursor.x - r.x) &lt; GroupsTree.DRAG_SCROLL_ACTIVATION_MARGIN;</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">        final boolean scrollRight = ((r.x + r.width) - cursor.x) &lt; GroupsTree.DRAG_SCROLL_ACTIVATION_MARGIN;</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        if (scrollUp) {</span>
+<span class="nc" id="L229">            r.translate(0, -GroupsTree.DRAG_SCROLL_DISTANCE);</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">        } else if (scrollDown) {</span>
+<span class="nc" id="L231">            r.translate(0, +GroupsTree.DRAG_SCROLL_DISTANCE);</span>
+        }
+<span class="nc bnc" id="L233" title="All 2 branches missed.">        if (scrollLeft) {</span>
+<span class="nc" id="L234">            r.translate(-GroupsTree.DRAG_SCROLL_DISTANCE, 0);</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        } else if (scrollRight) {</span>
+<span class="nc" id="L236">            r.translate(+GroupsTree.DRAG_SCROLL_DISTANCE, 0);</span>
+        }
+<span class="nc" id="L238">        scrollRectToVisible(r);</span>
+<span class="nc" id="L239">        GroupsTree.lastDragAutoscroll = currentTime;</span>
+<span class="nc" id="L240">    }</span>
+
+    @Override
+    public void dropActionChanged(DropTargetDragEvent dtde) {
+        // ignore
+<span class="nc" id="L245">    }</span>
+
+    @Override
+    public void drop(DropTargetDropEvent dtde) {
+<span class="nc" id="L249">        setHighlight1Cell(null);</span>
+        try {
+            // initializations common to all flavors
+<span class="nc" id="L252">            final Point p = dtde.getLocation();</span>
+<span class="nc" id="L253">            final TreePath path = getPathForLocation(p.x, p.y);</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">            if (path == null) {</span>
+<span class="nc" id="L255">                dtde.rejectDrop();</span>
+<span class="nc" id="L256">                return;</span>
+            }
+<span class="nc" id="L258">            final GroupTreeNodeViewModel target = (GroupTreeNodeViewModel) path</span>
+<span class="nc" id="L259">                    .getLastPathComponent();</span>
+            // check supported flavors
+<span class="nc" id="L261">            final Transferable transferable = dtde.getTransferable();</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">            if (transferable.isDataFlavorSupported(GroupTreeNodeViewModel.FLAVOR)) {</span>
+<span class="nc" id="L263">                GroupTreeNodeViewModel source = (GroupTreeNodeViewModel) transferable</span>
+<span class="nc" id="L264">                        .getTransferData(GroupTreeNodeViewModel.FLAVOR);</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">                if (source.equals(target)) {</span>
+<span class="nc" id="L266">                    dtde.rejectDrop(); // ignore this</span>
+<span class="nc" id="L267">                    return;</span>
+                }
+<span class="nc bnc" id="L269" title="All 2 branches missed.">                if (source.getNode().isNodeDescendant(target.getNode())) {</span>
+<span class="nc" id="L270">                    dtde.rejectDrop();</span>
+<span class="nc" id="L271">                    return;</span>
+                }
+<span class="nc" id="L273">                Enumeration&lt;TreePath&gt; expandedPaths = groupSelector.getExpandedPaths();</span>
+<span class="nc" id="L274">                MoveGroupChange undo = new MoveGroupChange(((GroupTreeNodeViewModel)source.getParent()).getNode(),</span>
+<span class="nc" id="L275">                        source.getNode().getPositionInParent(), target.getNode(), target.getChildCount());</span>
+<span class="nc" id="L276">                source.getNode().moveTo(target.getNode());</span>
+<span class="nc" id="L277">                dtde.getDropTargetContext().dropComplete(true);</span>
+                // update selection/expansion state
+<span class="nc" id="L279">                groupSelector.revalidateGroups(new TreePath[] {source.getTreePath()},</span>
+<span class="nc" id="L280">                        refreshPaths(expandedPaths));</span>
+<span class="nc" id="L281">                groupSelector.concludeMoveGroup(undo, source);</span>
+<span class="nc" id="L282">            } else if (transferable</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">                    .isDataFlavorSupported(TransferableEntrySelection.FLAVOR_INTERNAL)) {</span>
+<span class="nc" id="L284">                final AbstractGroup group = target.getNode().getGroup();</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">                if (!target.getNode().supportsAddingEntries()) {</span>
+                    // this should never happen, because the same condition
+                    // is checked in dragOver already
+<span class="nc" id="L288">                    dtde.rejectDrop();</span>
+<span class="nc" id="L289">                    return;</span>
+                }
+<span class="nc" id="L291">                final TransferableEntrySelection selection = (TransferableEntrySelection) transferable</span>
+<span class="nc" id="L292">                        .getTransferData(TransferableEntrySelection.FLAVOR_INTERNAL);</span>
+<span class="nc" id="L293">                final List&lt;BibEntry&gt; entries = selection.getSelection();</span>
+<span class="nc" id="L294">                int assignedEntries = 0;</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">                for (BibEntry entry : entries) {</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">                    if (!target.getNode().getGroup().contains(entry)) {</span>
+<span class="nc" id="L297">                        ++assignedEntries;</span>
+                    }
+                }
+
+                // warn if assignment has undesired side effects (modifies a
+                // field != keywords)
+<span class="nc bnc" id="L303" title="All 2 branches missed.">                if (!Util.warnAssignmentSideEffects(group, groupSelector.frame))</span>
+                 {
+<span class="nc" id="L305">                    return; // user aborted operation</span>
+                }
+
+                // if an editor is showing, its fields must be updated
+                // after the assignment, and before that, the current
+                // edit has to be stored:
+<span class="nc" id="L311">                groupSelector.getActiveBasePanel().storeCurrentEdit();</span>
+
+<span class="nc" id="L313">                Optional&lt;EntriesGroupChange&gt; undo = target.addEntriesToGroup(selection.getSelection());</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">                if (undo.isPresent()) {</span>
+<span class="nc" id="L315">                    dtde.getDropTargetContext().dropComplete(true);</span>
+<span class="nc" id="L316">                    groupSelector.revalidateGroups();</span>
+<span class="nc" id="L317">                    groupSelector.concludeAssignment(UndoableChangeEntriesOfGroup.getUndoableEdit(target, undo.get()),</span>
+<span class="nc" id="L318">                            target.getNode(), assignedEntries);</span>
+                }
+<span class="nc" id="L320">            } else {</span>
+<span class="nc" id="L321">                dtde.rejectDrop();</span>
+            }
+<span class="nc" id="L323">        } catch (IOException | UnsupportedFlavorException ioe) {</span>
+            // ignore
+        }
+<span class="nc" id="L326">    }</span>
+
+    @Override
+    public void dragExit(DropTargetEvent dte) {
+<span class="nc" id="L330">        setHighlight1Cell(null);</span>
+<span class="nc" id="L331">    }</span>
+
+    @Override
+    public void dragGestureRecognized(DragGestureEvent dge) {
+<span class="nc" id="L335">        GroupTreeNodeViewModel selectedNode = getSelectedNode();</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">        if (selectedNode == null)</span>
+         {
+<span class="nc" id="L338">            return; // nothing to transfer (select manually?)</span>
+        }
+<span class="nc" id="L340">        Cursor cursor = DragSource.DefaultMoveDrop;</span>
+<span class="nc" id="L341">        dragNode = selectedNode;</span>
+<span class="nc" id="L342">        dge.getDragSource().startDrag(dge, cursor, selectedNode, this);</span>
+<span class="nc" id="L343">    }</span>
+
+    /** Returns the first selected node, or null if nothing is selected. */
+    private GroupTreeNodeViewModel getSelectedNode() {
+<span class="nc" id="L347">        TreePath selectionPath = getSelectionPath();</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">        return selectionPath == null ? null : (GroupTreeNodeViewModel) selectionPath.getLastPathComponent();</span>
+    }
+
+    /**
+     * Refresh paths that may have become invalid due to node movements within
+     * the tree. This method creates new paths to the last path components
+     * (which must still exist) of the specified paths.
+     *
+     * @param paths
+     *            Paths that may have become invalid.
+     * @return Refreshed paths that are all valid.
+     */
+    public Enumeration&lt;TreePath&gt; refreshPaths(Enumeration&lt;TreePath&gt; paths) {
+<span class="nc bnc" id="L361" title="All 2 branches missed.">        if(paths == null) {</span>
+<span class="nc" id="L362">            return new Vector&lt;TreePath&gt;().elements();</span>
+        }
+
+<span class="nc" id="L365">        Vector&lt;TreePath&gt; freshPaths = new Vector&lt;&gt;();</span>
+<span class="nc bnc" id="L366" title="All 2 branches missed.">        while (paths.hasMoreElements()) {</span>
+<span class="nc" id="L367">            freshPaths.add(((GroupTreeNodeViewModel) paths.nextElement().getLastPathComponent()).getTreePath());</span>
+        }
+<span class="nc" id="L369">        return freshPaths.elements();</span>
+    }
+
+    /**
+     * Refresh paths that may have become invalid due to node movements within
+     * the tree. This method creates new paths to the last path components
+     * (which must still exist) of the specified paths.
+     *
+     * @param paths
+     *            Paths that may have become invalid.
+     * @return Refreshed paths that are all valid.
+     */
+    public TreePath[] refreshPaths(TreePath[] paths) {
+<span class="nc" id="L382">        TreePath[] freshPaths = new TreePath[paths.length];</span>
+<span class="nc bnc" id="L383" title="All 2 branches missed.">        for (int i = 0; i &lt; paths.length; ++i) {</span>
+<span class="nc" id="L384">            freshPaths[i] = ((GroupTreeNodeViewModel) paths[i].getLastPathComponent()).getTreePath();</span>
+        }
+<span class="nc" id="L386">        return freshPaths;</span>
+    }
+
+    /** Highlights the specified cell or disables highlight if cell == null */
+    private void setHighlight1Cell(Object cell) {
+<span class="nc" id="L391">        localCellRenderer.setHighlight1Cell(cell);</span>
+<span class="nc" id="L392">        repaint();</span>
+<span class="nc" id="L393">    }</span>
+
+    /** Highlights the specified cells or disables highlight if cells == null */
+    public void setHighlight2Cells(Object[] cells) {
+<span class="nc" id="L397">        localCellRenderer.setHighlight2Cells(cells);</span>
+<span class="nc" id="L398">        repaint();</span>
+<span class="nc" id="L399">    }</span>
+
+    /** Highlights the specified cells or disables highlight if cells == null */
+    public void setHighlight3Cells(Object[] cells) {
+<span class="fc" id="L403">        localCellRenderer.setHighlight3Cells(cells);</span>
+<span class="fc" id="L404">        repaint();</span>
+<span class="fc" id="L405">    }</span>
+
+    /** Highlights the specified cell or disables highlight if cell == null */
+    public void setHighlightBorderCell(GroupTreeNodeViewModel node) {
+<span class="nc" id="L409">        localCellRenderer.setHighlightBorderCell(node);</span>
+<span class="nc" id="L410">        repaint();</span>
+<span class="nc" id="L411">    }</span>
+
+    /** Sort immediate children of the specified node alphabetically. */
+    public void sort(GroupTreeNodeViewModel node, boolean recursive) {
+<span class="nc" id="L415">        node.sortChildrenByName(recursive);</span>
+<span class="nc" id="L416">    }</span>
+
+    /**
+     * Returns true if the node specified by path has at least one descendant
+     * that is currently expanded.
+     */
+    public boolean hasExpandedDescendant(TreePath path) {
+<span class="nc" id="L423">        GroupTreeNodeViewModel node = (GroupTreeNodeViewModel) path.getLastPathComponent();</span>
+<span class="nc bnc" id="L424" title="All 2 branches missed.">        for (GroupTreeNodeViewModel child : node.getChildren()) {</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">            if (child.isLeaf())</span>
+             {
+<span class="nc" id="L427">                continue; // don't care about this case</span>
+            }
+<span class="nc" id="L429">            TreePath pathToChild = path.pathByAddingChild(child);</span>
+<span class="nc bnc" id="L430" title="All 4 branches missed.">            if (isExpanded(pathToChild) || hasExpandedDescendant(pathToChild)) {</span>
+<span class="nc" id="L431">                return true;</span>
+            }
+        }
+<span class="nc" id="L434">        return false;</span>
+    }
+
+    /**
+     * Returns true if the node specified by path has at least one descendant
+     * that is currently collapsed.
+     */
+    public boolean hasCollapsedDescendant(TreePath path) {
+<span class="nc" id="L442">        GroupTreeNodeViewModel node = (GroupTreeNodeViewModel) path.getLastPathComponent();</span>
+<span class="nc bnc" id="L443" title="All 2 branches missed.">        for (GroupTreeNodeViewModel child : node.getChildren()) {</span>
+<span class="nc bnc" id="L444" title="All 2 branches missed.">            if (child.isLeaf())</span>
+             {
+<span class="nc" id="L446">                continue; // don't care about this case</span>
+            }
+<span class="nc" id="L448">            TreePath pathToChild = path.pathByAddingChild(child);</span>
+<span class="nc bnc" id="L449" title="All 4 branches missed.">            if (isCollapsed(pathToChild) || hasCollapsedDescendant(pathToChild)) {</span>
+<span class="nc" id="L450">                return true;</span>
+            }
+        }
+<span class="nc" id="L453">        return false;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

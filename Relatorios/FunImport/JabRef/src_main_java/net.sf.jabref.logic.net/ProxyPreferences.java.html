@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ProxyPreferences.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.net</a> &gt; <span class="el_source">ProxyPreferences.java</span></div><h1>ProxyPreferences.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.net;
+
+import java.util.Objects;
+
+import net.sf.jabref.JabRefPreferences;
+
+public class ProxyPreferences {
+
+    private final Boolean useProxy;
+    private final String hostname;
+    private final String port;
+    private final Boolean useAuthentication;
+    private final String username;
+    private final String password;
+
+<span class="fc" id="L16">    public ProxyPreferences(Boolean useProxy, String hostname, String port, Boolean useAuthentication, String username,</span>
+            String password) {
+<span class="fc" id="L18">        this.useProxy = useProxy;</span>
+<span class="fc" id="L19">        this.hostname = hostname;</span>
+<span class="fc" id="L20">        this.port = port;</span>
+<span class="fc" id="L21">        this.useAuthentication = useAuthentication;</span>
+<span class="fc" id="L22">        this.username = username;</span>
+<span class="fc" id="L23">        this.password = password;</span>
+<span class="fc" id="L24">    }</span>
+
+    public final Boolean isUseProxy() {
+<span class="fc" id="L27">        return useProxy;</span>
+    }
+
+    public final String getHostname() {
+<span class="nc" id="L31">        return hostname;</span>
+    }
+
+    public final String getPort() {
+<span class="nc" id="L35">        return port;</span>
+    }
+
+    public final Boolean isUseAuthentication() {
+<span class="nc" id="L39">        return useAuthentication;</span>
+    }
+
+    public final String getUsername() {
+<span class="nc" id="L43">        return username;</span>
+    }
+
+    public final String getPassword() {
+<span class="nc" id="L47">        return password;</span>
+    }
+
+    public void storeInPreferences(JabRefPreferences preferences) {
+<span class="nc" id="L51">        preferences.putBoolean(JabRefPreferences.PROXY_USE, isUseProxy());</span>
+<span class="nc" id="L52">        preferences.put(JabRefPreferences.PROXY_HOSTNAME, getHostname());</span>
+<span class="nc" id="L53">        preferences.put(JabRefPreferences.PROXY_PORT, getPort());</span>
+<span class="nc" id="L54">        preferences.putBoolean(JabRefPreferences.PROXY_USE_AUTHENTICATION, isUseAuthentication());</span>
+<span class="nc" id="L55">        preferences.put(JabRefPreferences.PROXY_USERNAME, getUsername());</span>
+<span class="nc" id="L56">        preferences.put(JabRefPreferences.PROXY_PASSWORD, getPassword());</span>
+<span class="nc" id="L57">    }</span>
+
+    public static ProxyPreferences loadFromPreferences(JabRefPreferences preferences) {
+<span class="fc" id="L60">        Boolean useProxy = preferences.getBoolean(JabRefPreferences.PROXY_USE);</span>
+<span class="fc" id="L61">        String hostname = preferences.get(JabRefPreferences.PROXY_HOSTNAME);</span>
+<span class="fc" id="L62">        String port = preferences.get(JabRefPreferences.PROXY_PORT);</span>
+<span class="fc" id="L63">        Boolean useAuthentication = preferences.getBoolean(JabRefPreferences.PROXY_USE_AUTHENTICATION);</span>
+<span class="fc" id="L64">        String username = preferences.get(JabRefPreferences.PROXY_USERNAME);</span>
+<span class="fc" id="L65">        String password = preferences.get(JabRefPreferences.PROXY_PASSWORD);</span>
+<span class="fc" id="L66">        return new ProxyPreferences(useProxy, hostname, port, useAuthentication, username, password);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L71">        return Objects.hash(hostname, password, port, useAuthentication, useProxy, username);</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (this == obj) {</span>
+<span class="nc" id="L77">            return true;</span>
+        }
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        if (obj instanceof ProxyPreferences) {</span>
+<span class="nc" id="L80">            ProxyPreferences other = (ProxyPreferences) obj;</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            if (hostname == null) {</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">                if (other.hostname != null) {</span>
+<span class="nc" id="L83">                    return false;</span>
+                }
+<span class="nc bnc" id="L85" title="All 2 branches missed.">            } else if (!hostname.equals(other.hostname)) {</span>
+<span class="nc" id="L86">                return false;</span>
+            }
+<span class="nc bnc" id="L88" title="All 2 branches missed.">            if (password == null) {</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                if (other.password != null) {</span>
+<span class="nc" id="L90">                    return false;</span>
+                }
+<span class="nc bnc" id="L92" title="All 2 branches missed.">            } else if (!password.equals(other.password)) {</span>
+<span class="nc" id="L93">                return false;</span>
+            }
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            if (port == null) {</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                if (other.port != null) {</span>
+<span class="nc" id="L97">                    return false;</span>
+                }
+<span class="nc bnc" id="L99" title="All 2 branches missed.">            } else if (!port.equals(other.port)) {</span>
+<span class="nc" id="L100">                return false;</span>
+            }
+<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (useAuthentication == null) {</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                if (other.useAuthentication != null) {</span>
+<span class="nc" id="L104">                    return false;</span>
+                }
+<span class="nc bnc" id="L106" title="All 2 branches missed.">            } else if (!useAuthentication.equals(other.useAuthentication)) {</span>
+<span class="nc" id="L107">                return false;</span>
+            }
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            if (useProxy == null) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">                if (other.useProxy != null) {</span>
+<span class="nc" id="L111">                    return false;</span>
+                }
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            } else if (!useProxy.equals(other.useProxy)) {</span>
+<span class="nc" id="L114">                return false;</span>
+            }
+<span class="nc bnc" id="L116" title="All 2 branches missed.">            if (username == null) {</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">                if (other.username != null) {</span>
+<span class="nc" id="L118">                    return false;</span>
+                }
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            } else if (!username.equals(other.username)) {</span>
+<span class="nc" id="L121">                return false;</span>
+            }
+<span class="nc" id="L123">            return true;</span>
+        }
+<span class="nc" id="L125">        return false;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BiblatexCleanup.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.cleanup</a> &gt; <span class="el_source">BiblatexCleanup.java</span></div><h1>BiblatexCleanup.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+package net.sf.jabref.logic.cleanup;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.EntryConverter;
+
+/**
+ * Converts the entry to BibLatex format.
+ */
+<span class="nc" id="L28">public class BiblatexCleanup implements CleanupJob {</span>
+
+    @Override
+    public List&lt;FieldChange&gt; cleanup(BibEntry entry) {
+<span class="nc" id="L32">        List&lt;FieldChange&gt; changes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        for (Map.Entry&lt;String, String&gt; alias : EntryConverter.FIELD_ALIASES_TEX_TO_LTX.entrySet()) {</span>
+<span class="nc" id="L34">            String oldFieldName = alias.getKey();</span>
+<span class="nc" id="L35">            String newFieldName = alias.getValue();</span>
+<span class="nc" id="L36">            String oldValue = entry.getField(oldFieldName);</span>
+<span class="nc" id="L37">            String newValue = entry.getField(newFieldName);</span>
+<span class="nc bnc" id="L38" title="All 6 branches missed.">            if ((oldValue != null) &amp;&amp; (!oldValue.isEmpty()) &amp;&amp; (newValue == null)) {</span>
+                // There is content in the old field and no value in the new, so just copy
+<span class="nc" id="L40">                entry.setField(newFieldName, oldValue);</span>
+<span class="nc" id="L41">                changes.add(new FieldChange(entry, newFieldName, null, oldValue));</span>
+
+<span class="nc" id="L43">                entry.clearField(oldFieldName);</span>
+<span class="nc" id="L44">                changes.add(new FieldChange(entry, oldFieldName, oldValue, null));</span>
+            }
+        }
+
+        // Dates: create date out of year and month, save it and delete old fields
+<span class="nc bnc" id="L49" title="All 4 branches missed.">        if ((!entry.hasField(&quot;date&quot;)) || (entry.getField(&quot;date&quot;).isEmpty())) {</span>
+<span class="nc" id="L50">            String newDate = entry.getFieldOrAlias(&quot;date&quot;);</span>
+<span class="nc" id="L51">            String oldYear = entry.getField(&quot;year&quot;);</span>
+<span class="nc" id="L52">            String oldMonth = entry.getField(&quot;month&quot;);</span>
+
+<span class="nc bnc" id="L54" title="All 2 branches missed.">            if (newDate != null) {</span>
+<span class="nc" id="L55">                entry.setField(&quot;date&quot;, newDate);</span>
+<span class="nc" id="L56">                entry.clearField(&quot;year&quot;);</span>
+<span class="nc" id="L57">                entry.clearField(&quot;month&quot;);</span>
+
+<span class="nc" id="L59">                changes.add(new FieldChange(entry, &quot;date&quot;, null, newDate));</span>
+<span class="nc" id="L60">                changes.add(new FieldChange(entry, &quot;year&quot;, oldYear, null));</span>
+<span class="nc" id="L61">                changes.add(new FieldChange(entry, &quot;month&quot;, oldMonth, null));</span>
+            }
+        }
+<span class="nc" id="L64">        return changes;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

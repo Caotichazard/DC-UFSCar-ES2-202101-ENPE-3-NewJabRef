@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>UndoableStringChange.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.undo</a> &gt; <span class="el_source">UndoableStringChange.java</span></div><h1>UndoableStringChange.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.undo;
+
+import javax.swing.undo.AbstractUndoableEdit;
+
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibtexString;
+
+public class UndoableStringChange extends AbstractUndoableEdit {
+
+    private final BibtexString string;
+    private final String oldValue;
+    private final String newValue;
+    private final boolean nameChange;
+    private final BasePanel panel;
+
+
+<span class="nc" id="L33">    public UndoableStringChange(BasePanel panel,</span>
+            BibtexString string, boolean nameChange,
+            String oldValue, String newValue) {
+<span class="nc" id="L36">        this.string = string;</span>
+<span class="nc" id="L37">        this.oldValue = oldValue;</span>
+<span class="nc" id="L38">        this.newValue = newValue;</span>
+<span class="nc" id="L39">        this.nameChange = nameChange;</span>
+<span class="nc" id="L40">        this.panel = panel;</span>
+<span class="nc" id="L41">    }</span>
+
+    @Override
+    public String getUndoPresentationName() {
+<span class="nc bnc" id="L45" title="All 2 branches missed.">        return Localization.lang(&quot;Undo&quot;) + &quot;: &quot; + (nameChange ?</span>
+<span class="nc" id="L46">           Localization.lang(&quot;change string name&quot;) :</span>
+<span class="nc" id="L47">           Localization.lang(&quot;change string content&quot;));</span>
+    }
+
+    @Override
+    public String getRedoPresentationName() {
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        return Localization.lang(&quot;Redo&quot;) + &quot;: &quot; + (nameChange ?</span>
+<span class="nc" id="L53">           Localization.lang(&quot;change string name&quot;) :</span>
+<span class="nc" id="L54">           Localization.lang(&quot;change string content&quot;));</span>
+    }
+
+    @Override
+    public void undo() {
+<span class="nc" id="L59">        super.undo();</span>
+
+        // Revert the change.
+
+<span class="nc" id="L63">        panel.assureStringDialogNotEditing();</span>
+
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (nameChange) {</span>
+<span class="nc" id="L66">            string.setName(oldValue);</span>
+<span class="nc" id="L67">        } else {</span>
+<span class="nc" id="L68">            string.setContent(oldValue);</span>
+        }
+
+<span class="nc" id="L71">        panel.updateStringDialog();</span>
+<span class="nc" id="L72">    }</span>
+
+    @Override
+    public void redo() {
+<span class="nc" id="L76">        super.redo();</span>
+
+        // Redo the change.
+
+<span class="nc" id="L80">        panel.assureStringDialogNotEditing();</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (nameChange) {</span>
+<span class="nc" id="L82">            string.setName(newValue);</span>
+<span class="nc" id="L83">        } else {</span>
+<span class="nc" id="L84">            string.setContent(newValue);</span>
+        }
+
+<span class="nc" id="L87">        panel.updateStringDialog();</span>
+<span class="nc" id="L88">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

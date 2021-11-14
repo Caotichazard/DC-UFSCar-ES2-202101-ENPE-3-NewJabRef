@@ -1,0 +1,666 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BibEntry.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.model.entry</a> &gt; <span class="el_source">BibEntry.java</span></div><h1>BibEntry.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.model.entry;
+
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyVetoException;
+import java.beans.VetoableChangeListener;
+import java.beans.VetoableChangeSupport;
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParseException;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.time.Year;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+
+import net.sf.jabref.model.database.BibDatabase;
+
+import com.google.common.base.Strings;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+public class BibEntry {
+<span class="fc" id="L47">    private static final Log LOGGER = LogFactory.getLog(BibEntry.class);</span>
+
+    public static final String TYPE_HEADER = &quot;entrytype&quot;;
+    public static final String KEY_FIELD = &quot;bibtexkey&quot;;
+    protected static final String ID_FIELD = &quot;id&quot;;
+<span class="fc" id="L52">    public static final String DEFAULT_TYPE = &quot;misc&quot;;</span>
+
+    private String id;
+    private String type;
+<span class="fc" id="L56">    private Map&lt;String, String&gt; fields = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L58">    private final VetoableChangeSupport changeSupport = new VetoableChangeSupport(this);</span>
+
+    // Search and grouping status is stored in boolean fields for quick reference:
+    private boolean searchHit;
+    private boolean groupHit;
+
+    private String parsedSerialization;
+
+    /*
+     * Marks whether the complete serialization, which was read from file, should be used.
+     *
+     * Is set to false, if parts of the entry change. This causes the entry to be serialized based on the internal state (and not based on the old serialization)
+     */
+    private boolean changed;
+
+
+    /**
+     * Constructs a new BibEntry. The internal ID is set to IdGenerator.next()
+     */
+    public BibEntry() {
+<span class="nc" id="L78">        this(IdGenerator.next());</span>
+<span class="nc" id="L79">    }</span>
+
+    /**
+     * Constructs a new BibEntry with the given ID and DEFAULT_TYPE
+     *
+     * @param id The ID to be used
+     */
+    public BibEntry(String id) {
+<span class="nc" id="L87">        this(id, DEFAULT_TYPE);</span>
+<span class="nc" id="L88">    }</span>
+
+    /**
+     * Constructs a new BibEntry with the given ID and given type
+     *
+     * @param id The ID to be used
+     * @param type The type to set. May be null or empty. In that case, DEFAULT_TYPE is used.
+     */
+<span class="fc" id="L96">    public BibEntry(String id, String type) {</span>
+<span class="fc" id="L97">        Objects.requireNonNull(id, &quot;Every BibEntry must have an ID&quot;);</span>
+
+<span class="fc" id="L99">        this.id = id;</span>
+<span class="fc" id="L100">        setType(type);</span>
+<span class="fc" id="L101">    }</span>
+
+    /**
+     * Sets this entry's ID, provided the database containing it
+     * doesn't veto the change.
+     *
+     * @param id The ID to be used
+     */
+    public void setId(String id) {
+<span class="nc" id="L110">        Objects.requireNonNull(id, &quot;Every BibEntry must have an ID&quot;);</span>
+
+        try {
+<span class="nc" id="L113">            firePropertyChangedEvent(BibEntry.ID_FIELD, this.id, id);</span>
+<span class="nc" id="L114">        } catch (PropertyVetoException pv) {</span>
+<span class="nc" id="L115">            throw new IllegalStateException(&quot;Couldn't change ID: &quot; + pv);</span>
+        }
+
+<span class="nc" id="L118">        this.id = id;</span>
+<span class="nc" id="L119">        changed = true;</span>
+<span class="nc" id="L120">    }</span>
+
+    /**
+     * Returns this entry's ID.
+     */
+    public String getId() {
+<span class="fc" id="L126">        return id;</span>
+    }
+
+    /**
+     * Sets the cite key AKA citation key AKA BibTeX key.
+     *
+     * Note: This is &lt;emph&gt;not&lt;/emph&gt; the internal Id of this entry. The internal Id is always present, whereas the BibTeX key might not be present.
+     *
+     * @param newCiteKey The cite key to set. Must not be null, may be empty to remove it.
+     */
+    public void setCiteKey(String newCiteKey) {
+<span class="fc" id="L137">        setField(KEY_FIELD, newCiteKey);</span>
+<span class="fc" id="L138">    }</span>
+
+    /**
+     * Returns the cite key AKA citation key AKA BibTeX key, or null if it is not set.
+     *
+     * Note: this is &lt;emph&gt;not&lt;/emph&gt; the internal Id of this entry. The internal Id is always present, whereas the BibTeX key might not be present.
+     */
+    public String getCiteKey() {
+<span class="fc" id="L146">        return fields.get(KEY_FIELD);</span>
+    }
+
+    public boolean hasCiteKey() {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        return !Strings.isNullOrEmpty(getCiteKey());</span>
+    }
+
+    /**
+     * Returns this entry's type.
+     */
+    public String getType() {
+<span class="fc" id="L157">        return type;</span>
+    }
+
+    /**
+     * Sets this entry's type.
+     */
+    public void setType(String type) {
+        String newType;
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">        if (Strings.isNullOrEmpty(type)) {</span>
+<span class="nc" id="L166">            newType = DEFAULT_TYPE;</span>
+<span class="nc" id="L167">        } else {</span>
+<span class="fc" id="L168">            newType = type;</span>
+        }
+
+<span class="fc" id="L171">        String oldType = this.type;</span>
+
+        try {
+            // We set the type before throwing the changeEvent, to enable
+            // the change listener to access the new value if the change
+            // sets off a change in database sorting etc.
+<span class="fc" id="L177">            this.type = newType.toLowerCase(Locale.ENGLISH);</span>
+<span class="fc" id="L178">            changed = true;</span>
+<span class="fc" id="L179">            firePropertyChangedEvent(TYPE_HEADER, oldType, newType);</span>
+<span class="pc" id="L180">        } catch (PropertyVetoException pve) {</span>
+<span class="nc" id="L181">            LOGGER.warn(pve);</span>
+        }
+<span class="fc" id="L183">    }</span>
+
+    /**
+     * Sets this entry's type.
+     */
+    public void setType(EntryType type) {
+<span class="nc" id="L189">        this.setType(type.getName());</span>
+<span class="nc" id="L190">    }</span>
+
+    /**
+     * Returns an set containing the names of all fields that are
+     * set for this particular entry.
+     *
+     * @return a set of existing field names
+     */
+    public Set&lt;String&gt; getFieldNames() {
+<span class="fc" id="L199">        return new TreeSet&lt;&gt;(fields.keySet());</span>
+    }
+
+    /**
+     * Returns the contents of the given field, or null if it is not set.
+     */
+    public String getField(String name) {
+<span class="fc" id="L206">        return fields.get(toLowerCase(name));</span>
+    }
+
+    /**
+     * Returns the contents of the given field as an Optional.
+     */
+    public Optional&lt;String&gt; getFieldOptional(String name) {
+<span class="fc" id="L213">        return Optional.ofNullable(fields.get(toLowerCase(name)));</span>
+    }
+
+    /**
+     * Returns true if the entry has the given field, or false if it is not set.
+     */
+    public boolean hasField(String name) {
+<span class="fc" id="L220">        return fields.containsKey(toLowerCase(name));</span>
+    }
+
+    private String toLowerCase(String fieldName) {
+<span class="fc" id="L224">        Objects.requireNonNull(fieldName, &quot;field name must not be null&quot;);</span>
+
+<span class="fc" id="L226">        return fieldName.toLowerCase(Locale.ENGLISH);</span>
+    }
+
+    /**
+     * Returns the contents of the given field, its alias or null if both are
+     * not set.
+     * &lt;p&gt;
+     * The following aliases are considered (old bibtex &lt;-&gt; new biblatex) based
+     * on the BibLatex documentation, chapter 2.2.5:
+     * address 		&lt;-&gt; location
+     * annote			&lt;-&gt; annotation
+     * archiveprefix 	&lt;-&gt; eprinttype
+     * journal 		&lt;-&gt; journaltitle
+     * key				&lt;-&gt; sortkey
+     * pdf 			&lt;-&gt; file
+     * primaryclass 	&lt;-&gt; eprintclass
+     * school 			&lt;-&gt; institution
+     * These work bidirectional.
+     * &lt;p&gt;
+     * Special attention is paid to dates: (see the BibLatex documentation,
+     * chapter 2.3.8)
+     * The fields 'year' and 'month' are used if the 'date'
+     * field is empty. Conversely, getFieldOrAlias(&quot;year&quot;) also tries to
+     * extract the year from the 'date' field (analogously for 'month').
+     */
+    public String getFieldOrAlias(String name) {
+<span class="fc" id="L252">        String fieldValue = getField(toLowerCase(name));</span>
+
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        if (!Strings.isNullOrEmpty(fieldValue)) {</span>
+<span class="fc" id="L255">            return fieldValue;</span>
+        }
+
+        // No value of this field found, so look at the alias
+<span class="fc" id="L259">        String aliasForField = EntryConverter.FIELD_ALIASES.get(name);</span>
+
+<span class="fc bfc" id="L261" title="All 2 branches covered.">        if (aliasForField != null) {</span>
+<span class="fc" id="L262">            return getField(aliasForField);</span>
+        }
+
+        // Finally, handle dates
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">        if (&quot;date&quot;.equals(name)) {</span>
+<span class="nc" id="L267">            String year = getField(&quot;year&quot;);</span>
+<span class="nc" id="L268">            MonthUtil.Month month = MonthUtil.getMonth(getField(&quot;month&quot;));</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">            if (year != null) {</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">                if (month.isValid()) {</span>
+<span class="nc" id="L271">                    return year + '-' + month.twoDigitNumber;</span>
+                } else {
+<span class="nc" id="L273">                    return year;</span>
+                }
+            }
+        }
+<span class="pc bpc" id="L277" title="1 of 4 branches missed.">        if (&quot;year&quot;.equals(name) || &quot;month&quot;.equals(name)) {</span>
+<span class="fc" id="L278">            String date = getField(&quot;date&quot;);</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">            if (date == null) {</span>
+<span class="fc" id="L280">                return null;</span>
+            }
+
+            // Create date format matching dates with year and month
+<span class="nc" id="L284">            DateFormat df = new DateFormat() {</span>
+
+                static final String FORMAT1 = &quot;yyyy-MM-dd&quot;;
+                static final String FORMAT2 = &quot;yyyy-MM&quot;;
+<span class="nc" id="L288">                final SimpleDateFormat sdf1 = new SimpleDateFormat(FORMAT1);</span>
+<span class="nc" id="L289">                final SimpleDateFormat sdf2 = new SimpleDateFormat(FORMAT2);</span>
+
+
+                @Override
+                public StringBuffer format(Date dDate, StringBuffer toAppendTo, FieldPosition fieldPosition) {
+<span class="nc" id="L294">                    throw new UnsupportedOperationException();</span>
+                }
+
+                @Override
+                public Date parse(String source, ParsePosition pos) {
+<span class="nc bnc" id="L299" title="All 2 branches missed.">                    if ((source.length() - pos.getIndex()) == FORMAT1.length()) {</span>
+<span class="nc" id="L300">                        return sdf1.parse(source, pos);</span>
+                    }
+<span class="nc" id="L302">                    return sdf2.parse(source, pos);</span>
+                }
+            };
+
+            try {
+<span class="nc" id="L307">                Date parsedDate = df.parse(date);</span>
+<span class="nc" id="L308">                Calendar calendar = Calendar.getInstance();</span>
+<span class="nc" id="L309">                calendar.setTime(parsedDate);</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">                if (&quot;year&quot;.equals(name)) {</span>
+<span class="nc" id="L311">                    return Integer.toString(calendar.get(Calendar.YEAR));</span>
+                }
+<span class="nc bnc" id="L313" title="All 2 branches missed.">                if (&quot;month&quot;.equals(name)) {</span>
+<span class="nc" id="L314">                    return Integer.toString(calendar.get(Calendar.MONTH) + 1); // Shift by 1 since in this calendar Jan = 0</span>
+                }
+<span class="nc" id="L316">            } catch (ParseException e) {</span>
+                // So not a date with year and month, try just to parse years
+<span class="nc" id="L318">                df = new SimpleDateFormat(&quot;yyyy&quot;);</span>
+
+                try {
+<span class="nc" id="L321">                    Date parsedDate = df.parse(date);</span>
+<span class="nc" id="L322">                    Calendar calendar = Calendar.getInstance();</span>
+<span class="nc" id="L323">                    calendar.setTime(parsedDate);</span>
+<span class="nc bnc" id="L324" title="All 2 branches missed.">                    if (&quot;year&quot;.equals(name)) {</span>
+<span class="nc" id="L325">                        return Integer.toString(calendar.get(Calendar.YEAR));</span>
+                    }
+<span class="nc" id="L327">                } catch (ParseException e2) {</span>
+<span class="nc" id="L328">                    LOGGER.warn(&quot;Could not parse entry &quot; + name, e2);</span>
+<span class="nc" id="L329">                    return null; // Date field not in valid format</span>
+                }
+            }
+        }
+<span class="fc" id="L333">        return null;</span>
+    }
+
+    /**
+     * Sets a number of fields simultaneously. The given HashMap contains field
+     * names as keys, each mapped to the value to set.
+     */
+    public void setField(Map&lt;String, String&gt; fields) {
+<span class="nc" id="L341">        Objects.requireNonNull(fields, &quot;fields must not be null&quot;);</span>
+
+<span class="nc" id="L343">        fields.forEach((field, value) -&gt; setField(field, value));</span>
+<span class="nc" id="L344">    }</span>
+
+    /**
+     * Set a field, and notify listeners about the change.
+     *
+     * @param name  The field to set.
+     * @param value The value to set.
+     */
+    public void setField(String name, String value) {
+<span class="fc" id="L353">        Objects.requireNonNull(name, &quot;field name must not be null&quot;);</span>
+<span class="fc" id="L354">        Objects.requireNonNull(value, &quot;field value must not be null&quot;);</span>
+
+<span class="pc bpc" id="L356" title="1 of 2 branches missed.">        if (value.isEmpty()) {</span>
+<span class="nc" id="L357">            clearField(name);</span>
+<span class="nc" id="L358">            return;</span>
+        }
+
+<span class="fc" id="L361">        String fieldName = toLowerCase(name);</span>
+
+<span class="pc bpc" id="L363" title="1 of 2 branches missed.">        if (BibEntry.ID_FIELD.equals(fieldName)) {</span>
+<span class="nc" id="L364">            throw new IllegalArgumentException(&quot;The field name '&quot; + name + &quot;' is reserved&quot;);</span>
+        }
+
+        // Added Checking of valid year, compares to the maximum o Year (-999,999,999 and 999,999,999)
+<span class="fc bfc" id="L368" title="All 2 branches covered.">        if (fieldName.equals(&quot;year&quot;)) {</span>
+
+<span class="fc" id="L370">            Long inputYear = Long.valueOf(value);</span>
+
+<span class="pc bpc" id="L372" title="1 of 4 branches missed.">            if ((inputYear &lt; Year.MIN_VALUE) || (inputYear &gt; Year.MAX_VALUE)) {</span>
+<span class="fc" id="L373">                throw new IllegalArgumentException(&quot;The field name '&quot; + name + &quot;'must contain a valid year&quot;);</span>
+            }
+
+        }
+<span class="fc" id="L377">        changed = true;</span>
+
+<span class="fc" id="L379">        String oldValue = fields.get(fieldName);</span>
+        try {
+            // We set the field before throwing the changeEvent, to enable
+            // the change listener to access the new value if the change
+            // sets off a change in database sorting etc.
+<span class="fc" id="L384">            fields.put(fieldName, value);</span>
+<span class="fc" id="L385">            firePropertyChangedEvent(fieldName, oldValue, value);</span>
+<span class="pc" id="L386">        } catch (PropertyVetoException pve) {</span>
+            // Since we have already made the change, we must undo it since
+            // the change was rejected:
+<span class="nc" id="L389">            fields.put(fieldName, oldValue);</span>
+<span class="nc" id="L390">            throw new IllegalArgumentException(&quot;Change rejected: &quot; + pve);</span>
+        }
+<span class="fc" id="L392">    }</span>
+
+    /**
+     * Remove the mapping for the field name, and notify listeners about
+     * the change.
+     *
+     * @param name The field to clear.
+     */
+    public void clearField(String name) {
+<span class="fc" id="L401">        String fieldName = toLowerCase(name);</span>
+
+<span class="fc" id="L403">        changed = true;</span>
+
+<span class="pc bpc" id="L405" title="1 of 2 branches missed.">        if (BibEntry.ID_FIELD.equals(fieldName)) {</span>
+<span class="nc" id="L406">            throw new IllegalArgumentException(&quot;The field name '&quot; + name + &quot;' is reserved&quot;);</span>
+        }
+<span class="fc" id="L408">        Object oldValue = fields.get(fieldName);</span>
+<span class="fc" id="L409">        fields.remove(fieldName);</span>
+        try {
+<span class="fc" id="L411">            firePropertyChangedEvent(fieldName, oldValue, null);</span>
+<span class="pc" id="L412">        } catch (PropertyVetoException pve) {</span>
+<span class="nc" id="L413">            throw new IllegalArgumentException(&quot;Change rejected: &quot; + pve);</span>
+        }
+
+<span class="fc" id="L416">    }</span>
+
+    /**
+     * Determines whether this entry has all the given fields present. If a non-null
+     * database argument is given, this method will try to look up missing fields in
+     * entries linked by the &quot;crossref&quot; field, if any.
+     *
+     * @param allFields An array of field names to be checked.
+     * @param database  The database in which to look up crossref'd entries, if any. This
+     *                  argument can be null, meaning that no attempt will be made to follow crossrefs.
+     * @return true if all fields are set or could be resolved, false otherwise.
+     */
+    public boolean allFieldsPresent(List&lt;String&gt; allFields, BibDatabase database) {
+<span class="fc" id="L429">        final String orSeparator = &quot;/&quot;;</span>
+
+<span class="fc bfc" id="L431" title="All 2 branches covered.">        for (String field : allFields) {</span>
+<span class="fc" id="L432">            String fieldName = toLowerCase(field);</span>
+            // OR fields
+<span class="fc bfc" id="L434" title="All 2 branches covered.">            if (fieldName.contains(orSeparator)) {</span>
+<span class="fc" id="L435">                String[] altFields = field.split(orSeparator);</span>
+
+<span class="pc bpc" id="L437" title="1 of 2 branches missed.">                if (!atLeastOnePresent(altFields, database)) {</span>
+<span class="nc" id="L438">                    return false;</span>
+                }
+            } else {
+<span class="fc bfc" id="L441" title="All 2 branches covered.">                if (BibDatabase.getResolvedField(fieldName, this, database) == null) {</span>
+<span class="fc" id="L442">                    return false;</span>
+                }
+            }
+        }
+<span class="fc" id="L446">        return true;</span>
+    }
+
+    private boolean atLeastOnePresent(String[] fieldsToCheck, BibDatabase database) {
+<span class="pc bpc" id="L450" title="1 of 2 branches missed.">        for (String field : fieldsToCheck) {</span>
+<span class="fc" id="L451">            String fieldName = toLowerCase(field);</span>
+
+<span class="fc" id="L453">            String value = BibDatabase.getResolvedField(fieldName, this, database);</span>
+<span class="pc bpc" id="L454" title="2 of 4 branches missed.">            if ((value != null) &amp;&amp; !value.isEmpty()) {</span>
+<span class="fc" id="L455">                return true;</span>
+            }
+        }
+<span class="nc" id="L458">        return false;</span>
+    }
+
+    private void firePropertyChangedEvent(String fieldName, Object oldValue, Object newValue)
+            throws PropertyVetoException {
+<span class="fc" id="L463">        changeSupport.fireVetoableChange(new PropertyChangeEvent(this, fieldName, oldValue, newValue));</span>
+<span class="fc" id="L464">    }</span>
+
+    /**
+     * Adds a VetoableChangeListener, which is notified of field
+     * changes. This is useful for an object that needs to update
+     * itself each time a field changes.
+     */
+    public void addPropertyChangeListener(VetoableChangeListener listener) {
+<span class="fc" id="L472">        changeSupport.addVetoableChangeListener(listener);</span>
+<span class="fc" id="L473">    }</span>
+
+    /**
+     * Removes a property listener.
+     */
+    public void removePropertyChangeListener(VetoableChangeListener listener) {
+<span class="fc" id="L479">        changeSupport.removeVetoableChangeListener(listener);</span>
+<span class="fc" id="L480">    }</span>
+
+    /**
+     * Returns a clone of this entry. Useful for copying.
+     */
+    @Override
+    public Object clone() {
+<span class="nc" id="L487">        BibEntry clone = new BibEntry(id, type);</span>
+<span class="nc" id="L488">        clone.fields = new HashMap&lt;&gt;(fields);</span>
+<span class="nc" id="L489">        return clone;</span>
+    }
+
+    /**
+     * This returns a canonical BibTeX serialization. Special characters such as &quot;{&quot; or &quot;&amp;&quot; are NOT escaped, but written
+     * as is
+     * &lt;p&gt;
+     * Serializes all fields, even the JabRef internal ones. Does NOT serialize &quot;KEY_FIELD&quot; as field, but as key
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L500">        return CanonicalBibtexEntry.getCanonicalRepresentation(this);</span>
+    }
+
+    public boolean isSearchHit() {
+<span class="fc" id="L504">        return searchHit;</span>
+    }
+
+    public void setSearchHit(boolean searchHit) {
+<span class="nc" id="L508">        this.searchHit = searchHit;</span>
+<span class="nc" id="L509">    }</span>
+
+    public boolean isGroupHit() {
+<span class="nc" id="L512">        return groupHit;</span>
+    }
+
+    public void setGroupHit(boolean groupHit) {
+<span class="nc" id="L516">        this.groupHit = groupHit;</span>
+<span class="nc" id="L517">    }</span>
+
+    /**
+     * @param maxCharacters The maximum number of characters (additional
+     *                      characters are replaced with &quot;...&quot;). Set to 0 to disable truncation.
+     * @return A short textual description of the entry in the format:
+     * Author1, Author2: Title (Year)
+     */
+    public String getAuthorTitleYear(int maxCharacters) {
+<span class="nc" id="L526">        String[] s = new String[] {getFieldOptional(&quot;author&quot;).orElse(&quot;N/A&quot;), getFieldOptional(&quot;title&quot;).orElse(&quot;N/A&quot;),</span>
+<span class="nc" id="L527">                getFieldOptional(&quot;year&quot;).orElse(&quot;N/A&quot;)};</span>
+
+<span class="nc" id="L529">        String text = s[0] + &quot;: \&quot;&quot; + s[1] + &quot;\&quot; (&quot; + s[2] + ')';</span>
+<span class="nc bnc" id="L530" title="All 4 branches missed.">        if ((maxCharacters &lt;= 0) || (text.length() &lt;= maxCharacters)) {</span>
+<span class="nc" id="L531">            return text;</span>
+        }
+<span class="nc" id="L533">        return text.substring(0, maxCharacters + 1) + &quot;...&quot;;</span>
+    }
+
+    /**
+     * Will return the publication date of the given bibtex entry conforming to ISO 8601, i.e. either YYYY or YYYY-MM.
+     *
+     * @return will return the publication date of the entry or null if no year was found.
+     */
+    public String getPublicationDate() {
+<span class="nc bnc" id="L542" title="All 2 branches missed.">        if (!hasField(&quot;year&quot;)) {</span>
+<span class="nc" id="L543">            return null;</span>
+        }
+
+<span class="nc" id="L546">        String year = getField(&quot;year&quot;);</span>
+
+<span class="nc bnc" id="L548" title="All 2 branches missed.">        if (hasField(&quot;month&quot;)) {</span>
+<span class="nc" id="L549">            MonthUtil.Month month = MonthUtil.getMonth(getField(&quot;month&quot;));</span>
+<span class="nc bnc" id="L550" title="All 2 branches missed.">            if (month.isValid()) {</span>
+<span class="nc" id="L551">                return year + &quot;-&quot; + month.twoDigitNumber;</span>
+            }
+        }
+<span class="nc" id="L554">        return year;</span>
+    }
+
+
+    public void setParsedSerialization(String parsedSerialization) {
+<span class="nc" id="L559">        changed = false;</span>
+<span class="nc" id="L560">        this.parsedSerialization = parsedSerialization;</span>
+<span class="nc" id="L561">    }</span>
+
+    public String getParsedSerialization() {
+<span class="nc" id="L564">        return parsedSerialization;</span>
+    }
+
+    public boolean hasChanged() {
+<span class="fc" id="L568">        return changed;</span>
+    }
+
+    public void setChanged(boolean changed) {
+<span class="nc" id="L572">        this.changed = changed;</span>
+<span class="nc" id="L573">    }</span>
+
+    public void putKeywords(List&lt;String&gt; keywords) {
+<span class="nc" id="L576">        Objects.requireNonNull(keywords);</span>
+        // Set Keyword Field
+<span class="nc" id="L578">        String oldValue = this.getField(&quot;keywords&quot;);</span>
+        String newValue;
+<span class="nc bnc" id="L580" title="All 2 branches missed.">        if (keywords.isEmpty()) {</span>
+<span class="nc" id="L581">            newValue = null;</span>
+<span class="nc" id="L582">        } else {</span>
+<span class="nc" id="L583">            newValue = String.join(&quot;, &quot;, keywords);</span>
+        }
+<span class="nc bnc" id="L585" title="All 2 branches missed.">        if (newValue == null) {</span>
+<span class="nc bnc" id="L586" title="All 2 branches missed.">            if (oldValue != null) {</span>
+<span class="nc" id="L587">                this.clearField(&quot;keywords&quot;);</span>
+            }
+<span class="nc" id="L589">            return;</span>
+        }
+<span class="nc bnc" id="L591" title="All 4 branches missed.">        if ((oldValue == null) || !oldValue.equals(newValue)) {</span>
+<span class="nc" id="L592">            this.setField(&quot;keywords&quot;, newValue);</span>
+        }
+<span class="nc" id="L594">    }</span>
+
+    /**
+     * Check if a keyword already exists (case insensitive), if not: add it
+     *
+     * @param keyword Keyword to add
+     */
+    public void addKeyword(String keyword) {
+<span class="nc" id="L602">        Objects.requireNonNull(keyword, &quot;keyword must not be empty&quot;);</span>
+
+<span class="nc bnc" id="L604" title="All 2 branches missed.">        if (keyword.isEmpty()) {</span>
+<span class="nc" id="L605">            return;</span>
+        }
+
+<span class="nc" id="L608">        List&lt;String&gt; keywords = this.getSeparatedKeywords();</span>
+<span class="nc" id="L609">        Boolean duplicate = false;</span>
+
+<span class="nc bnc" id="L611" title="All 2 branches missed.">        for (String key : keywords) {</span>
+<span class="nc bnc" id="L612" title="All 2 branches missed.">            if (keyword.equalsIgnoreCase(key)) {</span>
+<span class="nc" id="L613">                duplicate = true;</span>
+<span class="nc" id="L614">                break;</span>
+            }
+        }
+
+<span class="nc bnc" id="L618" title="All 2 branches missed.">        if (!duplicate) {</span>
+<span class="nc" id="L619">            keywords.add(keyword);</span>
+<span class="nc" id="L620">            this.putKeywords(keywords);</span>
+        }
+<span class="nc" id="L622">    }</span>
+
+    /**
+     * Add multiple keywords to entry
+     *
+     * @param keywords Keywords to add
+     */
+    public void addKeywords(List&lt;String&gt; keywords) {
+<span class="nc" id="L630">        Objects.requireNonNull(keywords);</span>
+
+<span class="nc bnc" id="L632" title="All 2 branches missed.">        for (String keyword : keywords) {</span>
+<span class="nc" id="L633">            this.addKeyword(keyword);</span>
+        }
+<span class="nc" id="L635">    }</span>
+
+    public List&lt;String&gt; getSeparatedKeywords() {
+<span class="nc" id="L638">        return net.sf.jabref.model.entry.EntryUtil.getSeparatedKeywords(this.getField(&quot;keywords&quot;));</span>
+    }
+
+    public Collection&lt;String&gt; getFieldValues() {
+<span class="nc" id="L642">        return fields.values();</span>
+    }
+
+    public Map&lt;String, String&gt; getFieldMap() {
+<span class="nc" id="L646">        return fields;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="fc bfc" id="L651" title="All 2 branches covered.">        if (this == o) {</span>
+<span class="fc" id="L652">            return true;</span>
+        }
+<span class="pc bpc" id="L654" title="3 of 4 branches missed.">        if ((o == null) || (getClass() != o.getClass())) {</span>
+<span class="fc" id="L655">            return false;</span>
+        }
+<span class="nc" id="L657">        BibEntry entry = (BibEntry) o;</span>
+<span class="nc bnc" id="L658" title="All 4 branches missed.">        return Objects.equals(type, entry.type) &amp;&amp; Objects.equals(fields, entry.fields);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L663">        return Objects.hash(type, fields);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

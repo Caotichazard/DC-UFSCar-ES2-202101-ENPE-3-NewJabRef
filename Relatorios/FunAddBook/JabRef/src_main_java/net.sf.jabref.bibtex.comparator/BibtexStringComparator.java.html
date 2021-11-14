@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BibtexStringComparator.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.bibtex.comparator</a> &gt; <span class="el_source">BibtexStringComparator.java</span></div><h1>BibtexStringComparator.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.bibtex.comparator;
+
+import java.util.Comparator;
+
+import net.sf.jabref.model.entry.BibtexString;
+
+public class BibtexStringComparator implements Comparator&lt;BibtexString&gt; {
+
+    private final boolean considerRefs;
+
+
+    /**
+     * @param considerRefs Indicates whether the strings should be
+     *                     sorted according to internal references in addition to
+     *                     alphabetical sorting.
+     */
+<span class="fc" id="L32">    public BibtexStringComparator(boolean considerRefs) {</span>
+<span class="fc" id="L33">        this.considerRefs = considerRefs;</span>
+<span class="fc" id="L34">    }</span>
+
+    @Override
+    public int compare(BibtexString s1, BibtexString s2) {
+
+        int res;
+
+        // First check their names:
+<span class="nc" id="L42">        String name1 = s1.getName().toLowerCase();</span>
+<span class="nc" id="L43">        String name2 = s2.getName().toLowerCase();</span>
+
+<span class="nc" id="L45">        res = name1.compareTo(name2);</span>
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (res == 0) {</span>
+<span class="nc" id="L48">            return res;</span>
+        }
+
+        // Then, if we are supposed to, see if the ordering needs
+        // to be changed because of one string referring to the other.x
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (considerRefs) {</span>
+
+            // First order them:
+            BibtexString pre;
+            BibtexString post;
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            if (res &lt; 0) {</span>
+<span class="nc" id="L59">                pre = s1;</span>
+<span class="nc" id="L60">                post = s2;</span>
+<span class="nc" id="L61">            } else {</span>
+<span class="nc" id="L62">                pre = s2;</span>
+<span class="nc" id="L63">                post = s1;</span>
+            }
+
+            // Then see if &quot;pre&quot; refers to &quot;post&quot;, which is the only
+            // situation when we must change the ordering:
+<span class="nc" id="L68">            String namePost = post.getName().toLowerCase();</span>
+<span class="nc" id="L69">            String textPre = pre.getContent().toLowerCase();</span>
+
+            // If that is the case, reverse the order found:
+<span class="nc bnc" id="L72" title="All 2 branches missed.">            if (textPre.contains(&quot;#&quot; + namePost + &quot;#&quot;)) {</span>
+<span class="nc" id="L73">                res = -res;</span>
+            }
+
+        }
+
+<span class="nc" id="L78">        return res;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

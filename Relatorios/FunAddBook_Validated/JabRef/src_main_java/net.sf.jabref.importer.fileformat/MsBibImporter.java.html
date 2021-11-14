@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MsBibImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">MsBibImporter.java</span></div><h1>MsBibImporter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer.fileformat;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.logic.msbib.MSBibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.w3c.dom.Document;
+
+/**
+ * Importer for the MS Office 2007 XML bibliography format
+ * By S. M. Mahbub Murshed
+ *
+ * ...
+ */
+<span class="fc" id="L37">public class MsBibImporter extends ImportFormat {</span>
+
+    @Override
+    public boolean isRecognizedFormat(InputStream in) throws IOException {
+
+        /*
+            This method is available for checking if a file can be of the MSBib type.
+            The effect of this method is primarily to avoid unnecessary processing of
+            files when searching for a suitable import format. If this method returns
+            false, the import routine will move on to the next import format.
+
+            The correct behaviour is to return false if it is certain that the file is
+            not of the MsBib type, and true otherwise. Returning true is the safe choice
+            if not certain.
+         */
+        Document docin;
+        try {
+<span class="nc" id="L54">            DocumentBuilder dbuild = DocumentBuilderFactory.</span>
+<span class="nc" id="L55">                    newInstance().</span>
+<span class="nc" id="L56">                    newDocumentBuilder();</span>
+<span class="nc" id="L57">            docin = dbuild.parse(in);</span>
+<span class="nc" id="L58">        } catch (Exception e) {</span>
+<span class="nc" id="L59">            return false;</span>
+        }
+<span class="nc bnc" id="L61" title="All 4 branches missed.">        return (docin == null) || docin.getDocumentElement().getTagName().contains(&quot;Sources&quot;);</span>
+    }
+
+    /**
+     * String used to identify this import filter on the command line.
+     * @return &quot;msbib&quot;
+     */
+    public String getCommandLineId() {
+<span class="nc" id="L69">        return &quot;msbib&quot;;</span>
+    }
+
+    @Override
+    public List&lt;BibEntry&gt; importEntries(InputStream in, OutputPrinter status) throws IOException {
+
+<span class="nc" id="L75">        MSBibDatabase dbase = new MSBibDatabase();</span>
+
+<span class="nc" id="L77">        return dbase.importEntries(in);</span>
+    }
+
+    @Override
+    public String getFormatName() {
+        // This method should return the name of this import format.
+<span class="fc" id="L83">        return &quot;MSBib&quot;;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

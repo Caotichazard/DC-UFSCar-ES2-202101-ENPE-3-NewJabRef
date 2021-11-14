@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>OAI2Fetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">OAI2Fetcher.java</span></div><h1>OAI2Fetcher.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer.fetcher;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.Locale;
+
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OAI2Handler;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.IdGenerator;
+import net.sf.jabref.model.entry.MonthUtil;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+/**
+ *
+ * This class can be used to access any archive offering an OAI2 interface. By
+ * default it will access ArXiv.org
+ *
+ * @author Ulrich St&amp;auml;rk
+ * @author Christian Kopf
+ */
+public class OAI2Fetcher implements EntryFetcher {
+
+<span class="fc" id="L58">    private static final Log LOGGER = LogFactory.getLog(OAI2Fetcher.class);</span>
+    private static final String OAI2_ARXIV_PREFIXIDENTIFIER = &quot;oai%3AarXiv.org%3A&quot;;
+    private static final String OAI2_ARXIV_HOST = &quot;export.arxiv.org&quot;;
+    private static final String OAI2_ARXIV_SCRIPT = &quot;oai2&quot;;
+    private static final String OAI2_ARXIV_METADATAPREFIX = &quot;arXiv&quot;;
+    private static final String OAI2_ARXIV_ARCHIVENAME = &quot;ArXiv.org&quot;;
+<span class="fc" id="L64">    private static final String OAI2_IDENTIFIER_FIELD = &quot;oai2identifier&quot;;</span>
+    private SAXParser saxParser;
+    private final String oai2Host;
+    private final String oai2Script;
+    private final String oai2MetaDataPrefix;
+    private final String oai2PrefixIdentifier;
+    private final String oai2ArchiveName;
+<span class="fc" id="L71">    private boolean shouldContinue = true;</span>
+    private OutputPrinter status;
+<span class="fc" id="L73">    private long waitTime = -1;</span>
+    private Date lastCall;
+
+    /**
+     *
+     *
+     * @param oai2Host
+     *            the host to query without leading http:// and without trailing /
+     * @param oai2Script
+     *            the relative location of the oai2 interface without leading
+     *            and trailing /
+     * @param oai2Metadataprefix
+     *            the urlencoded metadataprefix
+     * @param oai2Prefixidentifier
+     *            the urlencoded prefix identifier
+     * @param waitTimeMs
+     *            Time to wait in milliseconds between query-requests.
+     */
+<span class="fc" id="L91">    public OAI2Fetcher(String oai2Host, String oai2Script, String oai2Metadataprefix, String oai2Prefixidentifier,</span>
+            String oai2ArchiveName, long waitTimeMs) {
+<span class="fc" id="L93">        this.oai2Host = oai2Host;</span>
+<span class="fc" id="L94">        this.oai2Script = oai2Script;</span>
+<span class="fc" id="L95">        this.oai2MetaDataPrefix = oai2Metadataprefix;</span>
+<span class="fc" id="L96">        this.oai2PrefixIdentifier = oai2Prefixidentifier;</span>
+<span class="fc" id="L97">        this.oai2ArchiveName = oai2ArchiveName;</span>
+<span class="fc" id="L98">        this.waitTime = waitTimeMs;</span>
+        try {
+<span class="fc" id="L100">            SAXParserFactory parserFactory = SAXParserFactory.newInstance();</span>
+<span class="fc" id="L101">            saxParser = parserFactory.newSAXParser();</span>
+<span class="pc" id="L102">        } catch (ParserConfigurationException | SAXException e) {</span>
+<span class="nc" id="L103">            LOGGER.error(&quot;Error creating SAXParser for OAI2Fetcher&quot;, e);</span>
+        }
+<span class="fc" id="L105">    }</span>
+
+    /**
+     * Default Constructor. The archive queried will be ArXiv.org
+     *
+     */
+    public OAI2Fetcher() {
+<span class="fc" id="L112">        this(OAI2Fetcher.OAI2_ARXIV_HOST, OAI2Fetcher.OAI2_ARXIV_SCRIPT, OAI2Fetcher.OAI2_ARXIV_METADATAPREFIX,</span>
+<span class="fc" id="L113">                OAI2Fetcher.OAI2_ARXIV_PREFIXIDENTIFIER, OAI2Fetcher.OAI2_ARXIV_ARCHIVENAME, 20000L);</span>
+<span class="fc" id="L114">    }</span>
+
+    /**
+     * Construct the query URL
+     *
+     * @param key
+     *            The key of the OAI2 entry that the url should point to.
+     *
+     * @return a String denoting the query URL
+     */
+    public String constructUrl(String key) {
+        String identifier;
+        try {
+<span class="nc" id="L127">            identifier = URLEncoder.encode(key, StandardCharsets.UTF_8.name());</span>
+<span class="nc" id="L128">        } catch (UnsupportedEncodingException e) {</span>
+<span class="nc" id="L129">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L131">        return &quot;http://&quot; + oai2Host + &quot;/&quot; + oai2Script + &quot;?&quot; + &quot;verb=GetRecord&quot; + &quot;&amp;identifier=&quot; + oai2PrefixIdentifier</span>
+<span class="nc" id="L132">                + identifier + &quot;&amp;metadataPrefix=&quot; + oai2MetaDataPrefix;</span>
+    }
+
+    /**
+     * some archives - like ArXiv.org - might expect of you to wait some time
+     */
+    private boolean shouldWait() {
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        return waitTime &gt; 0;</span>
+    }
+
+    /**
+     * Strip subcategories from ArXiv key.
+     *
+     * @param key The key to fix.
+     * @return Fixed key.
+     */
+    public static String fixKey(String key) {
+
+<span class="nc" id="L150">        String resultingKey = key;</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (resultingKey.toLowerCase(Locale.ENGLISH).startsWith(&quot;arxiv:&quot;)) {</span>
+<span class="nc" id="L152">            resultingKey = resultingKey.substring(6);</span>
+        }
+
+<span class="nc" id="L155">        int dot = resultingKey.indexOf('.');</span>
+<span class="nc" id="L156">        int slash = resultingKey.indexOf('/');</span>
+
+<span class="nc bnc" id="L158" title="All 4 branches missed.">        if ((dot &gt; -1) &amp;&amp; (dot &lt; slash)) {</span>
+<span class="nc" id="L159">            resultingKey = resultingKey.substring(0, dot) + resultingKey.substring(slash, resultingKey.length());</span>
+        }
+
+<span class="nc" id="L162">        return resultingKey;</span>
+    }
+
+    public static String correctLineBreaks(String s) {
+<span class="nc" id="L166">        String result = s.replaceAll(&quot;\\n(?!\\s*\\n)&quot;, &quot; &quot;);</span>
+<span class="nc" id="L167">        result = result.replaceAll(&quot;\\s*\\n\\s*&quot;, &quot;\n&quot;);</span>
+<span class="nc" id="L168">        return result.replaceAll(&quot; {2,}&quot;, &quot; &quot;).replaceAll(&quot;(^\\s*|\\s+$)&quot;, &quot;&quot;);</span>
+    }
+
+    /**
+     * Import an entry from an OAI2 archive. The BibEntry provided has to
+     * have the field OAI2_IDENTIFIER_FIELD set to the search string.
+     *
+     * @param key
+     *            The OAI2 key to fetch from ArXiv.
+     * @return The imported BibEntry or null if none.
+     */
+    public BibEntry importOai2Entry(String key) {
+        /**
+         * Fix for problem reported in mailing-list:
+         *   https://sourceforge.net/forum/message.php?msg_id=4087158
+         */
+<span class="nc" id="L184">        String fixedKey = OAI2Fetcher.fixKey(key);</span>
+
+<span class="nc" id="L186">        String url = constructUrl(fixedKey);</span>
+        try {
+<span class="nc" id="L188">            URL oai2Url = new URL(url);</span>
+<span class="nc" id="L189">            HttpURLConnection oai2Connection = (HttpURLConnection) oai2Url.openConnection();</span>
+<span class="nc" id="L190">            oai2Connection.setRequestProperty(&quot;User-Agent&quot;, &quot;JabRef&quot;);</span>
+
+            /* create an empty BibEntry and set the oai2identifier field */
+<span class="nc" id="L193">            BibEntry be = new BibEntry(IdGenerator.next(), &quot;article&quot;);</span>
+<span class="nc" id="L194">            be.setField(OAI2Fetcher.OAI2_IDENTIFIER_FIELD, fixedKey);</span>
+<span class="nc" id="L195">            DefaultHandler handlerBase = new OAI2Handler(be);</span>
+
+<span class="nc" id="L197">            try (InputStream inputStream = oai2Connection.getInputStream()) {</span>
+
+                /* parse the result */
+<span class="nc" id="L200">                saxParser.parse(inputStream, handlerBase);</span>
+
+                /* Correct line breaks and spacing */
+<span class="nc bnc" id="L203" title="All 2 branches missed.">                for (String name : be.getFieldNames()) {</span>
+<span class="nc" id="L204">                    be.setField(name, OAI2Fetcher.correctLineBreaks(be.getField(name)));</span>
+                }
+
+<span class="nc bnc" id="L207" title="All 2 branches missed.">                if (fixedKey.matches(&quot;\\d\\d\\d\\d\\..*&quot;)) {</span>
+<span class="nc" id="L208">                    be.setField(&quot;year&quot;, &quot;20&quot; + fixedKey.substring(0, 2));</span>
+
+<span class="nc" id="L210">                    int monthNumber = Integer.parseInt(fixedKey.substring(2, 4));</span>
+<span class="nc" id="L211">                    MonthUtil.Month month = MonthUtil.getMonthByNumber(monthNumber);</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">                    if (month.isValid()) {</span>
+<span class="nc" id="L213">                        be.setField(&quot;month&quot;, month.bibtexFormat);</span>
+                    }
+                }
+            }
+<span class="nc" id="L217">            return be;</span>
+<span class="nc" id="L218">        } catch (IOException e) {</span>
+<span class="nc" id="L219">            status.showMessage(Localization.lang(&quot;An Exception occurred while accessing '%0'&quot;, url) + &quot;\n\n&quot; + e,</span>
+<span class="nc" id="L220">                    getTitle(), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L221">        } catch (SAXException e) {</span>
+<span class="nc" id="L222">            status.showMessage(</span>
+<span class="nc" id="L223">                    Localization.lang(&quot;An SAXException occurred while parsing '%0':&quot;, url) + &quot;\n\n&quot; + e.getMessage(),</span>
+<span class="nc" id="L224">                    getTitle(), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L225">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L226">            status.showMessage(</span>
+<span class="nc" id="L227">                    Localization.lang(&quot;Error while fetching from %0&quot;, &quot;OAI2 source (&quot; + url + &quot;):&quot;) + &quot;\n\n&quot;</span>
+<span class="nc" id="L228">                            + e.getMessage() + &quot;\n\n&quot; + Localization</span>
+<span class="nc" id="L229">                                    .lang(&quot;Note: A full text search is currently not supported for %0&quot;, getTitle()),</span>
+<span class="nc" id="L230">                    getTitle(), JOptionPane.ERROR_MESSAGE);</span>
+        }
+<span class="nc" id="L232">        return null;</span>
+    }
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L237">        return HelpFiles.FETCHER_OAI2_ARXIV;</span>
+    }
+
+    @Override
+    public JPanel getOptionsPanel() {
+        // we have no additional options
+<span class="nc" id="L243">        return null;</span>
+    }
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L248">        return &quot;ArXiv.org&quot;;</span>
+    }
+
+    @Override
+    public boolean processQuery(String query, ImportInspector dialog, OutputPrinter statusOP) {
+
+<span class="nc" id="L254">        status = statusOP;</span>
+
+        try {
+<span class="nc" id="L257">            shouldContinue = true;</span>
+
+            /* multiple keys can be delimited by ; or space */
+<span class="nc" id="L260">            String[] keys = query.replace(&quot; &quot;, &quot;;&quot;).split(&quot;;&quot;);</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">            for (int i = 0; i &lt; keys.length; i++) {</span>
+<span class="nc" id="L262">                String key = keys[i];</span>
+
+                /*
+                 * some archives - like arxive.org - might expect of you to wait
+                 * some time
+                 */
+<span class="nc bnc" id="L268" title="All 4 branches missed.">                if (shouldWait() &amp;&amp; (lastCall != null)) {</span>
+
+<span class="nc" id="L270">                    long elapsed = new Date().getTime() - lastCall.getTime();</span>
+
+<span class="nc bnc" id="L272" title="All 2 branches missed.">                    while (elapsed &lt; waitTime) {</span>
+<span class="nc" id="L273">                        status.setStatus(</span>
+<span class="nc" id="L274">                                Localization.lang(&quot;Waiting for ArXiv...&quot;) + ((waitTime - elapsed) / 1000) + &quot; s&quot;);</span>
+<span class="nc" id="L275">                        Thread.sleep(1000);</span>
+<span class="nc" id="L276">                        elapsed = new Date().getTime() - lastCall.getTime();</span>
+                    }
+                }
+
+<span class="nc" id="L280">                status.setStatus(Localization.lang(&quot;Processing %0&quot;, key));</span>
+
+                /* the cancel button has been hit */
+<span class="nc bnc" id="L283" title="All 2 branches missed.">                if (!shouldContinue) {</span>
+<span class="nc" id="L284">                    break;</span>
+                }
+
+                /* query the archive and load the results into the BibEntry */
+<span class="nc" id="L288">                BibEntry be = importOai2Entry(key);</span>
+
+<span class="nc bnc" id="L290" title="All 2 branches missed.">                if (shouldWait()) {</span>
+<span class="nc" id="L291">                    lastCall = new Date();</span>
+                }
+
+                /* add the entry to the inspection dialog */
+<span class="nc bnc" id="L295" title="All 2 branches missed.">                if (be != null) {</span>
+<span class="nc" id="L296">                    dialog.addEntry(be);</span>
+                }
+
+                /* update the dialogs progress bar */
+<span class="nc" id="L300">                dialog.setProgress(i + 1, keys.length);</span>
+            }
+
+<span class="nc" id="L303">            return true;</span>
+<span class="nc" id="L304">        } catch (Exception e) {</span>
+<span class="nc" id="L305">            status.setStatus(Localization.lang(&quot;Error while fetching from %0&quot;, &quot;OAI2&quot;));</span>
+<span class="nc" id="L306">            LOGGER.error(&quot;Error while fetching from OAI2&quot;, e);</span>
+        }
+<span class="nc" id="L308">        return false;</span>
+    }
+
+    @Override
+    public void stopFetching() {
+<span class="nc" id="L313">        shouldContinue = false;</span>
+<span class="nc" id="L314">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

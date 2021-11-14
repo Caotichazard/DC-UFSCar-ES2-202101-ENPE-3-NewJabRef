@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ImportCustomizationDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer</a> &gt; <span class="el_source">ImportCustomizationDialog.java</span></div><h1>ImportCustomizationDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2005-2015 JabRef contributors.
+ Copyright (C) 2005 Andreas Rudert, based on ExportCustomizationDialog by ??
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.io.IOException;
+import java.util.zip.ZipFile;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableColumnModel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.FileDialogs;
+import net.sf.jabref.gui.GUIGlobals;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.gui.util.FocusRequester;
+import net.sf.jabref.importer.fileformat.ImportFormat;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Dialog to manage custom importers.
+ */
+public class ImportCustomizationDialog extends JDialog {
+
+    private final JTable customImporterTable;
+
+<span class="nc" id="L67">    private static final Log LOGGER = LogFactory.getLog(ImportCustomizationDialog.class);</span>
+
+    /**
+     *
+     * @param frame_
+     * @throws HeadlessException
+     */
+    public ImportCustomizationDialog(final JabRefFrame frame) {
+<span class="nc" id="L75">        super(frame, Localization.lang(&quot;Manage custom imports&quot;), false);</span>
+
+<span class="nc" id="L77">        ImportTableModel tableModel = new ImportTableModel();</span>
+<span class="nc" id="L78">        customImporterTable = new JTable(tableModel);</span>
+<span class="nc" id="L79">        TableColumnModel cm = customImporterTable.getColumnModel();</span>
+<span class="nc" id="L80">        cm.getColumn(0).setPreferredWidth(GUIGlobals.IMPORT_DIALOG_COL_0_WIDTH);</span>
+<span class="nc" id="L81">        cm.getColumn(1).setPreferredWidth(GUIGlobals.IMPORT_DIALOG_COL_1_WIDTH);</span>
+<span class="nc" id="L82">        cm.getColumn(2).setPreferredWidth(GUIGlobals.IMPORT_DIALOG_COL_2_WIDTH);</span>
+<span class="nc" id="L83">        cm.getColumn(3).setPreferredWidth(GUIGlobals.IMPORT_DIALOG_COL_3_WIDTH);</span>
+<span class="nc" id="L84">        JScrollPane sp = new JScrollPane(customImporterTable, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L85">                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);</span>
+<span class="nc" id="L86">        customImporterTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="nc" id="L87">        customImporterTable.setPreferredScrollableViewportSize(getSize());</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (customImporterTable.getRowCount() &gt; 0) {</span>
+<span class="nc" id="L89">            customImporterTable.setRowSelectionInterval(0, 0);</span>
+        }
+
+<span class="nc" id="L92">        JButton addFromFolderButton = new JButton(Localization.lang(&quot;Add from folder&quot;));</span>
+<span class="nc" id="L93">        addFromFolderButton.addActionListener(e -&gt; {</span>
+<span class="nc" id="L94">            String chosenFileStr = null;</span>
+<span class="nc" id="L95">            CustomImporter importer = new CustomImporter();</span>
+<span class="nc" id="L96">            importer.setBasePath(</span>
+<span class="nc" id="L97">                    FileDialogs.getNewDir(frame, new File(Globals.prefs.get(JabRefPreferences.WORKING_DIRECTORY)),</span>
+<span class="nc" id="L98">                    &quot;&quot;, Localization.lang(&quot;Select Classpath of New Importer&quot;), JFileChooser.CUSTOM_DIALOG, false));</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">            if (importer.getBasePath() != null) {</span>
+<span class="nc" id="L100">                chosenFileStr = FileDialogs.getNewFile(frame, importer.getFileFromBasePath(), &quot;.class&quot;,</span>
+<span class="nc" id="L101">                        Localization.lang(&quot;Select new ImportFormat Subclass&quot;), JFileChooser.CUSTOM_DIALOG, false);</span>
+            }
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            if (chosenFileStr != null) {</span>
+                try {
+<span class="nc" id="L105">                    importer.setClassName(pathToClass(importer.getFileFromBasePath(), new File(chosenFileStr)));</span>
+<span class="nc" id="L106">                    importer.setName(importer.getInstance().getFormatName());</span>
+<span class="nc" id="L107">                    importer.setCliId(importer.getInstance().getCLIId());</span>
+<span class="nc" id="L108">                    addOrReplaceImporter(importer);</span>
+<span class="nc" id="L109">                    customImporterTable.revalidate();</span>
+<span class="nc" id="L110">                    customImporterTable.repaint();</span>
+<span class="nc" id="L111">                } catch (Exception exc) {</span>
+<span class="nc" id="L112">                    JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Could not instantiate %0&quot;, chosenFileStr));</span>
+<span class="nc" id="L113">                } catch (NoClassDefFoundError exc) {</span>
+<span class="nc" id="L114">                    JOptionPane.showMessageDialog(frame, Localization.lang(</span>
+<span class="nc" id="L115">                            &quot;Could not instantiate %0. Have you chosen the correct package path?&quot;, chosenFileStr));</span>
+                }
+
+            }
+<span class="nc" id="L119">        });</span>
+<span class="nc" id="L120">        addFromFolderButton.setToolTipText(Localization.lang(&quot;Add a (compiled) custom ImportFormat class from a class path.&quot;) + &quot;\n&quot; + Localization.lang(&quot;The path need not be on the classpath of JabRef.&quot;));</span>
+
+<span class="nc" id="L122">        JButton addFromJarButton = new JButton(Localization.lang(&quot;Add from jar&quot;));</span>
+<span class="nc" id="L123">        addFromJarButton.addActionListener(e -&gt; {</span>
+<span class="nc" id="L124">            String basePath = FileDialogs.getNewFile(frame,</span>
+<span class="nc" id="L125">                    new File(Globals.prefs.get(JabRefPreferences.WORKING_DIRECTORY)),</span>
+<span class="nc" id="L126">                    &quot;.zip,.jar&quot;, Localization.lang(&quot;Select a Zip-archive&quot;), JFileChooser.CUSTOM_DIALOG, false);</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (basePath != null) {</span>
+<span class="nc" id="L129">                try (ZipFile zipFile = new ZipFile(new File(basePath), ZipFile.OPEN_READ)) {</span>
+<span class="nc" id="L130">                    ZipFileChooser zipFileChooser = new ZipFileChooser(this, zipFile);</span>
+<span class="nc" id="L131">                    zipFileChooser.setVisible(true);</span>
+<span class="nc" id="L132">                    customImporterTable.revalidate();</span>
+<span class="nc" id="L133">                    customImporterTable.repaint(10);</span>
+<span class="nc" id="L134">                } catch (IOException exc) {</span>
+<span class="nc" id="L135">                    LOGGER.info(&quot;Could not open Zip-archive.&quot;, exc);</span>
+<span class="nc" id="L136">                    JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Could not open %0&quot;, basePath) + &quot;\n&quot;</span>
+<span class="nc" id="L137">                            + Localization.lang(&quot;Have you chosen the correct package path?&quot;));</span>
+<span class="nc" id="L138">                } catch (NoClassDefFoundError exc) {</span>
+<span class="nc" id="L139">                    LOGGER.info(&quot;Could not instantiate Zip-archive reader.&quot;, exc);</span>
+<span class="nc" id="L140">                    JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Could not instantiate %0&quot;, basePath) + &quot;\n&quot;</span>
+<span class="nc" id="L141">                            + Localization.lang(&quot;Have you chosen the correct package path?&quot;));</span>
+                }
+            }
+<span class="nc" id="L144">        });</span>
+<span class="nc" id="L145">        addFromJarButton.setToolTipText(Localization.lang(&quot;Add a (compiled) custom ImportFormat class from a Zip-archive.&quot;) + &quot;\n&quot; +</span>
+<span class="nc" id="L146">                Localization.lang(&quot;The Zip-archive need not be on the classpath of JabRef.&quot;));</span>
+
+<span class="nc" id="L148">        JButton showDescButton = new JButton(Localization.lang(&quot;Show description&quot;));</span>
+<span class="nc" id="L149">        showDescButton.addActionListener(e -&gt; {</span>
+<span class="nc" id="L150">            int row = customImporterTable.getSelectedRow();</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">            if (row == -1) {</span>
+<span class="nc" id="L152">                JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Please select an importer.&quot;));</span>
+<span class="nc" id="L153">            } else {</span>
+<span class="nc" id="L154">                CustomImporter importer = ((ImportTableModel) customImporterTable.getModel()).getImporter(row);</span>
+                try {
+<span class="nc" id="L156">                    ImportFormat importFormat = importer.getInstance();</span>
+<span class="nc" id="L157">                    JOptionPane.showMessageDialog(frame, importFormat.getDescription());</span>
+<span class="nc" id="L158">                } catch (IOException | ClassNotFoundException | InstantiationException | IllegalAccessException exc) {</span>
+<span class="nc" id="L159">                    LOGGER.warn(&quot;Could not instantiate importer &quot; + importer.getName(), exc);</span>
+<span class="nc" id="L160">                    JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Could not instantiate %0 %1&quot;,</span>
+<span class="nc" id="L161">                            importer.getName() + &quot;:\n&quot;, exc.getMessage()));</span>
+                }
+            }
+<span class="nc" id="L164">        });</span>
+
+<span class="nc" id="L166">        JButton removeButton = new JButton(Localization.lang(&quot;Remove&quot;));</span>
+<span class="nc" id="L167">        removeButton.addActionListener(e -&gt; {</span>
+<span class="nc" id="L168">            int row = customImporterTable.getSelectedRow();</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">            if (row == -1) {</span>
+<span class="nc" id="L170">                JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Please select an importer.&quot;));</span>
+<span class="nc" id="L171">            } else {</span>
+<span class="nc" id="L172">                customImporterTable.removeRowSelectionInterval(row, row);</span>
+<span class="nc" id="L173">                Globals.prefs.customImports</span>
+<span class="nc" id="L174">                        .remove(((ImportTableModel) customImporterTable.getModel()).getImporter(row));</span>
+<span class="nc" id="L175">                Globals.IMPORT_FORMAT_READER.resetImportFormats();</span>
+<span class="nc" id="L176">                customImporterTable.revalidate();</span>
+<span class="nc" id="L177">                customImporterTable.repaint();</span>
+            }
+<span class="nc" id="L179">        });</span>
+
+<span class="nc" id="L181">        Action closeAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L185">                dispose();</span>
+<span class="nc" id="L186">            }</span>
+        };
+
+<span class="nc" id="L189">        JButton closeButton = new JButton(Localization.lang(&quot;Close&quot;));</span>
+<span class="nc" id="L190">        closeButton.addActionListener(closeAction);</span>
+
+<span class="nc" id="L192">        JButton helpButton = new HelpAction(HelpFiles.CUSTOM_IMPORTS).getHelpButton();</span>
+
+
+        // Key bindings:
+<span class="nc" id="L196">        JPanel mainPanel = new JPanel();</span>
+<span class="nc" id="L197">        ActionMap am = mainPanel.getActionMap();</span>
+<span class="nc" id="L198">        InputMap im = mainPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+<span class="nc" id="L199">        im.put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L200">        am.put(&quot;close&quot;, closeAction);</span>
+<span class="nc" id="L201">        mainPanel.setLayout(new BorderLayout());</span>
+<span class="nc" id="L202">        mainPanel.add(sp, BorderLayout.CENTER);</span>
+<span class="nc" id="L203">        JPanel buttons = new JPanel();</span>
+<span class="nc" id="L204">        ButtonBarBuilder bb = new ButtonBarBuilder(buttons);</span>
+<span class="nc" id="L205">        buttons.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));</span>
+<span class="nc" id="L206">        bb.addGlue();</span>
+<span class="nc" id="L207">        bb.addButton(addFromFolderButton);</span>
+<span class="nc" id="L208">        bb.addButton(addFromJarButton);</span>
+<span class="nc" id="L209">        bb.addButton(showDescButton);</span>
+<span class="nc" id="L210">        bb.addButton(removeButton);</span>
+<span class="nc" id="L211">        bb.addButton(closeButton);</span>
+<span class="nc" id="L212">        bb.addUnrelatedGap();</span>
+<span class="nc" id="L213">        bb.addButton(helpButton);</span>
+<span class="nc" id="L214">        bb.addGlue();</span>
+
+<span class="nc" id="L216">        getContentPane().add(mainPanel, BorderLayout.CENTER);</span>
+<span class="nc" id="L217">        getContentPane().add(buttons, BorderLayout.SOUTH);</span>
+<span class="nc" id="L218">        this.setSize(getSize());</span>
+<span class="nc" id="L219">        pack();</span>
+<span class="nc" id="L220">        this.setLocationRelativeTo(frame);</span>
+<span class="nc" id="L221">        new FocusRequester(customImporterTable);</span>
+<span class="nc" id="L222">    }</span>
+
+    /*
+    *  (non-Javadoc)
+    * @see java.awt.Component#getSize()
+    */
+    @Override
+    public Dimension getSize() {
+<span class="nc" id="L230">        int width = GUIGlobals.IMPORT_DIALOG_COL_0_WIDTH + GUIGlobals.IMPORT_DIALOG_COL_1_WIDTH</span>
+                + GUIGlobals.IMPORT_DIALOG_COL_2_WIDTH + GUIGlobals.IMPORT_DIALOG_COL_3_WIDTH;
+<span class="nc" id="L232">        return new Dimension(width, width / 2);</span>
+    }
+
+    /**
+     * Converts a path relative to a base-path into a class name.
+     *
+     * @param basePath  base path
+     * @param path  path that includes base-path as a prefix
+     * @return  class name
+     */
+    private static String pathToClass(File basePath, File path) {
+<span class="nc" id="L243">        String className = null;</span>
+<span class="nc" id="L244">        File actualPath = path;</span>
+        // remove leading basepath from path
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        while (!actualPath.equals(basePath)) {</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">            className = actualPath.getName() + (className == null ? &quot;&quot; : &quot;.&quot; + className);</span>
+<span class="nc" id="L248">            actualPath = actualPath.getParentFile();</span>
+        }
+<span class="nc bnc" id="L250" title="All 2 branches missed.">        if (className != null) {</span>
+<span class="nc" id="L251">            int lastDot = className.lastIndexOf('.');</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">            if (lastDot &lt; 0) {</span>
+<span class="nc" id="L253">                return className;</span>
+            }
+<span class="nc" id="L255">            className = className.substring(0, lastDot);</span>
+        }
+<span class="nc" id="L257">        return className;</span>
+    }
+
+    /**
+     * Adds an importer to the model that underlies the custom importers.
+     *
+     * @param importer  importer
+     */
+    public void addOrReplaceImporter(CustomImporter importer) {
+<span class="nc" id="L266">        Globals.prefs.customImports.replaceImporter(importer);</span>
+<span class="nc" id="L267">        Globals.IMPORT_FORMAT_READER.resetImportFormats();</span>
+<span class="nc" id="L268">        ((ImportTableModel) customImporterTable.getModel()).fireTableDataChanged();</span>
+<span class="nc" id="L269">    }</span>
+
+
+    /**
+     * Table model for the custom importer table.
+     */
+<span class="nc" id="L275">    private class ImportTableModel extends AbstractTableModel {</span>
+
+<span class="nc" id="L277">        private final String[] columnNames = new String[] {</span>
+<span class="nc" id="L278">                Localization.lang(&quot;Import name&quot;),</span>
+<span class="nc" id="L279">                Localization.lang(&quot;Command line id&quot;),</span>
+<span class="nc" id="L280">                Localization.lang(&quot;ImportFormat class&quot;),</span>
+<span class="nc" id="L281">                Localization.lang(&quot;Contained in&quot;)</span>
+        };
+
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+<span class="nc" id="L287">            Object value = null;</span>
+<span class="nc" id="L288">            CustomImporter importer = getImporter(rowIndex);</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">            if (columnIndex == 0) {</span>
+<span class="nc" id="L290">                value = importer.getName();</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">            } else if (columnIndex == 1) {</span>
+<span class="nc" id="L292">                value = importer.getClidId();</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">            } else if (columnIndex == 2) {</span>
+<span class="nc" id="L294">                value = importer.getClassName();</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">            } else if (columnIndex == 3) {</span>
+<span class="nc" id="L296">                value = importer.getFileFromBasePath();</span>
+            }
+<span class="nc" id="L298">            return value;</span>
+        }
+
+        @Override
+        public int getColumnCount() {
+<span class="nc" id="L303">            return columnNames.length;</span>
+        }
+
+        @Override
+        public int getRowCount() {
+<span class="nc" id="L308">            return Globals.prefs.customImports.size();</span>
+        }
+
+        @Override
+        public String getColumnName(int col) {
+<span class="nc" id="L313">            return columnNames[col];</span>
+        }
+
+        public CustomImporter getImporter(int rowIndex) {
+<span class="nc" id="L317">            CustomImporter[] importers = Globals.prefs.customImports</span>
+<span class="nc" id="L318">                    .toArray(new CustomImporter[Globals.prefs.customImports.size()]);</span>
+<span class="nc" id="L319">            return importers[rowIndex];</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

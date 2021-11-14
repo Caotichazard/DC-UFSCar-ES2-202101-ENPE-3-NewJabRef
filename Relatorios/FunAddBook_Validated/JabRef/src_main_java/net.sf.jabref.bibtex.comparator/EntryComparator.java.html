@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryComparator.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.bibtex.comparator</a> &gt; <span class="el_source">EntryComparator.java</span></div><h1>EntryComparator.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.bibtex.comparator;
+
+import java.util.Comparator;
+import java.util.Objects;
+
+import net.sf.jabref.bibtex.FieldProperties;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.model.entry.AuthorList;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * This implementation of Comparator takes care of most of the details of sorting BibTeX entries in JabRef. It is
+ * structured as a node in a linked list of comparators, where each node can contain a link to a new comparator that
+ * decides the ordering (by recursion) if this one can't find a difference. The next node, if any, is given at
+ * construction time, and an arbitrary number of nodes can be included. If the entries are equal by this comparator, and
+ * there is no next entry, the entries' unique IDs will decide the ordering. Consequently, this comparator can never
+ * return 0 unless the entries are the same object.
+ */
+public class EntryComparator implements Comparator&lt;BibEntry&gt; {
+
+    private final String sortField;
+    private final boolean descending;
+    private final boolean binary;
+    private final boolean numeric;
+    private final Comparator&lt;BibEntry&gt; next;
+
+
+<span class="nc" id="L43">    public EntryComparator(boolean binary, boolean desc, String field, Comparator&lt;BibEntry&gt; next) {</span>
+<span class="nc" id="L44">        this.binary = binary;</span>
+<span class="nc" id="L45">        this.sortField = field;</span>
+<span class="nc" id="L46">        this.descending = desc;</span>
+<span class="nc" id="L47">        this.next = next;</span>
+<span class="nc" id="L48">        this.numeric = InternalBibtexFields.isNumeric(sortField);</span>
+<span class="nc" id="L49">    }</span>
+
+<span class="nc" id="L51">    public EntryComparator(boolean binary, boolean desc, String field) {</span>
+<span class="nc" id="L52">        this.binary = binary;</span>
+<span class="nc" id="L53">        this.sortField = field;</span>
+<span class="nc" id="L54">        this.descending = desc;</span>
+<span class="nc" id="L55">        this.next = null;</span>
+<span class="nc" id="L56">        this.numeric = InternalBibtexFields.isNumeric(sortField);</span>
+<span class="nc" id="L57">    }</span>
+
+    @Override
+    public int compare(BibEntry e1, BibEntry e2) {
+
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (Objects.equals(e1, e2)) {</span>
+<span class="nc" id="L63">            return 0;</span>
+        }
+
+<span class="nc" id="L66">        Object f1 = e1.getField(sortField);</span>
+<span class="nc" id="L67">        Object f2 = e2.getField(sortField);</span>
+
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (binary) {</span>
+            // We just separate on set and unset fields:
+<span class="nc bnc" id="L71" title="All 2 branches missed.">            if (f1 == null) {</span>
+<span class="nc bnc" id="L72" title="All 4 branches missed.">                return f2 == null ? (next == null ? idCompare(e1, e2) : next.compare(e1, e2)) : 1;</span>
+            } else {
+<span class="nc bnc" id="L74" title="All 4 branches missed.">                return f2 == null ? -1 : (next == null ? idCompare(e1, e2) : next.compare(e1, e2));</span>
+            }
+        }
+
+        // If the field is author or editor, we rearrange names so they are
+        // sorted according to last name.
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (InternalBibtexFields.getFieldExtras(sortField).contains(FieldProperties.PERSON_NAMES)) {</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            if (f1 != null) {</span>
+<span class="nc" id="L82">                f1 = AuthorList.fixAuthorForAlphabetization((String) f1).toLowerCase();</span>
+            }
+<span class="nc bnc" id="L84" title="All 2 branches missed.">            if (f2 != null) {</span>
+<span class="nc" id="L85">                f2 = AuthorList.fixAuthorForAlphabetization((String) f2).toLowerCase();</span>
+            }
+
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        } else if (sortField.equals(BibEntry.TYPE_HEADER)) {</span>
+            // Sort by type.
+<span class="nc" id="L90">            f1 = e1.getType();</span>
+<span class="nc" id="L91">            f2 = e2.getType();</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        } else if (numeric) {</span>
+            try {
+<span class="nc" id="L94">                Integer i1 = Integer.parseInt((String) f1);</span>
+<span class="nc" id="L95">                Integer i2 = Integer.parseInt((String) f2);</span>
+                // Ok, parsing was successful. Update f1 and f2:
+<span class="nc" id="L97">                f1 = i1;</span>
+<span class="nc" id="L98">                f2 = i2;</span>
+<span class="nc" id="L99">            } catch (NumberFormatException ex) {</span>
+                // Parsing failed. Give up treating these as numbers.
+                // TODO: should we check which of them failed, and sort based on that?
+            }
+        }
+
+<span class="nc bnc" id="L105" title="All 4 branches missed.">        if ((f1 == null) &amp;&amp; (f2 == null)) {</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">            return next == null ? idCompare(e1, e2) : next.compare(e1, e2);</span>
+        }
+<span class="nc bnc" id="L108" title="All 4 branches missed.">        if ((f1 != null) &amp;&amp; (f2 == null)) {</span>
+<span class="nc" id="L109">            return -1;</span>
+        }
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (f1 == null) { // f2 != null here automatically</span>
+<span class="nc" id="L112">            return 1;</span>
+        }
+
+        int result;
+
+<span class="nc bnc" id="L117" title="All 4 branches missed.">        if ((f1 instanceof Integer) &amp;&amp; (f2 instanceof Integer)) {</span>
+<span class="nc" id="L118">            result = -((Integer) f1).compareTo((Integer) f2);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        } else if (f2 instanceof Integer) {</span>
+<span class="nc" id="L120">            Integer f1AsInteger = Integer.valueOf(f1.toString());</span>
+<span class="nc" id="L121">            result = -f1AsInteger.compareTo((Integer) f2);</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        } else if (f1 instanceof Integer) {</span>
+<span class="nc" id="L123">            Integer f2AsInteger = Integer.valueOf(f2.toString());</span>
+<span class="nc" id="L124">            result = -((Integer) f1).compareTo(f2AsInteger);</span>
+<span class="nc" id="L125">        } else {</span>
+<span class="nc" id="L126">            String ours = ((String) f1).toLowerCase();</span>
+<span class="nc" id="L127">            String theirs = ((String) f2).toLowerCase();</span>
+<span class="nc" id="L128">            int comp = ours.compareTo(theirs);</span>
+<span class="nc" id="L129">            result = -comp;</span>
+        }
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (result != 0) {</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            return descending ? result : -result; // Primary sort.</span>
+        }
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (next == null) {</span>
+<span class="nc" id="L135">            return idCompare(e1, e2); // If still equal, we use the unique IDs.</span>
+        } else {
+<span class="nc" id="L137">            return next.compare(e1, e2); // Secondary sort if existent.</span>
+        }
+    }
+
+    private static int idCompare(BibEntry b1, BibEntry b2) {
+<span class="nc" id="L142">        return b1.getId().compareTo(b2.getId());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

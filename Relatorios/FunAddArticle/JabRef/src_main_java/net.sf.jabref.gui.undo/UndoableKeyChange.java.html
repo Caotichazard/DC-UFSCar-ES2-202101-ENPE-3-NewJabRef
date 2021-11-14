@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>UndoableKeyChange.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.undo</a> &gt; <span class="el_source">UndoableKeyChange.java</span></div><h1>UndoableKeyChange.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.undo;
+
+import javax.swing.undo.AbstractUndoableEdit;
+
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * This class represents a change in any field value. The relevant
+ * information is the BibEntry, the field name, the old and the
+ * new value. Old/new values can be null.
+ */
+public class UndoableKeyChange extends AbstractUndoableEdit {
+
+    private final BibEntry entry;
+    private final BibDatabase base;
+    private final String oldValue;
+    private final String newValue;
+
+
+<span class="fc" id="L37">    public UndoableKeyChange(BibDatabase base, BibEntry entry,</span>
+            String oldValue, String newValue) {
+<span class="fc" id="L39">        this.base = base;</span>
+<span class="fc" id="L40">        this.entry = entry;</span>
+<span class="fc" id="L41">        this.oldValue = oldValue;</span>
+<span class="fc" id="L42">        this.newValue = newValue;</span>
+<span class="fc" id="L43">    }</span>
+
+    @Override
+    public String getPresentationName() {
+<span class="nc" id="L47">        return Localization.lang(&quot;change key&quot;);</span>
+    }
+
+    @Override
+    public String getUndoPresentationName() {
+<span class="nc" id="L52">        return Localization.lang(&quot;Undo&quot;) + &quot;: &quot; +</span>
+<span class="nc" id="L53">                Localization.lang(&quot;change key&quot;);</span>
+    }
+
+    @Override
+    public String getRedoPresentationName() {
+<span class="nc" id="L58">        return Localization.lang(&quot;Redo&quot;) + &quot;: &quot; +</span>
+<span class="nc" id="L59">                Localization.lang(&quot;change key&quot;);</span>
+    }
+
+    @Override
+    public void undo() {
+<span class="nc" id="L64">        super.undo();</span>
+
+        // Revert the change.
+<span class="nc" id="L67">        set(oldValue);</span>
+<span class="nc" id="L68">    }</span>
+
+    @Override
+    public void redo() {
+<span class="nc" id="L72">        super.redo();</span>
+
+        // Redo the change.
+<span class="nc" id="L75">        set(newValue);</span>
+<span class="nc" id="L76">    }</span>
+
+    private void set(String to) {
+<span class="nc" id="L79">        base.setCiteKeyForEntry(entry, to);</span>
+<span class="nc" id="L80">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

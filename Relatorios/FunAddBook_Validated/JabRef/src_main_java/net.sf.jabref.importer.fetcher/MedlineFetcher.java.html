@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MedlineFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">MedlineFetcher.java</span></div><h1>MedlineFetcher.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer.fetcher;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.importer.fileformat.MedlineImporter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Fetch or search from Pubmed http://www.ncbi.nlm.nih.gov/sites/entrez/
+ *
+ */
+<span class="fc" id="L44">public class MedlineFetcher implements EntryFetcher {</span>
+
+<span class="fc" id="L46">    private static final Log LOGGER = LogFactory.getLog(MedlineFetcher.class);</span>
+
+<span class="fc" id="L48">    private static final Pattern PART1_PATTERN = Pattern.compile(&quot;, &quot;);</span>
+<span class="fc" id="L49">    private static final Pattern PART2_PATTERN = Pattern.compile(&quot;,&quot;);</span>
+
+<span class="fc" id="L51">    private static final Pattern ID_PATTERN = Pattern.compile(&quot;&lt;Id&gt;(\\d+)&lt;/Id&gt;&quot;);</span>
+<span class="fc" id="L52">    private static final Pattern COUNT_PATTERN = Pattern.compile(&quot;&lt;Count&gt;(\\d+)&lt;\\/Count&gt;&quot;);</span>
+<span class="fc" id="L53">    private static final Pattern RET_MAX_PATTERN = Pattern.compile(&quot;&lt;RetMax&gt;(\\d+)&lt;\\/RetMax&gt;&quot;);</span>
+<span class="fc" id="L54">    private static final Pattern RET_START_PATTERN = Pattern.compile(&quot;&lt;RetStart&gt;(\\d+)&lt;\\/RetStart&gt;&quot;);</span>
+
+
+
+    /**
+     * How many entries to query in one request
+     */
+<span class="fc" id="L61">    private static final int PACING = 20;</span>
+
+    private boolean shouldContinue;
+    private static String toSearchTerm(String in) {
+        // This can probably be simplified using simple String.replace()...
+<span class="nc" id="L66">        String result = in;</span>
+        Matcher matcher;
+<span class="nc" id="L68">        matcher = PART1_PATTERN.matcher(result);</span>
+<span class="nc" id="L69">        result = matcher.replaceAll(&quot;\\+AND\\+&quot;);</span>
+<span class="nc" id="L70">        matcher = PART2_PATTERN.matcher(result);</span>
+<span class="nc" id="L71">        result = matcher.replaceAll(&quot;\\+AND\\+&quot;);</span>
+<span class="nc" id="L72">        result = result.replace(&quot; &quot;, &quot;+&quot;);</span>
+<span class="nc" id="L73">        return result;</span>
+    }
+
+    /**
+     * Gets the initial list of ids
+     */
+    private SearchResult getIds(String term, int start, int pacing) {
+
+<span class="nc" id="L81">        String baseUrl = &quot;http://eutils.ncbi.nlm.nih.gov/entrez/eutils&quot;;</span>
+<span class="nc" id="L82">        String medlineUrl = baseUrl + &quot;/esearch.fcgi?db=pubmed&amp;retmax=&quot; + Integer.toString(pacing) +</span>
+<span class="nc" id="L83">                &quot;&amp;retstart=&quot; + Integer.toString(start) + &quot;&amp;term=&quot;;</span>
+
+
+<span class="nc" id="L86">        boolean doCount = true;</span>
+<span class="nc" id="L87">        SearchResult result = new SearchResult();</span>
+        try {
+<span class="nc" id="L89">            URL ncbi = new URL(medlineUrl + term);</span>
+            // get the ids
+<span class="nc" id="L91">            BufferedReader in = new BufferedReader(new InputStreamReader(ncbi.openStream()));</span>
+            String inLine;
+<span class="nc bnc" id="L93" title="All 2 branches missed.">            while ((inLine = in.readLine()) != null) {</span>
+
+                // get the count
+<span class="nc" id="L96">                Matcher idMatcher = ID_PATTERN.matcher(inLine);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">                if (idMatcher.find()) {</span>
+<span class="nc" id="L98">                    result.addID(idMatcher.group(1));</span>
+                }
+<span class="nc" id="L100">                Matcher retMaxMatcher = RET_MAX_PATTERN.matcher(inLine);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                if (retMaxMatcher.find()) {</span>
+<span class="nc" id="L102">                    result.retmax = Integer.parseInt(retMaxMatcher.group(1));</span>
+                }
+<span class="nc" id="L104">                Matcher retStartMatcher = RET_START_PATTERN.matcher(inLine);</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                if (retStartMatcher.find()) {</span>
+<span class="nc" id="L106">                    result.retstart = Integer.parseInt(retStartMatcher.group(1));</span>
+                }
+<span class="nc" id="L108">                Matcher countMatcher = COUNT_PATTERN.matcher(inLine);</span>
+<span class="nc bnc" id="L109" title="All 4 branches missed.">                if (doCount &amp;&amp; countMatcher.find()) {</span>
+<span class="nc" id="L110">                    result.count = Integer.parseInt(countMatcher.group(1));</span>
+<span class="nc" id="L111">                    doCount = false;</span>
+                }
+            }
+<span class="nc" id="L114">        } catch (MalformedURLException e) { // new URL() failed</span>
+<span class="nc" id="L115">            LOGGER.warn(&quot;Bad url&quot;, e);</span>
+<span class="nc" id="L116">        } catch (IOException e) { // openConnection() failed</span>
+<span class="nc" id="L117">            LOGGER.warn(&quot;Connection failed&quot;, e);</span>
+        }
+<span class="nc" id="L119">        return result;</span>
+    }
+
+    @Override
+    public void stopFetching() {
+<span class="nc" id="L124">        shouldContinue = false;</span>
+<span class="nc" id="L125">    }</span>
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L129">        return HelpFiles.FETCHER_MEDLINE;</span>
+    }
+
+    @Override
+    public JPanel getOptionsPanel() {
+        // No Option Panel
+<span class="nc" id="L135">        return null;</span>
+    }
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L140">        return &quot;Medline&quot;;</span>
+    }
+
+    @Override
+    public boolean processQuery(String query, ImportInspector iIDialog, OutputPrinter frameOP) {
+
+<span class="nc" id="L146">        shouldContinue = true;</span>
+
+<span class="nc" id="L148">        String cleanQuery = query.trim().replace(';', ',');</span>
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (cleanQuery.matches(&quot;\\d+[,\\d+]*&quot;)) {</span>
+<span class="nc" id="L151">            frameOP.setStatus(Localization.lang(&quot;Fetching Medline by id...&quot;));</span>
+
+<span class="nc" id="L153">            List&lt;BibEntry&gt; bibs = MedlineImporter.fetchMedline(cleanQuery, frameOP);</span>
+
+<span class="nc bnc" id="L155" title="All 2 branches missed.">            if (bibs.isEmpty()) {</span>
+<span class="nc" id="L156">                frameOP.showMessage(Localization.lang(&quot;No references found&quot;));</span>
+            }
+
+<span class="nc bnc" id="L159" title="All 2 branches missed.">            for (BibEntry entry : bibs) {</span>
+<span class="nc" id="L160">                iIDialog.addEntry(entry);</span>
+            }
+<span class="nc" id="L162">            return true;</span>
+        }
+
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        if (!query.isEmpty()) {</span>
+<span class="nc" id="L166">            frameOP.setStatus(Localization.lang(&quot;Fetching Medline by term...&quot;));</span>
+
+<span class="nc" id="L168">            String searchTerm = toSearchTerm(query);</span>
+
+            // get the ids from entrez
+<span class="nc" id="L171">            SearchResult result = getIds(searchTerm, 0, 1);</span>
+
+<span class="nc bnc" id="L173" title="All 2 branches missed.">            if (result.count == 0) {</span>
+<span class="nc" id="L174">                frameOP.showMessage(Localization.lang(&quot;No references found&quot;));</span>
+<span class="nc" id="L175">                return false;</span>
+            }
+
+<span class="nc" id="L178">            int numberToFetch = result.count;</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            if (numberToFetch &gt; MedlineFetcher.PACING) {</span>
+
+<span class="nc" id="L181">                while (true) {</span>
+<span class="nc" id="L182">                    String strCount = JOptionPane.showInputDialog(Localization.lang(&quot;References found&quot;) +</span>
+<span class="nc" id="L183">                            &quot;: &quot; + numberToFetch + &quot;  &quot; +</span>
+<span class="nc" id="L184">                            Localization.lang(&quot;Number of references to fetch?&quot;), Integer</span>
+<span class="nc" id="L185">                            .toString(numberToFetch));</span>
+
+<span class="nc bnc" id="L187" title="All 2 branches missed.">                    if (strCount == null) {</span>
+<span class="nc" id="L188">                        frameOP.setStatus(Localization.lang(&quot;%0 import canceled&quot;, &quot;Medline&quot;));</span>
+<span class="nc" id="L189">                        return false;</span>
+                    }
+
+                    try {
+<span class="nc" id="L193">                        numberToFetch = Integer.parseInt(strCount.trim());</span>
+<span class="nc" id="L194">                        break;</span>
+<span class="nc" id="L195">                    } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L196">                        frameOP.showMessage(Localization.lang(&quot;Please enter a valid number&quot;));</span>
+                    }
+                }
+            }
+
+<span class="nc bnc" id="L201" title="All 2 branches missed.">            for (int i = 0; i &lt; numberToFetch; i += MedlineFetcher.PACING) {</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">                if (!shouldContinue) {</span>
+<span class="nc" id="L203">                    break;</span>
+                }
+
+<span class="nc" id="L206">                int noToFetch = Math.min(MedlineFetcher.PACING, numberToFetch - i);</span>
+
+                // get the ids from entrez
+<span class="nc" id="L209">                result = getIds(searchTerm, i, noToFetch);</span>
+
+<span class="nc" id="L211">                List&lt;BibEntry&gt; bibs = MedlineImporter.fetchMedline(result.ids, frameOP);</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">                for (BibEntry entry : bibs) {</span>
+<span class="nc" id="L213">                    iIDialog.addEntry(entry);</span>
+                }
+<span class="nc" id="L215">                iIDialog.setProgress(i + noToFetch, numberToFetch);</span>
+            }
+<span class="nc" id="L217">            return true;</span>
+        }
+<span class="nc" id="L219">        frameOP.showMessage(</span>
+<span class="nc" id="L220">                Localization.lang(&quot;Please enter a comma separated list of Medline IDs (numbers) or search terms.&quot;),</span>
+<span class="nc" id="L221">                Localization.lang(&quot;Input error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L222">        return false;</span>
+    }
+
+
+<span class="nc" id="L226">    static class SearchResult {</span>
+
+        public int count;
+
+        public int retmax;
+
+        public int retstart;
+
+<span class="nc" id="L234">        public String ids = &quot;&quot;;</span>
+
+
+        public void addID(String id) {
+<span class="nc bnc" id="L238" title="All 2 branches missed.">            if (ids.isEmpty()) {</span>
+<span class="nc" id="L239">                ids = id;</span>
+<span class="nc" id="L240">            } else {</span>
+<span class="nc" id="L241">                ids += &quot;,&quot; + id;</span>
+            }
+<span class="nc" id="L243">        }</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>WaitForSaveOperation.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">WaitForSaveOperation.java</span></div><h1>WaitForSaveOperation.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui;
+
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JProgressBar;
+import javax.swing.Timer;
+
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+
+/**
+ * Dialog shown when closing of application needs to wait for a save operation to finish.
+ */
+public class WaitForSaveOperation implements ActionListener {
+
+    private final JabRefFrame frame;
+    private final JDialog diag;
+<span class="nc" id="L40">    private final Timer t = new Timer(500, this);</span>
+    private boolean canceled;
+
+
+<span class="nc" id="L44">    public WaitForSaveOperation(JabRefFrame frame) {</span>
+<span class="nc" id="L45">        this.frame = frame;</span>
+
+<span class="nc" id="L47">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L48">        JProgressBar prog = new JProgressBar(0);</span>
+<span class="nc" id="L49">        prog.setIndeterminate(true);</span>
+<span class="nc" id="L50">        prog.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L51">        diag = new JDialog(frame, Localization.lang(&quot;Please wait...&quot;), true);</span>
+
+<span class="nc" id="L53">        ButtonBarBuilder bb = new ButtonBarBuilder();</span>
+<span class="nc" id="L54">        bb.addGlue();</span>
+<span class="nc" id="L55">        bb.addButton(cancel);</span>
+<span class="nc" id="L56">        bb.addGlue();</span>
+<span class="nc" id="L57">        cancel.addActionListener(e -&gt; {</span>
+<span class="nc" id="L58">            canceled = true;</span>
+<span class="nc" id="L59">            t.stop();</span>
+<span class="nc" id="L60">            diag.dispose();</span>
+<span class="nc" id="L61">        });</span>
+
+<span class="nc" id="L63">        JLabel message = new JLabel(Localization.lang(&quot;Waiting for save operation to finish&quot;) + &quot;...&quot;);</span>
+<span class="nc" id="L64">        message.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+
+<span class="nc" id="L66">        diag.getContentPane().add(message, BorderLayout.NORTH);</span>
+<span class="nc" id="L67">        diag.getContentPane().add(bb.getPanel(), BorderLayout.SOUTH);</span>
+<span class="nc" id="L68">        diag.getContentPane().add(prog, BorderLayout.CENTER);</span>
+<span class="nc" id="L69">        diag.pack();</span>
+<span class="nc" id="L70">    }</span>
+
+    public void show() {
+<span class="nc" id="L73">        diag.setLocationRelativeTo(frame);</span>
+<span class="nc" id="L74">        t.start();</span>
+<span class="nc" id="L75">        diag.setVisible(true);</span>
+
+<span class="nc" id="L77">    }</span>
+
+    public boolean canceled() {
+<span class="nc" id="L80">        return canceled;</span>
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L85">        boolean anySaving = false;</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        for (BasePanel basePanel : frame.getBasePanelList()) {</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            if (basePanel.isSaving()) {</span>
+<span class="nc" id="L88">                anySaving = true;</span>
+<span class="nc" id="L89">                break;</span>
+            }
+        }
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (!anySaving) {</span>
+<span class="nc" id="L93">            t.stop();</span>
+<span class="nc" id="L94">            diag.dispose();</span>
+        }
+<span class="nc" id="L96">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

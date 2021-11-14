@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>RemoveTilde.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.layout.format</a> &gt; <span class="el_source">RemoveTilde.java</span></div><h1>RemoveTilde.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.layout.format;
+
+import net.sf.jabref.logic.layout.LayoutFormatter;
+
+/**
+ * Replace a non-command tilde ~ by a space.
+ *
+ * Useful for formatting Latex code.
+ */
+<span class="nc" id="L10">public class RemoveTilde implements LayoutFormatter {</span>
+    @Override
+    public String format(String fieldText) {
+<span class="nc" id="L13">        StringBuilder result = new StringBuilder(fieldText.length());</span>
+
+<span class="nc" id="L15">        char[] c = fieldText.toCharArray();</span>
+
+<span class="nc bnc" id="L17" title="All 2 branches missed.">        for (int i = 0; i &lt; c.length; i++) {</span>
+<span class="nc bnc" id="L18" title="All 2 branches missed.">            if (c[i] == '~') {</span>
+<span class="nc" id="L19">                result.append(' ');</span>
+<span class="nc" id="L20">            } else {</span>
+<span class="nc" id="L21">                result.append(c[i]);</span>
+                // Skip the next character if the current one is a backslash
+<span class="nc bnc" id="L23" title="All 4 branches missed.">                if ((c[i] == '\\') &amp;&amp; ((i + 1) &lt; c.length)) {</span>
+<span class="nc" id="L24">                    i++;</span>
+<span class="nc" id="L25">                    result.append(c[i]);</span>
+                }
+            }
+        }
+<span class="nc" id="L29">        return result.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AutoSaveManager.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">AutoSaveManager.java</span></div><h1>AutoSaveManager.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.exporter;
+
+import java.io.File;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.JabRefFrame;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Background task and utilities for autosave feature.
+ */
+public class AutoSaveManager {
+
+<span class="fc" id="L35">    private static final Log LOGGER = LogFactory.getLog(AutoSaveManager.class);</span>
+
+    private final JabRefFrame frame;
+    private Timer t;
+
+<span class="fc" id="L40">    public AutoSaveManager(JabRefFrame frame) {</span>
+<span class="fc" id="L41">        this.frame = frame;</span>
+<span class="fc" id="L42">    }</span>
+
+    public void startAutoSaveTimer() {
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">        if(t != null) {</span>
+            // shut down any previously set timer to not leak any timers
+<span class="nc" id="L47">            t.cancel();</span>
+        }
+
+<span class="fc" id="L50">        TimerTask task = new AutoSaveTask();</span>
+<span class="fc" id="L51">        t = new Timer();</span>
+<span class="fc" id="L52">        long interval = (long) 60000 * Globals.prefs.getInt(JabRefPreferences.AUTO_SAVE_INTERVAL);</span>
+<span class="fc" id="L53">        t.scheduleAtFixedRate(task, interval, interval);</span>
+<span class="fc" id="L54">    }</span>
+
+    public void stopAutoSaveTimer() {
+<span class="fc" id="L57">        t.cancel();</span>
+<span class="fc" id="L58">    }</span>
+
+
+<span class="fc" id="L61">    private class AutoSaveTask extends TimerTask {</span>
+
+        @Override
+        public void run() {
+            // Since this method is running in the background, we must be prepared that
+            // there could be changes done by the user while this method is running.
+
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            for (BasePanel panel : frame.getBasePanelList()) {</span>
+<span class="nc bnc" id="L69" title="All 4 branches missed.">                if (panel.isModified() &amp;&amp; (panel.getBibDatabaseContext().getDatabaseFile() != null)) {</span>
+<span class="nc" id="L70">                        AutoSaveManager.autoSave(panel);</span>
+                }
+            }
+<span class="nc" id="L73">        }</span>
+    }
+
+
+    /**
+     * Get a File object pointing to the autosave file corresponding to the given file.
+     * @param f The database file.
+     * @return its corresponding autosave file.
+     */
+    public static File getAutoSaveFile(File f) {
+<span class="fc" id="L83">        return new File(f.getParentFile(), &quot;.$&quot; + f.getName() + '$');</span>
+    }
+
+    /**
+     * Perform an autosave.
+     * @param panel The BasePanel to autosave for.
+     * @return true if successful, false otherwise.
+     */
+    private static boolean autoSave(BasePanel panel) {
+<span class="nc" id="L92">        File databaseFile = panel.getBibDatabaseContext().getDatabaseFile();</span>
+<span class="nc" id="L93">        File backupFile = AutoSaveManager.getAutoSaveFile(databaseFile);</span>
+        try {
+<span class="nc" id="L95">            SavePreferences prefs = SavePreferences.loadForSaveFromPreferences(Globals.prefs)</span>
+<span class="nc" id="L96">                    .withMakeBackup(false)</span>
+<span class="nc" id="L97">                    .withEncoding(panel.getEncoding());</span>
+
+<span class="nc" id="L99">            BibDatabaseWriter databaseWriter = new BibDatabaseWriter();</span>
+<span class="nc" id="L100">            SaveSession ss = databaseWriter.saveDatabase(panel.getBibDatabaseContext(), prefs);</span>
+<span class="nc" id="L101">            ss.commit(backupFile);</span>
+<span class="nc" id="L102">        } catch (SaveException e) {</span>
+<span class="nc" id="L103">            LOGGER.error(&quot;Problem with automatic save&quot;, e);</span>
+<span class="nc" id="L104">            return false;</span>
+        }
+<span class="nc" id="L106">        return true;</span>
+    }
+
+    /**
+     * Delete this BasePanel's autosave if it exists.
+     * @param panel The BasePanel in question.
+     * @return true if there was no autosave or if the autosave was successfully deleted, false otherwise.
+     */
+    public static boolean deleteAutoSaveFile(BasePanel panel) {
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (panel.getBibDatabaseContext().getDatabaseFile() == null) {</span>
+<span class="nc" id="L116">            return true;</span>
+        }
+<span class="fc" id="L118">        File backupFile = AutoSaveManager.getAutoSaveFile(panel.getBibDatabaseContext().getDatabaseFile());</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">        if (backupFile.exists()) {</span>
+<span class="nc" id="L120">            return backupFile.delete();</span>
+        } else {
+<span class="fc" id="L122">            return true;</span>
+        }
+    }
+
+    /**
+     * Clean up by deleting the autosave files corresponding to all open files,
+     * if they exist.
+     */
+    public void clearAutoSaves() {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        for (BasePanel panel : frame.getBasePanelList()) {</span>
+<span class="fc" id="L132">            AutoSaveManager.deleteAutoSaveFile(panel);</span>
+        }
+<span class="fc" id="L134">    }</span>
+
+    /**
+     * Check if a newer autosave exists for the given file.
+     * @param f The file to check.
+     * @return true if an autosave is found, and if the autosave is newer
+     *   than the given file.
+     */
+    public static boolean newerAutoSaveExists(File f) {
+<span class="fc" id="L143">        File asFile = AutoSaveManager.getAutoSaveFile(f);</span>
+<span class="pc bpc" id="L144" title="3 of 4 branches missed.">        return asFile.exists() &amp;&amp; (asFile.lastModified() &gt; f.lastModified());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

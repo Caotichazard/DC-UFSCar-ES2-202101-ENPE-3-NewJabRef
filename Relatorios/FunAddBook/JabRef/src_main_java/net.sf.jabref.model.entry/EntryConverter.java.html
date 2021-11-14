@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryConverter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.model.entry</a> &gt; <span class="el_source">EntryConverter.java</span></div><h1>EntryConverter.java</h1><pre class="source lang-java linenums">package net.sf.jabref.model.entry;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Converts Entry models from BibTex to BibLaTex and back.
+ */
+<span class="nc" id="L10">public class EntryConverter {</span>
+    // BibTex to BibLatex
+    public static Map&lt;String, String&gt; FIELD_ALIASES_TEX_TO_LTX;
+    // BibLatex to BibTex
+    public static Map&lt;String, String&gt; FIELD_ALIASES_LTX_TO_TEX;
+    // All aliases
+    public static Map&lt;String, String&gt; FIELD_ALIASES;
+
+    static {
+<span class="fc" id="L19">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L20">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX.put(&quot;address&quot;, &quot;location&quot;);</span>
+<span class="fc" id="L21">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX.put(&quot;annote&quot;, &quot;annotation&quot;);</span>
+<span class="fc" id="L22">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX.put(&quot;archiveprefix&quot;, &quot;eprinttype&quot;);</span>
+<span class="fc" id="L23">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX.put(&quot;journal&quot;, &quot;journaltitle&quot;);</span>
+<span class="fc" id="L24">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX.put(&quot;key&quot;, &quot;sortkey&quot;);</span>
+<span class="fc" id="L25">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX.put(&quot;pdf&quot;, &quot;file&quot;);</span>
+<span class="fc" id="L26">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX.put(&quot;primaryclass&quot;, &quot;eprintclass&quot;);</span>
+<span class="fc" id="L27">        EntryConverter.FIELD_ALIASES_TEX_TO_LTX.put(&quot;school&quot;, &quot;institution&quot;);</span>
+
+        // inverse map
+<span class="fc" id="L30">        EntryConverter.FIELD_ALIASES_LTX_TO_TEX = EntryConverter.FIELD_ALIASES_TEX_TO_LTX.entrySet()</span>
+<span class="fc" id="L31">                .stream()</span>
+<span class="fc" id="L32">                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));</span>
+
+        // all aliases
+<span class="fc" id="L35">        FIELD_ALIASES = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L36">        FIELD_ALIASES.putAll(EntryConverter.FIELD_ALIASES_TEX_TO_LTX);</span>
+<span class="fc" id="L37">        FIELD_ALIASES.putAll(EntryConverter.FIELD_ALIASES_LTX_TO_TEX);</span>
+<span class="fc" id="L38">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

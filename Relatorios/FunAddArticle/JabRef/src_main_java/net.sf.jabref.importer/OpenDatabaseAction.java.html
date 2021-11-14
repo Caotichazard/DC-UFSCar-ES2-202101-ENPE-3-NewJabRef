@@ -1,0 +1,525 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>OpenDatabaseAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer</a> &gt; <span class="el_source">OpenDatabaseAction.java</span></div><h1>OpenDatabaseAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer;
+
+import java.awt.event.ActionEvent;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+
+import javax.swing.Action;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Defaults;
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefExecutorService;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.MetaData;
+import net.sf.jabref.exporter.AutoSaveManager;
+import net.sf.jabref.exporter.SaveSession;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.FileDialogs;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.ParserResultWarningDialog;
+import net.sf.jabref.gui.actions.MnemonicAwareAction;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.importer.fileformat.BibtexParser;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.io.FileBasedLock;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.migrations.FileLinksUpgradeWarning;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.specialfields.SpecialFieldsUtils;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+// The action concerned with opening an existing database.
+
+public class OpenDatabaseAction extends MnemonicAwareAction {
+
+<span class="fc" id="L68">    private static final Log LOGGER = LogFactory.getLog(OpenDatabaseAction.class);</span>
+
+    private final boolean showDialog;
+    private final JabRefFrame frame;
+
+    // List of actions that may need to be called after opening the file. Such as
+    // upgrade actions etc. that may depend on the JabRef version that wrote the file:
+<span class="fc" id="L75">    private static final List&lt;PostOpenAction&gt; POST_OPEN_ACTIONS = new ArrayList&lt;&gt;();</span>
+
+    static {
+        // Add the action for checking for new custom entry types loaded from the bib file:
+<span class="fc" id="L79">        POST_OPEN_ACTIONS.add(new CheckForNewEntryTypesAction());</span>
+        // Add the action for converting legacy entries in ExplicitGroup
+<span class="fc" id="L81">        POST_OPEN_ACTIONS.add(new ConvertLegacyExplicitGroups());</span>
+        // Add the action for the new external file handling system in version 2.3:
+<span class="fc" id="L83">        POST_OPEN_ACTIONS.add(new FileLinksUpgradeWarning());</span>
+        // Add the action for warning about and handling duplicate BibTeX keys:
+<span class="fc" id="L85">        POST_OPEN_ACTIONS.add(new HandleDuplicateWarnings());</span>
+<span class="fc" id="L86">    }</span>
+
+    public OpenDatabaseAction(JabRefFrame frame, boolean showDialog) {
+<span class="fc" id="L89">        super(IconTheme.JabRefIcon.OPEN.getIcon());</span>
+<span class="fc" id="L90">        this.frame = frame;</span>
+<span class="fc" id="L91">        this.showDialog = showDialog;</span>
+<span class="fc" id="L92">        putValue(Action.NAME, Localization.menuTitle(&quot;Open database&quot;));</span>
+<span class="fc" id="L93">        putValue(Action.ACCELERATOR_KEY, Globals.getKeyPrefs().getKey(KeyBinding.OPEN_DATABASE));</span>
+<span class="fc" id="L94">        putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Open BibTeX database&quot;));</span>
+<span class="fc" id="L95">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L99">        List&lt;File&gt; filesToOpen = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (showDialog) {</span>
+<span class="nc" id="L102">            List&lt;String&gt; chosenStrings = FileDialogs.getMultipleFiles(frame,</span>
+<span class="nc" id="L103">                    new File(Globals.prefs.get(JabRefPreferences.WORKING_DIRECTORY)), &quot;.bib&quot;, true);</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">            for (String chosen : chosenStrings) {</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                if (chosen != null) {</span>
+<span class="nc" id="L106">                    filesToOpen.add(new File(chosen));</span>
+                }
+            }
+<span class="nc" id="L109">        } else {</span>
+<span class="nc" id="L110">            LOGGER.info(Action.NAME + &quot; &quot; + e.getActionCommand());</span>
+<span class="nc" id="L111">            filesToOpen.add(new File(StringUtil.getCorrectFileName(e.getActionCommand(), &quot;bib&quot;)));</span>
+        }
+
+<span class="nc" id="L114">        openFiles(filesToOpen, true);</span>
+<span class="nc" id="L115">    }</span>
+
+    class OpenItSwingHelper implements Runnable {
+
+        private final BasePanel basePanel;
+        private final boolean raisePanel;
+
+<span class="nc" id="L122">        OpenItSwingHelper(BasePanel basePanel, boolean raisePanel) {</span>
+<span class="nc" id="L123">            this.basePanel = basePanel;</span>
+<span class="nc" id="L124">            this.raisePanel = raisePanel;</span>
+<span class="nc" id="L125">        }</span>
+
+        @Override
+        public void run() {
+<span class="nc" id="L129">            frame.addTab(basePanel, raisePanel);</span>
+
+<span class="nc" id="L131">        }</span>
+    }
+
+    /**
+     * Opens the given file. If null or 404, nothing happens
+     *
+     * @param file the file, may be null or not existing
+     */
+    public void openFile(File file, boolean raisePanel) {
+<span class="nc" id="L140">        List&lt;File&gt; filesToOpen = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L141">        filesToOpen.add(file);</span>
+<span class="nc" id="L142">        openFiles(filesToOpen, raisePanel);</span>
+<span class="nc" id="L143">    }</span>
+
+    public void openFilesAsStringList(List&lt;String&gt; fileNamesToOpen, boolean raisePanel) {
+<span class="nc" id="L146">        List&lt;File&gt; filesToOpen = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        for (String fileName : fileNamesToOpen) {</span>
+<span class="nc" id="L148">            filesToOpen.add(new File(fileName));</span>
+        }
+<span class="nc" id="L150">        openFiles(filesToOpen, raisePanel);</span>
+<span class="nc" id="L151">    }</span>
+
+    /**
+     * Opens the given files. If one of it is null or 404, nothing happens
+     *
+     * @param filesToOpen the filesToOpen, may be null or not existing
+     */
+    public void openFiles(List&lt;File&gt; filesToOpen, boolean raisePanel) {
+<span class="nc" id="L159">        BasePanel toRaise = null;</span>
+<span class="nc" id="L160">        int initialCount = filesToOpen.size();</span>
+<span class="nc" id="L161">        int removed = 0;</span>
+
+        // Check if any of the files are already open:
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        for (Iterator&lt;File&gt; iterator = filesToOpen.iterator(); iterator.hasNext(); ) {</span>
+<span class="nc" id="L165">            File file = iterator.next();</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            for (int i = 0; i &lt; frame.getTabbedPane().getTabCount(); i++) {</span>
+<span class="nc" id="L167">                BasePanel basePanel = frame.getBasePanelAt(i);</span>
+<span class="nc bnc" id="L168" title="All 4 branches missed.">                if ((basePanel.getBibDatabaseContext().getDatabaseFile() != null) &amp;&amp; basePanel.getBibDatabaseContext().getDatabaseFile().equals(file)) {</span>
+<span class="nc" id="L169">                    iterator.remove();</span>
+<span class="nc" id="L170">                    removed++;</span>
+                    // See if we removed the final one. If so, we must perhaps
+                    // raise the BasePanel in question:
+<span class="nc bnc" id="L173" title="All 2 branches missed.">                    if (removed == initialCount) {</span>
+<span class="nc" id="L174">                        toRaise = basePanel;</span>
+                    }
+                    // no more bps to check, we found a matching one
+<span class="nc" id="L177">                    break;</span>
+                }
+            }
+        }
+
+        // Run the actual open in a thread to prevent the program
+        // locking until the file is loaded.
+<span class="nc bnc" id="L184" title="All 2 branches missed.">        if (!filesToOpen.isEmpty()) {</span>
+<span class="nc" id="L185">            final List&lt;File&gt; theFiles = Collections.unmodifiableList(filesToOpen);</span>
+<span class="nc" id="L186">            JabRefExecutorService.INSTANCE.execute((Runnable) () -&gt; {</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">                for (File theFile : theFiles) {</span>
+<span class="nc" id="L188">                    openTheFile(theFile, raisePanel);</span>
+                }
+<span class="nc" id="L190">            });</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">            for (File theFile : theFiles) {</span>
+<span class="nc" id="L192">                frame.getFileHistory().newFile(theFile.getPath());</span>
+            }
+<span class="nc" id="L194">        }</span>
+        // If no files are remaining to open, this could mean that a file was
+        // already open. If so, we may have to raise the correct tab:
+<span class="nc bnc" id="L197" title="All 2 branches missed.">        else if (toRaise != null) {</span>
+<span class="nc" id="L198">            frame.output(Localization.lang(&quot;File '%0' is already open.&quot;, toRaise.getBibDatabaseContext().getDatabaseFile().getPath()));</span>
+<span class="nc" id="L199">            frame.getTabbedPane().setSelectedComponent(toRaise);</span>
+        }
+
+<span class="nc" id="L202">        frame.output(Localization.lang(&quot;Files opened&quot;) + &quot;: &quot; + (filesToOpen.size()));</span>
+<span class="nc" id="L203">    }</span>
+
+    /**
+     * @param file the file, may be null or not existing
+     */
+    private void openTheFile(File file, boolean raisePanel) {
+<span class="nc bnc" id="L209" title="All 4 branches missed.">        if ((file != null) &amp;&amp; file.exists()) {</span>
+<span class="nc" id="L210">            File fileToLoad = file;</span>
+<span class="nc" id="L211">            frame.output(Localization.lang(&quot;Opening&quot;) + &quot;: '&quot; + file.getPath() + &quot;'&quot;);</span>
+<span class="nc" id="L212">            boolean tryingAutosave = false;</span>
+<span class="nc" id="L213">            boolean autoSaveFound = AutoSaveManager.newerAutoSaveExists(file);</span>
+<span class="nc bnc" id="L214" title="All 4 branches missed.">            if (autoSaveFound &amp;&amp; !Globals.prefs.getBoolean(JabRefPreferences.PROMPT_BEFORE_USING_AUTOSAVE)) {</span>
+                // We have found a newer autosave, and the preferences say we should load
+                // it without prompting, so we replace the fileToLoad:
+<span class="nc" id="L217">                fileToLoad = AutoSaveManager.getAutoSaveFile(file);</span>
+<span class="nc" id="L218">                tryingAutosave = true;</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            } else if (autoSaveFound) {</span>
+                // We have found a newer autosave, but we are not allowed to use it without
+                // prompting.
+<span class="nc" id="L222">                int answer = JOptionPane.showConfirmDialog(null,</span>
+<span class="nc" id="L223">                        &quot;&lt;html&gt;&quot; + Localization</span>
+<span class="nc" id="L224">                                .lang(&quot;An autosave file was found for this database. This could indicate &quot;</span>
+                                        + &quot;that JabRef didn't shut down cleanly last time the file was used.&quot;)
+<span class="nc" id="L226">                                + &quot;&lt;br&gt;&quot; + Localization.lang(&quot;Do you want to recover the database from the autosave file?&quot;)</span>
+<span class="nc" id="L227">                                + &quot;&lt;/html&gt;&quot;, Localization.lang(&quot;Recover from autosave&quot;), JOptionPane.YES_NO_OPTION);</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">                if (answer == JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L229">                    fileToLoad = AutoSaveManager.getAutoSaveFile(file);</span>
+<span class="nc" id="L230">                    tryingAutosave = true;</span>
+                }
+            }
+
+<span class="nc" id="L234">            boolean done = false;</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">            while (!done) {</span>
+<span class="nc" id="L236">                String fileName = file.getPath();</span>
+<span class="nc" id="L237">                Globals.prefs.put(JabRefPreferences.WORKING_DIRECTORY, file.getPath());</span>
+                // Should this be done _after_ we know it was successfully opened?
+
+<span class="nc bnc" id="L240" title="All 2 branches missed.">                if (FileBasedLock.hasLockFile(file)) {</span>
+<span class="nc" id="L241">                    long modificationTIme = FileBasedLock.getLockFileTimeStamp(file);</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">                    if ((modificationTIme != -1)</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">                            &amp;&amp; ((System.currentTimeMillis() - modificationTIme) &gt; SaveSession.LOCKFILE_CRITICAL_AGE)) {</span>
+                        // The lock file is fairly old, so we can offer to &quot;steal&quot; the file:
+<span class="nc" id="L245">                        int answer = JOptionPane.showConfirmDialog(null,</span>
+<span class="nc" id="L246">                                &quot;&lt;html&gt;&quot; + Localization.lang(&quot;Error opening file&quot;) + &quot; '&quot; + fileName + &quot;'. &quot;</span>
+<span class="nc" id="L247">                                        + Localization.lang(&quot;File is locked by another JabRef instance.&quot;) + &quot;&lt;p&gt;&quot;</span>
+<span class="nc" id="L248">                                        + Localization.lang(&quot;Do you want to override the file lock?&quot;),</span>
+<span class="nc" id="L249">                                Localization.lang(&quot;File locked&quot;), JOptionPane.YES_NO_OPTION);</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">                        if (answer == JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L251">                            FileBasedLock.deleteLockFile(file);</span>
+<span class="nc" id="L252">                        } else {</span>
+<span class="nc" id="L253">                            return;</span>
+                        }
+<span class="nc bnc" id="L255" title="All 2 branches missed.">                    } else if (!FileBasedLock.waitForFileLock(file, 10)) {</span>
+<span class="nc" id="L256">                        JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L257">                                Localization.lang(&quot;Error opening file&quot;) + &quot; '&quot; + fileName + &quot;'. &quot;</span>
+<span class="nc" id="L258">                                        + Localization.lang(&quot;File is locked by another JabRef instance.&quot;),</span>
+<span class="nc" id="L259">                                Localization.lang(&quot;Error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L260">                        return;</span>
+                    }
+
+                }
+
+<span class="nc" id="L265">                Charset encoding = Globals.prefs.getDefaultEncoding();</span>
+                ParserResult result;
+<span class="nc" id="L267">                String errorMessage = null;</span>
+                try {
+<span class="nc" id="L269">                    result = OpenDatabaseAction.loadDatabase(fileToLoad, encoding);</span>
+<span class="nc" id="L270">                } catch (IOException ex) {</span>
+<span class="nc" id="L271">                    LOGGER.error(&quot;Error loading database &quot; + fileToLoad, ex);</span>
+<span class="nc" id="L272">                    result = ParserResult.getNullResult();</span>
+                }
+<span class="nc bnc" id="L274" title="All 2 branches missed.">                if (result.isNullResult()) {</span>
+<span class="nc" id="L275">                    JOptionPane.showMessageDialog(null, Localization.lang(&quot;Error opening file&quot;) + &quot; '&quot; + fileName + &quot;'&quot;,</span>
+<span class="nc" id="L276">                            Localization.lang(&quot;Error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+
+<span class="nc" id="L278">                    String message = &quot;&lt;html&gt;&quot; + errorMessage + &quot;&lt;p&gt;&quot;</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">                            + (tryingAutosave ? Localization.lang(</span>
+<span class="nc" id="L280">                                    &quot;Error opening autosave of '%0'. Trying to load '%0' instead.&quot;,</span>
+<span class="nc" id="L281">                                    file.getName()) : &quot;&quot;/*Globals.lang(&quot;Error opening file '%0'.&quot;, file.getName())*/)</span>
+<span class="nc" id="L282">                            + &quot;&lt;/html&gt;&quot;;</span>
+<span class="nc" id="L283">                    JOptionPane.showMessageDialog(null, message, Localization.lang(&quot;Error opening file&quot;),</span>
+<span class="nc" id="L284">                            JOptionPane.ERROR_MESSAGE);</span>
+
+<span class="nc bnc" id="L286" title="All 2 branches missed.">                    if (tryingAutosave) {</span>
+<span class="nc" id="L287">                        tryingAutosave = false;</span>
+<span class="nc" id="L288">                        fileToLoad = file;</span>
+<span class="nc" id="L289">                    } else {</span>
+<span class="nc" id="L290">                        done = true;</span>
+                    }
+<span class="nc" id="L292">                    continue;</span>
+                } else {
+<span class="nc" id="L294">                    done = true;</span>
+                }
+
+<span class="nc" id="L297">                final BasePanel panel = addNewDatabase(result, file, raisePanel);</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">                if (tryingAutosave) {</span>
+<span class="nc" id="L299">                    panel.markNonUndoableBaseChanged();</span>
+                }
+
+                // After adding the database, go through our list and see if
+                // any post open actions need to be done. For instance, checking
+                // if we found new entry types that can be imported, or checking
+                // if the database contents should be modified due to new features
+                // in this version of JabRef:
+<span class="nc" id="L307">                final ParserResult finalReferenceToResult = result;</span>
+<span class="nc" id="L308">                SwingUtilities.invokeLater(new Runnable() {</span>
+
+                    @Override
+                    public void run() {
+<span class="nc" id="L312">                        OpenDatabaseAction.performPostOpenActions(panel, finalReferenceToResult, true);</span>
+<span class="nc" id="L313">                    }</span>
+                });
+            }
+
+        }
+<span class="nc" id="L318">    }</span>
+
+    /**
+     * Go through the list of post open actions, and perform those that need to be performed.
+     *
+     * @param panel  The BasePanel where the database is shown.
+     * @param result The result of the bib file parse operation.
+     */
+    public static void performPostOpenActions(BasePanel panel, ParserResult result, boolean mustRaisePanel) {
+<span class="fc bfc" id="L327" title="All 2 branches covered.">        for (PostOpenAction action : OpenDatabaseAction.POST_OPEN_ACTIONS) {</span>
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">            if (action.isActionNecessary(result)) {</span>
+<span class="nc bnc" id="L329" title="All 2 branches missed.">                if (mustRaisePanel) {</span>
+<span class="nc" id="L330">                    panel.frame().getTabbedPane().setSelectedComponent(panel);</span>
+                }
+<span class="nc" id="L332">                action.performAction(panel, result);</span>
+            }
+        }
+<span class="fc" id="L335">    }</span>
+
+    public BasePanel addNewDatabase(ParserResult result, final File file, boolean raisePanel) {
+
+<span class="nc" id="L339">        String fileName = file.getPath();</span>
+<span class="nc" id="L340">        BibDatabase database = result.getDatabase();</span>
+<span class="nc" id="L341">        MetaData meta = result.getMetaData();</span>
+
+<span class="nc bnc" id="L343" title="All 2 branches missed.">        if (result.hasWarnings()) {</span>
+<span class="nc" id="L344">            JabRefExecutorService.INSTANCE.execute(() -&gt; ParserResultWarningDialog.showParserResultWarningDialog(result, frame));</span>
+        }
+
+<span class="nc" id="L347">        Defaults defaults = new Defaults(BibDatabaseMode.fromPreference(Globals.prefs.getBoolean(JabRefPreferences.BIBLATEX_DEFAULT_MODE)));</span>
+<span class="nc" id="L348">        BasePanel basePanel = new BasePanel(frame, new BibDatabaseContext(database, meta, file, defaults), result.getEncoding());</span>
+
+        // file is set to null inside the EventDispatcherThread
+<span class="nc" id="L351">        SwingUtilities.invokeLater(new OpenItSwingHelper(basePanel, raisePanel));</span>
+
+<span class="nc" id="L353">        frame.output(Localization.lang(&quot;Opened database&quot;) + &quot; '&quot; + fileName + &quot;' &quot; + Localization.lang(&quot;with&quot;) + &quot; &quot;</span>
+<span class="nc" id="L354">                + database.getEntryCount() + &quot; &quot; + Localization.lang(&quot;entries&quot;) + &quot;.&quot;);</span>
+
+<span class="nc" id="L356">        return basePanel;</span>
+    }
+
+    /**
+     * Opens a new database.
+     */
+    public static ParserResult loadDatabase(File fileToOpen, Charset defaultEncoding) throws IOException {
+
+        // We want to check if there is a JabRef signature in the file, because that would tell us
+        // which character encoding is used. However, to read the signature we must be using a compatible
+        // encoding in the first place. Since the signature doesn't contain any fancy characters, we can
+        // read it regardless of encoding, with either UTF-8 or UTF-16. That's the hypothesis, at any rate.
+        // 8 bit is most likely, so we try that first:
+<span class="fc" id="L369">        Optional&lt;Charset&gt; suppliedEncoding = Optional.empty();</span>
+<span class="fc" id="L370">        try (Reader utf8Reader = ImportFormatReader.getUTF8Reader(fileToOpen)) {</span>
+<span class="fc" id="L371">            suppliedEncoding = OpenDatabaseAction.getSuppliedEncoding(utf8Reader);</span>
+        }
+        // Now if that didn't get us anywhere, we check with the 16 bit encoding:
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">        if (!suppliedEncoding.isPresent()) {</span>
+<span class="nc" id="L375">            try (Reader utf16Reader = ImportFormatReader.getUTF16Reader(fileToOpen)) {</span>
+<span class="nc" id="L376">                suppliedEncoding = OpenDatabaseAction.getSuppliedEncoding(utf16Reader);</span>
+            }
+        }
+
+        // Open and parse file
+<span class="fc" id="L381">        try (InputStreamReader reader = openFile(fileToOpen, suppliedEncoding, defaultEncoding)) {</span>
+<span class="fc" id="L382">            BibtexParser parser = new BibtexParser(reader);</span>
+
+<span class="fc" id="L384">            ParserResult result = parser.parse();</span>
+<span class="fc" id="L385">            result.setEncoding(Charset.forName(reader.getEncoding()));</span>
+<span class="fc" id="L386">            result.setFile(fileToOpen);</span>
+
+<span class="pc bpc" id="L388" title="1 of 2 branches missed.">            if (SpecialFieldsUtils.keywordSyncEnabled()) {</span>
+<span class="fc" id="L389">                NamedCompound compound = new NamedCompound(&quot;SpecialFieldSync&quot;);</span>
+<span class="fc bfc" id="L390" title="All 2 branches covered.">                for (BibEntry entry : result.getDatabase().getEntries()) {</span>
+<span class="fc" id="L391">                    SpecialFieldsUtils.syncSpecialFieldsFromKeywords(entry, compound);</span>
+                }
+<span class="fc" id="L393">                LOGGER.debug(&quot;Synchronized special fields based on keywords&quot;);</span>
+            }
+
+<span class="fc" id="L396">            return result;</span>
+        }
+    }
+
+    /**
+     * Opens the file with the provided encoding. If this fails (or no encoding is provided), then the fallback encoding
+     * will be used.
+     */
+    private static InputStreamReader openFile(File fileToOpen, Optional&lt;Charset&gt; encoding, Charset defaultEncoding)
+            throws IOException {
+<span class="pc bpc" id="L406" title="1 of 2 branches missed.">        if (encoding.isPresent()) {</span>
+            try {
+<span class="fc" id="L408">                return ImportFormatReader.getReader(fileToOpen, encoding.get());</span>
+<span class="nc" id="L409">            } catch (IOException ex) {</span>
+<span class="nc" id="L410">                LOGGER.warn(&quot;Problem getting reader&quot;, ex);</span>
+                // The supplied encoding didn't work out, so we use the fallback.
+<span class="nc" id="L412">                return ImportFormatReader.getReader(fileToOpen, defaultEncoding);</span>
+            }
+        } else {
+            // We couldn't find a header with info about encoding. Use fallback:
+<span class="nc" id="L416">            return ImportFormatReader.getReader(fileToOpen, defaultEncoding);</span>
+
+        }
+    }
+
+    /**
+     * Searches the file for &quot;Encoding: myEncoding&quot; and returns the found supplied encoding.
+     */
+    private static Optional&lt;Charset&gt; getSuppliedEncoding(Reader reader) {
+        try {
+<span class="fc" id="L426">            BufferedReader bufferedReader = new BufferedReader(reader);</span>
+            String line;
+<span class="pc bpc" id="L428" title="1 of 2 branches missed.">            while ((line = bufferedReader.readLine()) != null) {</span>
+<span class="fc" id="L429">                line = line.trim();</span>
+
+                // Line does not start with %, so there are no comment lines for us and we can stop parsing
+<span class="pc bpc" id="L432" title="1 of 2 branches missed.">                if (!line.startsWith(&quot;%&quot;)) {</span>
+<span class="nc" id="L433">                    return Optional.empty();</span>
+                }
+
+                // Only keep the part after %
+<span class="fc" id="L437">                line = line.substring(1).trim();</span>
+
+<span class="pc bpc" id="L439" title="1 of 2 branches missed.">                if (line.startsWith(Globals.SIGNATURE)) {</span>
+                    // Signature line, so keep reading and skip to next line
+<span class="pc bpc" id="L441" title="1 of 2 branches missed.">                } else if (line.startsWith(Globals.ENCODING_PREFIX)) {</span>
+                    // Line starts with &quot;Encoding: &quot;, so the rest of the line should contain the name of the encoding
+                    // Except if there is already a @ symbol signaling the starting of a BibEntry
+<span class="fc" id="L444">                    Integer atSymbolIndex = line.indexOf('@');</span>
+                    String encoding;
+<span class="pc bpc" id="L446" title="1 of 2 branches missed.">                    if (atSymbolIndex &gt; 0) {</span>
+<span class="nc" id="L447">                        encoding = line.substring(Globals.ENCODING_PREFIX.length(), atSymbolIndex);</span>
+<span class="nc" id="L448">                    } else {</span>
+<span class="fc" id="L449">                        encoding = line.substring(Globals.ENCODING_PREFIX.length());</span>
+                    }
+
+<span class="fc" id="L452">                    return Optional.of(Charset.forName(encoding));</span>
+                } else {
+                    // Line not recognized so stop parsing
+<span class="nc" id="L455">                    return Optional.empty();</span>
+                }
+            }
+<span class="nc" id="L458">        } catch (IOException ignored) {</span>
+            // Ignored
+        }
+<span class="nc" id="L461">        return Optional.empty();</span>
+    }
+
+    /**
+     * Load database (bib-file) or, if there exists, a newer autosave version, unless the flag is set to ignore the autosave
+    *
+    * @param name Name of the bib-file to open
+    * @param ignoreAutosave true if autosave version of the file should be ignored
+    * @return ParserResult which never is null
+    */
+
+    public static ParserResult loadDatabaseOrAutoSave(String name, boolean ignoreAutosave) {
+        // String in OpenDatabaseAction.java
+<span class="fc" id="L474">        LOGGER.info(&quot;Opening: &quot; + name);</span>
+<span class="fc" id="L475">        File file = new File(name);</span>
+<span class="pc bpc" id="L476" title="1 of 2 branches missed.">        if (!file.exists()) {</span>
+<span class="nc" id="L477">            ParserResult pr = new ParserResult(null, null, null);</span>
+<span class="nc" id="L478">            pr.setFile(file);</span>
+<span class="nc" id="L479">            pr.setInvalid(true);</span>
+<span class="nc" id="L480">            LOGGER.error(Localization.lang(&quot;Error&quot;) + &quot;: &quot; + Localization.lang(&quot;File not found&quot;));</span>
+<span class="nc" id="L481">            return pr;</span>
+
+        }
+        try {
+
+<span class="pc bpc" id="L486" title="1 of 2 branches missed.">            if (!ignoreAutosave) {</span>
+<span class="fc" id="L487">                boolean autoSaveFound = AutoSaveManager.newerAutoSaveExists(file);</span>
+<span class="pc bpc" id="L488" title="1 of 2 branches missed.">                if (autoSaveFound) {</span>
+                    // We have found a newer autosave. Make a note of this, so it can be
+                    // handled after startup:
+<span class="nc" id="L491">                    ParserResult postp = new ParserResult(null, null, null);</span>
+<span class="nc" id="L492">                    postp.setPostponedAutosaveFound(true);</span>
+<span class="nc" id="L493">                    postp.setFile(file);</span>
+<span class="nc" id="L494">                    return postp;</span>
+                }
+            }
+
+<span class="pc bpc" id="L498" title="1 of 2 branches missed.">            if (!FileBasedLock.waitForFileLock(file, 10)) {</span>
+<span class="nc" id="L499">                LOGGER.error(Localization.lang(&quot;Error opening file&quot;) + &quot; '&quot; + name + &quot;'. &quot;</span>
+<span class="nc" id="L500">                        + &quot;File is locked by another JabRef instance.&quot;);</span>
+<span class="nc" id="L501">                return ParserResult.getNullResult();</span>
+            }
+
+<span class="fc" id="L504">            Charset encoding = Globals.prefs.getDefaultEncoding();</span>
+<span class="fc" id="L505">            ParserResult pr = OpenDatabaseAction.loadDatabase(file, encoding);</span>
+<span class="fc" id="L506">            pr.setFile(file);</span>
+<span class="fc bfc" id="L507" title="All 2 branches covered.">            if (pr.hasWarnings()) {</span>
+<span class="fc bfc" id="L508" title="All 2 branches covered.">                for (String aWarn : pr.warnings()) {</span>
+<span class="fc" id="L509">                    LOGGER.warn(aWarn);</span>
+                }
+            }
+<span class="fc" id="L512">            return pr;</span>
+<span class="nc" id="L513">        } catch (Throwable ex) {</span>
+<span class="nc" id="L514">            ParserResult pr = new ParserResult(null, null, null);</span>
+<span class="nc" id="L515">            pr.setFile(file);</span>
+<span class="nc" id="L516">            pr.setInvalid(true);</span>
+<span class="nc" id="L517">            pr.setErrorMessage(ex.getMessage());</span>
+<span class="nc" id="L518">            LOGGER.info(&quot;Problem opening .bib-file&quot;, ex);</span>
+<span class="nc" id="L519">            return pr;</span>
+        }
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

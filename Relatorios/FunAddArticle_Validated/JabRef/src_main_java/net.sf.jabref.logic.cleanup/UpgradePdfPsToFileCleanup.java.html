@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>UpgradePdfPsToFileCleanup.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.cleanup</a> &gt; <span class="el_source">UpgradePdfPsToFileCleanup.java</span></div><h1>UpgradePdfPsToFileCleanup.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+package net.sf.jabref.logic.cleanup;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.external.ExternalFileTypes;
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.FileField;
+import net.sf.jabref.model.entry.ParsedFileField;
+
+/**
+ * Collects file links from the given set of fields, and add them to the list contained in the file field.
+ */
+public class UpgradePdfPsToFileCleanup implements CleanupJob {
+
+    private final List&lt;String&gt; fields;
+
+<span class="nc" id="L36">    public UpgradePdfPsToFileCleanup(List&lt;String&gt; fields) {</span>
+<span class="nc" id="L37">        this.fields = Objects.requireNonNull(fields);</span>
+<span class="nc" id="L38">    }</span>
+
+    @Override
+    public List&lt;FieldChange&gt; cleanup(BibEntry entry) {
+<span class="nc" id="L42">        List&lt;FieldChange&gt; changes = new ArrayList&lt;&gt;();</span>
+
+        // If there are already links in the file field, keep those on top:
+<span class="nc" id="L45">        String oldFileContent = entry.getField(Globals.FILE_FIELD);</span>
+
+<span class="nc" id="L47">        List&lt;ParsedFileField&gt; fileList = new ArrayList&lt;&gt;(FileField.parse(oldFileContent));</span>
+<span class="nc" id="L48">        int oldItemCount = fileList.size();</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        for (String field : fields) {</span>
+<span class="nc" id="L50">            entry.getFieldOptional(field).ifPresent(o -&gt; {</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">                if (o.trim().isEmpty()) {</span>
+<span class="nc" id="L52">                    return;</span>
+                }
+<span class="nc" id="L54">                File f = new File(o);</span>
+<span class="nc" id="L55">                ParsedFileField flEntry = new ParsedFileField(f.getName(), o,</span>
+<span class="nc" id="L56">                        ExternalFileTypes.getInstance().getExternalFileTypeNameByExt(field));</span>
+<span class="nc" id="L57">                fileList.add(flEntry);</span>
+
+<span class="nc" id="L59">                entry.clearField(field);</span>
+<span class="nc" id="L60">                changes.add(new FieldChange(entry, field, o, null));</span>
+<span class="nc" id="L61">            });</span>
+        }
+
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (fileList.size() != oldItemCount) {</span>
+<span class="nc" id="L65">            String newValue = FileField.getStringRepresentation(fileList);</span>
+<span class="nc" id="L66">            entry.setField(Globals.FILE_FIELD, newValue);</span>
+<span class="nc" id="L67">            changes.add(new FieldChange(entry, Globals.FILE_FIELD, oldFileContent, newValue));</span>
+        }
+
+<span class="nc" id="L70">        return changes;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

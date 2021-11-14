@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AuxParser.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.auxparser</a> &gt; <span class="el_source">AuxParser.java</span></div><h1>AuxParser.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.auxparser;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.IdGenerator;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * LaTeX Aux to BibTeX Parser
+ * &lt;p&gt;
+ * Extracts a subset of BibTeX entries from a BibDatabase that are included in an aux file.
+ */
+public class AuxParser {
+<span class="nc" id="L27">    private static final Log LOGGER = LogFactory.getLog(AuxParser.class);</span>
+
+<span class="nc" id="L29">    private static final Pattern CITE_PATTERN = Pattern.compile(&quot;\\\\(citation|abx@aux@cite)\\{(.+)\\}&quot;);</span>
+<span class="nc" id="L30">    private static final Pattern INPUT_PATTERN = Pattern.compile(&quot;\\\\@input\\{(.+)\\}&quot;);</span>
+
+    private final String auxFile;
+    private final BibDatabase masterDatabase;
+
+    /**
+     * Generates a database based on the given aux file and BibTeX database
+     *
+     * @param auxFile  Path to the LaTeX aux file
+     * @param database BibTeX database
+     */
+<span class="nc" id="L41">    public AuxParser(String auxFile, BibDatabase database) {</span>
+<span class="nc" id="L42">        this.auxFile = auxFile;</span>
+<span class="nc" id="L43">        masterDatabase = database;</span>
+<span class="nc" id="L44">    }</span>
+
+    /**
+     * Executes the parsing logic and returns a result containing all information and the generated BibDatabase.
+     *
+     * @return an AuxParserResult containing the generated BibDatabase and parsing statistics
+     */
+    public AuxParserResult parse() {
+<span class="nc" id="L52">        return parseAuxFile();</span>
+    }
+
+    /*
+     * Parses the aux file and extracts all bib keys.
+     * Also supports nested aux files (latex \\include).
+     *
+     * There exists no specification of the aux file.
+     * Every package, class or document can write to the aux file.
+     * The aux file consists of LaTeX macros and is read at the \begin{document} and again at the \end{document}.
+     *
+     * BibTeX citation: \citation{x,y,z}
+     * Biblatex citation: \abx@aux@cite{x,y,z}
+     * Nested aux files: \@input{x}
+     */
+    private AuxParserResult parseAuxFile() {
+<span class="nc" id="L68">        AuxParserResult result = new AuxParserResult(masterDatabase);</span>
+
+        // nested aux files
+<span class="nc" id="L71">        List&lt;String&gt; fileList = new ArrayList&lt;&gt;(1);</span>
+<span class="nc" id="L72">        fileList.add(auxFile);</span>
+
+<span class="nc" id="L74">        int fileIndex = 0;</span>
+
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        while (fileIndex &lt; fileList.size()) {</span>
+<span class="nc" id="L77">            String file = fileList.get(fileIndex);</span>
+
+<span class="nc" id="L79">            try (BufferedReader br = new BufferedReader(new FileReader(file))) {</span>
+                String line;
+
+<span class="nc bnc" id="L82" title="All 2 branches missed.">                while ((line = br.readLine()) != null) {</span>
+<span class="nc" id="L83">                    Matcher citeMatch = CITE_PATTERN.matcher(line);</span>
+
+<span class="nc bnc" id="L85" title="All 2 branches missed.">                    while (citeMatch.find()) {</span>
+<span class="nc" id="L86">                        String keyString = citeMatch.group(2);</span>
+<span class="nc" id="L87">                        String[] keys = keyString.split(&quot;,&quot;);</span>
+
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                        for (String key : keys) {</span>
+<span class="nc" id="L90">                            result.getUniqueKeys().add(key.trim());</span>
+                        }
+                    }
+
+<span class="nc" id="L94">                    Matcher inputMatch = INPUT_PATTERN.matcher(line);</span>
+
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                    while (inputMatch.find()) {</span>
+<span class="nc" id="L97">                        String inputString = inputMatch.group(1);</span>
+
+<span class="nc" id="L99">                        String inputFile = inputString;</span>
+<span class="nc" id="L100">                        Path rootPath = new File(auxFile).toPath().getParent();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                        if (rootPath != null) {</span>
+<span class="nc" id="L102">                            inputFile = rootPath.resolve(inputString).toString();</span>
+                        }
+
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                        if (!fileList.contains(inputFile)) {</span>
+<span class="nc" id="L106">                            fileList.add(inputFile);</span>
+<span class="nc" id="L107">                            result.increaseNestedAuxFilesCounter();</span>
+                        }
+                    }
+                }
+<span class="nc" id="L111">            } catch (FileNotFoundException e) {</span>
+<span class="nc" id="L112">                LOGGER.info(&quot;Cannot locate input file&quot;, e);</span>
+<span class="nc" id="L113">            } catch (IOException e) {</span>
+<span class="nc" id="L114">                LOGGER.warn(&quot;Problem opening file&quot;, e);</span>
+            }
+
+<span class="nc" id="L117">            fileIndex++;</span>
+        }
+<span class="nc" id="L119">        resolveTags(result);</span>
+
+<span class="nc" id="L121">        return result;</span>
+    }
+
+    /*
+     * Try to find an equivalent BibTeX entry inside the reference database for all keys inside the aux file.
+     */
+    private void resolveTags(AuxParserResult result) {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        for (String key : result.getUniqueKeys()) {</span>
+<span class="nc" id="L129">            BibEntry entry = masterDatabase.getEntryByKey(key);</span>
+
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (entry == null) {</span>
+<span class="nc" id="L132">                result.getUnresolvedKeys().add(key);</span>
+<span class="nc" id="L133">            } else {</span>
+<span class="nc" id="L134">                insertEntry(entry, result);</span>
+<span class="nc" id="L135">                resolveCrossReferences(entry, result);</span>
+            }
+        }
+
+        // Copy database definitions
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (result.getGeneratedBibDatabase().hasEntries()) {</span>
+<span class="nc" id="L141">            result.getGeneratedBibDatabase().copyPreamble(masterDatabase);</span>
+<span class="nc" id="L142">            result.getGeneratedBibDatabase().copyStrings(masterDatabase);</span>
+        }
+<span class="nc" id="L144">    }</span>
+
+    /*
+     * Resolves and adds CrossRef entries
+     */
+    private void resolveCrossReferences(BibEntry entry, AuxParserResult result) {
+<span class="nc" id="L150">        entry.getFieldOptional(&quot;crossref&quot;).ifPresent(crossref -&gt; {</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">            if (!result.getUniqueKeys().contains(crossref)) {</span>
+<span class="nc" id="L152">                BibEntry refEntry = masterDatabase.getEntryByKey(crossref);</span>
+
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                if (refEntry == null) {</span>
+<span class="nc" id="L155">                    result.getUnresolvedKeys().add(crossref);</span>
+<span class="nc" id="L156">                } else {</span>
+<span class="nc" id="L157">                    insertEntry(refEntry, result);</span>
+<span class="nc" id="L158">                    result.increaseCrossRefEntriesCounter();</span>
+                }
+            }
+<span class="nc" id="L161">        });</span>
+<span class="nc" id="L162">    }</span>
+
+    /*
+     * Insert a clone of the given entry. The clone is given a new unique ID.
+     */
+    private void insertEntry(BibEntry entry, AuxParserResult result) {
+<span class="nc" id="L168">        BibEntry clonedEntry = (BibEntry) entry.clone();</span>
+<span class="nc" id="L169">        clonedEntry.setId(IdGenerator.next());</span>
+<span class="nc" id="L170">        result.getGeneratedBibDatabase().insertEntry(clonedEntry);</span>
+<span class="nc" id="L171">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

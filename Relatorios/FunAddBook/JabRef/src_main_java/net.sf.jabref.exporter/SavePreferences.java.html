@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SavePreferences.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">SavePreferences.java</span></div><h1>SavePreferences.java</h1><pre class="source lang-java linenums">package net.sf.jabref.exporter;
+
+import java.nio.charset.Charset;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.logic.config.SaveOrderConfig;
+
+public class SavePreferences {
+
+    private final boolean reformatFile;
+    private final boolean saveInOriginalOrder;
+    private final SaveOrderConfig saveOrder;
+    private final Charset encoding;
+    private final boolean makeBackup;
+    private final DatabaseSaveType saveType;
+    private final boolean takeMetadataSaveOrderInAccount;
+
+    public SavePreferences() {
+<span class="nc" id="L20">        this(true, null, null, false, DatabaseSaveType.ALL, true, false);</span>
+<span class="nc" id="L21">    }</span>
+
+<span class="fc" id="L23">    public SavePreferences(Boolean saveInOriginalOrder, SaveOrderConfig saveOrder, Charset encoding, Boolean makeBackup,</span>
+            DatabaseSaveType saveType, Boolean takeMetadataSaveOrderInAccount, Boolean reformatFile) {
+<span class="fc" id="L25">        this.saveInOriginalOrder = saveInOriginalOrder;</span>
+<span class="fc" id="L26">        this.saveOrder = saveOrder;</span>
+<span class="fc" id="L27">        this.encoding = encoding;</span>
+<span class="fc" id="L28">        this.makeBackup = makeBackup;</span>
+<span class="fc" id="L29">        this.saveType = saveType;</span>
+<span class="fc" id="L30">        this.takeMetadataSaveOrderInAccount = takeMetadataSaveOrderInAccount;</span>
+<span class="fc" id="L31">        this.reformatFile = reformatFile;</span>
+<span class="fc" id="L32">    }</span>
+
+    public static SavePreferences loadForExportFromPreferences(JabRefPreferences preferences) {
+<span class="nc" id="L35">        Boolean saveInOriginalOrder = Globals.prefs.getBoolean(JabRefPreferences.EXPORT_IN_ORIGINAL_ORDER);</span>
+<span class="nc" id="L36">        SaveOrderConfig saveOrder = null;</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">        if (!saveInOriginalOrder) {</span>
+<span class="nc bnc" id="L38" title="All 2 branches missed.">            if (Globals.prefs.getBoolean(JabRefPreferences.EXPORT_IN_SPECIFIED_ORDER)) {</span>
+<span class="nc" id="L39">                saveOrder = SaveOrderConfig.loadExportSaveOrderFromPreferences(preferences);</span>
+<span class="nc" id="L40">            } else {</span>
+<span class="nc" id="L41">                saveOrder = SaveOrderConfig.loadTableSaveOrderFromPreferences(preferences);</span>
+            }
+        }
+<span class="nc" id="L44">        Charset encoding = preferences.getDefaultEncoding();</span>
+<span class="nc" id="L45">        Boolean makeBackup = preferences.getBoolean(JabRefPreferences.BACKUP);</span>
+<span class="nc" id="L46">        DatabaseSaveType saveType = DatabaseSaveType.ALL;</span>
+<span class="nc" id="L47">        Boolean takeMetadataSaveOrderInAccount = false;</span>
+<span class="nc" id="L48">        Boolean reformatFile = preferences.getBoolean(JabRefPreferences.REFORMAT_FILE_ON_SAVE_AND_EXPORT);</span>
+<span class="nc" id="L49">        return new SavePreferences(saveInOriginalOrder, saveOrder, encoding, makeBackup, saveType,</span>
+<span class="nc" id="L50">                takeMetadataSaveOrderInAccount, reformatFile);</span>
+    }
+
+    public static SavePreferences loadForSaveFromPreferences(JabRefPreferences preferences) {
+<span class="fc" id="L54">        Boolean saveInOriginalOrder = false;</span>
+<span class="fc" id="L55">        SaveOrderConfig saveOrder = null;</span>
+<span class="fc" id="L56">        Charset encoding = preferences.getDefaultEncoding();</span>
+<span class="fc" id="L57">        Boolean makeBackup = preferences.getBoolean(JabRefPreferences.BACKUP);</span>
+<span class="fc" id="L58">        DatabaseSaveType saveType = DatabaseSaveType.ALL;</span>
+<span class="fc" id="L59">        Boolean takeMetadataSaveOrderInAccount = true;</span>
+<span class="fc" id="L60">        Boolean reformatFile = preferences.getBoolean(JabRefPreferences.REFORMAT_FILE_ON_SAVE_AND_EXPORT);</span>
+<span class="fc" id="L61">        return new SavePreferences(saveInOriginalOrder, saveOrder, encoding, makeBackup, saveType,</span>
+<span class="fc" id="L62">                takeMetadataSaveOrderInAccount, reformatFile);</span>
+    }
+
+    public Boolean getTakeMetadataSaveOrderInAccount() {
+<span class="fc" id="L66">        return takeMetadataSaveOrderInAccount;</span>
+    }
+
+    public SaveOrderConfig getSaveOrder() {
+<span class="nc" id="L70">        return saveOrder;</span>
+    }
+
+    public boolean isSaveInOriginalOrder() {
+<span class="fc" id="L74">        return saveInOriginalOrder;</span>
+    }
+
+    public SavePreferences withSaveInOriginalOrder(Boolean saveInOriginalOrder) {
+<span class="nc" id="L78">        return new SavePreferences(saveInOriginalOrder, this.saveOrder, this.encoding, this.makeBackup, this.saveType,</span>
+<span class="nc" id="L79">                this.takeMetadataSaveOrderInAccount, this.reformatFile);</span>
+    }
+
+    public boolean getMakeBackup() {
+<span class="fc" id="L83">        return makeBackup;</span>
+    }
+
+    public SavePreferences withMakeBackup(Boolean makeBackup) {
+<span class="fc" id="L87">        return new SavePreferences(this.saveInOriginalOrder, this.saveOrder, this.encoding, makeBackup, this.saveType,</span>
+<span class="fc" id="L88">                this.takeMetadataSaveOrderInAccount, this.reformatFile);</span>
+    }
+
+    public Charset getEncoding() {
+<span class="fc" id="L92">        return encoding;</span>
+    }
+
+    public SavePreferences withEncoding(Charset encoding) {
+<span class="fc" id="L96">        return new SavePreferences(this.saveInOriginalOrder, this.saveOrder, encoding, this.makeBackup, this.saveType,</span>
+<span class="fc" id="L97">                this.takeMetadataSaveOrderInAccount, this.reformatFile);</span>
+    }
+
+    public DatabaseSaveType getSaveType() {
+<span class="fc" id="L101">        return saveType;</span>
+    }
+
+    public SavePreferences withSaveType(DatabaseSaveType saveType) {
+<span class="nc" id="L105">        return new SavePreferences(this.saveInOriginalOrder, this.saveOrder, this.encoding, this.makeBackup, saveType,</span>
+<span class="nc" id="L106">                this.takeMetadataSaveOrderInAccount, this.reformatFile);</span>
+    }
+
+    public Boolean isReformatFile() {
+<span class="fc" id="L110">        return reformatFile;</span>
+    }
+
+    public SavePreferences withReformatFile(boolean reformatFile) {
+<span class="nc" id="L114">        return new SavePreferences(this.saveInOriginalOrder, this.saveOrder, this.encoding, this.makeBackup,</span>
+<span class="nc" id="L115">                this.saveType, this.takeMetadataSaveOrderInAccount, reformatFile);</span>
+    }
+
+<span class="fc" id="L118">    public enum DatabaseSaveType {</span>
+<span class="fc" id="L119">        ALL,</span>
+<span class="fc" id="L120">        PLAIN_BIBTEX</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

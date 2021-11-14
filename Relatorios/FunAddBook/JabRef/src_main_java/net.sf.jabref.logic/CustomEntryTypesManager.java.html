@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CustomEntryTypesManager.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic</a> &gt; <span class="el_source">CustomEntryTypesManager.java</span></div><h1>CustomEntryTypesManager.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.model.EntryTypes;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.entry.CustomEntryType;
+import net.sf.jabref.model.entry.EntryType;
+
+<span class="nc" id="L13">public class CustomEntryTypesManager {</span>
+
+<span class="fc" id="L15">    public static final List&lt;EntryType&gt; ALL = new ArrayList&lt;&gt;();</span>
+    /**
+     * Load all custom entry types from preferences. This method is
+     * called from JabRef when the program starts.
+     */
+    public static void loadCustomEntryTypes(JabRefPreferences prefs) {
+<span class="fc" id="L21">        int number = 0;</span>
+        CustomEntryType type;
+<span class="pc bpc" id="L23" title="1 of 2 branches missed.">        while ((type = prefs.getCustomEntryType(number)) != null) {</span>
+<span class="nc" id="L24">            EntryTypes.addOrModifyCustomEntryType(type);</span>
+<span class="nc" id="L25">            ALL.add(type);</span>
+<span class="nc" id="L26">            number++;</span>
+        }
+<span class="fc" id="L28">    }</span>
+
+    /**
+     * Iterate through all entry types, and store those that are
+     * custom defined to preferences. This method is called from
+     * JabRefFrame when the program closes.
+     */
+    public static void saveCustomEntryTypes(JabRefPreferences prefs) {
+<span class="fc" id="L36">        Iterator&lt;EntryType&gt; iterator = EntryTypes.getAllValues(BibDatabaseMode.BIBTEX).iterator();</span>
+<span class="fc" id="L37">        int number = 0;</span>
+
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        while (iterator.hasNext()) {</span>
+<span class="fc" id="L40">            EntryType entryType = iterator.next();</span>
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">            if (entryType instanceof CustomEntryType) {</span>
+                // Store this entry type.
+<span class="nc" id="L43">                prefs.storeCustomEntryType((CustomEntryType) entryType, number);</span>
+<span class="nc" id="L44">                number++;</span>
+            }
+        }
+        // Then, if there are more 'old' custom types defined, remove these
+        // from preferences. This is necessary if the number of custom types
+        // has decreased.
+<span class="fc" id="L50">        prefs.purgeCustomEntryTypes(number);</span>
+<span class="fc" id="L51">    }</span>
+
+    public static CustomEntryType parseEntryType(String comment) {
+<span class="nc" id="L54">        String rest = comment.substring(CustomEntryType.ENTRYTYPE_FLAG.length());</span>
+<span class="nc" id="L55">        int indexEndOfName = rest.indexOf(':');</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if(indexEndOfName &lt; 0) {</span>
+<span class="nc" id="L57">            return null;</span>
+        }
+<span class="nc" id="L59">        String fieldsDescription = rest.substring(indexEndOfName + 2);</span>
+
+<span class="nc" id="L61">        int indexEndOfRequiredFields = fieldsDescription.indexOf(']');</span>
+<span class="nc" id="L62">        int indexEndOfOptionalFields = fieldsDescription.indexOf(']', indexEndOfRequiredFields + 1);</span>
+<span class="nc bnc" id="L63" title="All 4 branches missed.">        if (indexEndOfRequiredFields &lt; 4 || indexEndOfOptionalFields &lt; indexEndOfRequiredFields + 6) {</span>
+<span class="nc" id="L64">            return null;</span>
+        }
+<span class="nc" id="L66">        String name = rest.substring(0, indexEndOfName);</span>
+<span class="nc" id="L67">        String reqFields = fieldsDescription.substring(4, indexEndOfRequiredFields);</span>
+<span class="nc" id="L68">        String optFields = fieldsDescription.substring(indexEndOfRequiredFields + 6, indexEndOfOptionalFields);</span>
+<span class="nc" id="L69">        return new CustomEntryType(name, reqFields, optFields);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

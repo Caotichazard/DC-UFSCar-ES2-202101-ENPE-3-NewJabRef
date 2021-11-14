@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ModsExportFormat.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">ModsExportFormat.java</span></div><h1>ModsExportFormat.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.exporter;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Objects;
+
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.logic.mods.MODSDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * ExportFormat for exporting in MODS XML format.
+ */
+class ModsExportFormat extends ExportFormat {
+
+    public ModsExportFormat() {
+<span class="fc" id="L43">        super(&quot;MODS&quot;, &quot;mods&quot;, null, null, &quot;.xml&quot;);</span>
+<span class="fc" id="L44">    }</span>
+
+    @Override
+    public void performExport(final BibDatabaseContext databaseContext, final String file,
+            final Charset encoding, List&lt;BibEntry&gt; entries) throws IOException {
+<span class="nc" id="L49">        Objects.requireNonNull(databaseContext);</span>
+<span class="nc" id="L50">        Objects.requireNonNull(entries);</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (entries.isEmpty()) { // Only export if entries exist</span>
+<span class="nc" id="L52">            return;</span>
+        }
+
+<span class="nc" id="L55">        SaveSession ss = new SaveSession(StandardCharsets.UTF_8, false);</span>
+<span class="nc" id="L56">        try (VerifyingWriter ps = ss.getWriter()) {</span>
+<span class="nc" id="L57">            MODSDatabase md = new MODSDatabase(databaseContext.getDatabase(), entries);</span>
+
+            try {
+<span class="nc" id="L60">                DOMSource source = new DOMSource(md.getDOMrepresentation());</span>
+<span class="nc" id="L61">                StreamResult result = new StreamResult(ps);</span>
+<span class="nc" id="L62">                Transformer trans = TransformerFactory.newInstance().newTransformer();</span>
+<span class="nc" id="L63">                trans.setOutputProperty(OutputKeys.INDENT, &quot;yes&quot;);</span>
+<span class="nc" id="L64">                trans.transform(source, result);</span>
+<span class="nc" id="L65">            } catch (TransformerException | IllegalArgumentException | TransformerFactoryConfigurationError e) {</span>
+<span class="nc" id="L66">                throw new Error(e);</span>
+            }
+<span class="nc" id="L68">            finalizeSaveSession(ss, new File(file));</span>
+<span class="nc" id="L69">        } catch (SaveException | IOException ex) {</span>
+<span class="nc" id="L70">            throw new IOException(ex.getMessage());</span>
+        }
+<span class="nc" id="L72">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

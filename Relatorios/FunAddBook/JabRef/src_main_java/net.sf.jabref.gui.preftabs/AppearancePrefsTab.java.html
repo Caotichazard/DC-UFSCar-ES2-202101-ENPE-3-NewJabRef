@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AppearancePrefsTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">AppearancePrefsTab.java</span></div><h1>AppearancePrefsTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.awt.Font;
+import java.awt.GridBagLayout;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.UIManager;
+
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.GUIGlobals;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.OS;
+
+import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+class AppearancePrefsTab extends JPanel implements PrefsTab {
+<span class="nc" id="L46">    private static final Log LOGGER = LogFactory.getLog(AppearancePrefsTab.class);</span>
+
+    private final JabRefPreferences prefs;
+
+    private final JCheckBox colorCodes;
+    private final JCheckBox overrideFonts;
+    private final JCheckBox showGrid;
+<span class="nc" id="L53">    private final ColorSetupPanel colorPanel = new ColorSetupPanel();</span>
+<span class="nc" id="L54">    private Font usedFont = GUIGlobals.currentFont;</span>
+    private int oldMenuFontSize;
+    private boolean oldOverrideFontSize;
+    private final JTextField fontSize;
+    private final JTextField rowPadding;
+    // Look &amp; Feel
+    private final JComboBox&lt;String&gt; classNamesLAF;
+<span class="nc" id="L61">    private String currentLAF = &quot;&quot;;</span>
+    private boolean useDefaultLAF;
+    private final JCheckBox customLAF;
+
+<span class="nc" id="L65">    static class LookAndFeel {</span>
+<span class="nc" id="L66">        private static final List&lt;String&gt; looks = Arrays.asList(</span>
+<span class="nc" id="L67">                UIManager.getSystemLookAndFeelClassName(),</span>
+<span class="nc" id="L68">                UIManager.getCrossPlatformLookAndFeelClassName(),</span>
+<span class="nc" id="L69">                &quot;com.jgoodies.looks.plastic.Plastic3DLookAndFeel&quot;,</span>
+<span class="nc" id="L70">                &quot;com.jgoodies.looks.windows.WindowsLookAndFeel&quot;);</span>
+
+        public static List&lt;String&gt; getAvailableLookAndFeels() {
+<span class="nc" id="L73">            List&lt;String&gt; lookAndFeels = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L75" title="All 2 branches missed.">            for (String l : looks) {</span>
+                try {
+                    // Try to find L&amp;F
+<span class="nc" id="L78">                    Class.forName(l);</span>
+<span class="nc" id="L79">                    lookAndFeels.add(l);</span>
+<span class="nc" id="L80">                } catch (ClassNotFoundException ignored) {</span>
+                    // Ignored
+                }
+            }
+<span class="nc" id="L84">            return lookAndFeels;</span>
+        }
+    }
+
+    /**
+     * Customization of appearance parameters.
+     *
+     * @param prefs a &lt;code&gt;JabRefPreferences&lt;/code&gt; value
+     */
+<span class="nc" id="L93">    public AppearancePrefsTab(JabRefPreferences prefs) {</span>
+<span class="nc" id="L94">        this.prefs = prefs;</span>
+<span class="nc" id="L95">        setLayout(new BorderLayout());</span>
+
+        // Font sizes:
+<span class="nc" id="L98">        fontSize = new JTextField(5);</span>
+
+        // Row padding size:
+<span class="nc" id="L101">        rowPadding = new JTextField(5);</span>
+
+<span class="nc" id="L103">        colorCodes = new JCheckBox(</span>
+<span class="nc" id="L104">                Localization.lang(&quot;Color codes for required and optional fields&quot;));</span>
+
+<span class="nc" id="L106">        overrideFonts = new JCheckBox(Localization.lang(&quot;Override default font settings&quot;));</span>
+
+<span class="nc" id="L108">        showGrid = new JCheckBox(Localization.lang(&quot;Show gridlines&quot;));</span>
+
+<span class="nc" id="L110">        FormLayout layout = new FormLayout(&quot;1dlu, 8dlu, left:pref, 4dlu, fill:pref, 4dlu, fill:60dlu, 4dlu, fill:pref&quot;, &quot;&quot;);</span>
+<span class="nc" id="L111">        DefaultFormBuilder builder = new DefaultFormBuilder(layout);</span>
+
+<span class="nc" id="L113">        customLAF = new JCheckBox(Localization.lang(&quot;Use other look and feel&quot;));</span>
+        // Only list L&amp;F which are available
+<span class="nc" id="L115">        List&lt;String&gt; lookAndFeels = LookAndFeel.getAvailableLookAndFeels();</span>
+<span class="nc" id="L116">        classNamesLAF = new JComboBox&lt;&gt;(lookAndFeels.toArray(new String[lookAndFeels.size()]));</span>
+<span class="nc" id="L117">        classNamesLAF.setEditable(true);</span>
+<span class="nc" id="L118">        final JComboBox&lt;String&gt; clName = classNamesLAF;</span>
+<span class="nc" id="L119">        customLAF.addChangeListener(e -&gt; clName.setEnabled(((JCheckBox) e.getSource()).isSelected()));</span>
+
+        // only the default L&amp;F shows the the OSX specific first dropdownmenu
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (!OS.OS_X) {</span>
+<span class="nc" id="L123">            JPanel pan = new JPanel();</span>
+<span class="nc" id="L124">            builder.appendSeparator(Localization.lang(&quot;Look and feel&quot;));</span>
+<span class="nc" id="L125">            JLabel lab = new JLabel(</span>
+<span class="nc" id="L126">                    Localization.lang(&quot;Default look and feel&quot;) + &quot;: &quot; + UIManager.getSystemLookAndFeelClassName());</span>
+<span class="nc" id="L127">            builder.nextLine();</span>
+<span class="nc" id="L128">            builder.append(pan);</span>
+<span class="nc" id="L129">            builder.append(lab);</span>
+<span class="nc" id="L130">            builder.nextLine();</span>
+<span class="nc" id="L131">            builder.append(pan);</span>
+<span class="nc" id="L132">            builder.append(customLAF);</span>
+<span class="nc" id="L133">            builder.nextLine();</span>
+<span class="nc" id="L134">            builder.append(pan);</span>
+<span class="nc" id="L135">            JPanel pan2 = new JPanel();</span>
+<span class="nc" id="L136">            lab = new JLabel(Localization.lang(&quot;Class name&quot;) + ':');</span>
+<span class="nc" id="L137">            pan2.add(lab);</span>
+<span class="nc" id="L138">            pan2.add(classNamesLAF);</span>
+<span class="nc" id="L139">            builder.append(pan2);</span>
+<span class="nc" id="L140">            builder.nextLine();</span>
+<span class="nc" id="L141">            builder.append(pan);</span>
+<span class="nc" id="L142">            lab = new JLabel(Localization</span>
+<span class="nc" id="L143">                    .lang(&quot;Note that you must specify the fully qualified class name for the look and feel,&quot;));</span>
+<span class="nc" id="L144">            builder.append(lab);</span>
+<span class="nc" id="L145">            builder.nextLine();</span>
+<span class="nc" id="L146">            builder.append(pan);</span>
+<span class="nc" id="L147">            lab = new JLabel(</span>
+<span class="nc" id="L148">                    Localization.lang(&quot;and the class must be available in your classpath next time you start JabRef.&quot;));</span>
+<span class="nc" id="L149">            builder.append(lab);</span>
+<span class="nc" id="L150">            builder.nextLine();</span>
+        }
+
+<span class="nc" id="L153">        builder.leadingColumnOffset(2);</span>
+        JLabel lab;
+<span class="nc" id="L155">        builder.appendSeparator(Localization.lang(&quot;General&quot;));</span>
+<span class="nc" id="L156">        JPanel p1 = new JPanel();</span>
+<span class="nc" id="L157">        lab = new JLabel(Localization.lang(&quot;Menu and label font size&quot;) + &quot;:&quot;);</span>
+<span class="nc" id="L158">        p1.add(lab);</span>
+<span class="nc" id="L159">        p1.add(fontSize);</span>
+<span class="nc" id="L160">        builder.append(p1);</span>
+<span class="nc" id="L161">        builder.nextLine();</span>
+<span class="nc" id="L162">        builder.append(overrideFonts);</span>
+<span class="nc" id="L163">        builder.nextLine();</span>
+<span class="nc" id="L164">        builder.appendSeparator(Localization.lang(&quot;Table appearance&quot;));</span>
+<span class="nc" id="L165">        JPanel p2 = new JPanel();</span>
+<span class="nc" id="L166">        p2.add(new JLabel(Localization.lang(&quot;Table row height padding&quot;) + &quot;:&quot;));</span>
+<span class="nc" id="L167">        p2.add(rowPadding);</span>
+<span class="nc" id="L168">        builder.append(p2);</span>
+<span class="nc" id="L169">        builder.nextLine();</span>
+<span class="nc" id="L170">        builder.append(colorCodes);</span>
+<span class="nc" id="L171">        builder.nextLine();</span>
+<span class="nc" id="L172">        builder.append(showGrid);</span>
+<span class="nc" id="L173">        builder.nextLine();</span>
+<span class="nc" id="L174">        JButton fontButton = new JButton(Localization.lang(&quot;Set table font&quot;));</span>
+<span class="nc" id="L175">        builder.append(fontButton);</span>
+<span class="nc" id="L176">        builder.nextLine();</span>
+<span class="nc" id="L177">        builder.appendSeparator(Localization.lang(&quot;Table and entry editor colors&quot;));</span>
+<span class="nc" id="L178">        builder.append(colorPanel);</span>
+
+<span class="nc" id="L180">        JPanel upper = new JPanel();</span>
+<span class="nc" id="L181">        JPanel sort = new JPanel();</span>
+<span class="nc" id="L182">        JPanel namesp = new JPanel();</span>
+<span class="nc" id="L183">        JPanel iconCol = new JPanel();</span>
+<span class="nc" id="L184">        GridBagLayout gbl = new GridBagLayout();</span>
+<span class="nc" id="L185">        upper.setLayout(gbl);</span>
+<span class="nc" id="L186">        sort.setLayout(gbl);</span>
+<span class="nc" id="L187">        namesp.setLayout(gbl);</span>
+<span class="nc" id="L188">        iconCol.setLayout(gbl);</span>
+
+<span class="nc" id="L190">        overrideFonts.addActionListener(e -&gt; fontSize.setEnabled(overrideFonts.isSelected()));</span>
+
+<span class="nc" id="L192">        fontButton.addActionListener(</span>
+<span class="nc" id="L193">                e -&gt; new FontSelectorDialog(null, GUIGlobals.currentFont).getSelectedFont().ifPresent(x -&gt; usedFont = x));</span>
+
+<span class="nc" id="L195">        JPanel pan = builder.getPanel();</span>
+<span class="nc" id="L196">        pan.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L197">        add(pan, BorderLayout.CENTER);</span>
+<span class="nc" id="L198">    }</span>
+
+    @Override
+    public void setValues() {
+        // L&amp;F
+<span class="nc" id="L203">        useDefaultLAF = prefs.getBoolean(JabRefPreferences.USE_DEFAULT_LOOK_AND_FEEL);</span>
+<span class="nc" id="L204">        currentLAF = prefs.get(JabRefPreferences.WIN_LOOK_AND_FEEL);</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">        customLAF.setSelected(!useDefaultLAF);</span>
+<span class="nc" id="L206">        classNamesLAF.setSelectedItem(currentLAF);</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        classNamesLAF.setEnabled(!useDefaultLAF);</span>
+
+<span class="nc" id="L209">        colorCodes.setSelected(prefs.getBoolean(JabRefPreferences.TABLE_COLOR_CODES_ON));</span>
+<span class="nc" id="L210">        fontSize.setText(String.valueOf(prefs.getInt(JabRefPreferences.MENU_FONT_SIZE)));</span>
+<span class="nc" id="L211">        rowPadding.setText(String.valueOf(prefs.getInt(JabRefPreferences.TABLE_ROW_PADDING)));</span>
+<span class="nc" id="L212">        oldMenuFontSize = prefs.getInt(JabRefPreferences.MENU_FONT_SIZE);</span>
+<span class="nc" id="L213">        overrideFonts.setSelected(prefs.getBoolean(JabRefPreferences.OVERRIDE_DEFAULT_FONTS));</span>
+<span class="nc" id="L214">        oldOverrideFontSize = overrideFonts.isSelected();</span>
+<span class="nc" id="L215">        fontSize.setEnabled(overrideFonts.isSelected());</span>
+<span class="nc" id="L216">        showGrid.setSelected(prefs.getBoolean(JabRefPreferences.TABLE_SHOW_GRID));</span>
+<span class="nc" id="L217">        colorPanel.setValues();</span>
+<span class="nc" id="L218">    }</span>
+
+    @Override
+    public void storeSettings() {
+        // L&amp;F
+<span class="nc bnc" id="L223" title="All 2 branches missed.">        prefs.putBoolean(JabRefPreferences.USE_DEFAULT_LOOK_AND_FEEL, !customLAF.isSelected());</span>
+<span class="nc" id="L224">        prefs.put(JabRefPreferences.WIN_LOOK_AND_FEEL, classNamesLAF.getSelectedItem().toString());</span>
+<span class="nc bnc" id="L225" title="All 4 branches missed.">        if (customLAF.isSelected() == useDefaultLAF || !currentLAF.equals(classNamesLAF.getSelectedItem().toString())) {</span>
+<span class="nc" id="L226">            JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L227">                    Localization.lang(&quot;You have changed the look and feel setting.&quot;).concat(&quot; &quot;)</span>
+<span class="nc" id="L228">                            .concat(Localization.lang(&quot;You must restart JabRef for this to come into effect.&quot;)),</span>
+<span class="nc" id="L229">                    Localization.lang(&quot;Changed look and feel settings&quot;), JOptionPane.WARNING_MESSAGE);</span>
+        }
+
+<span class="nc" id="L232">        prefs.putBoolean(JabRefPreferences.TABLE_COLOR_CODES_ON, colorCodes.isSelected());</span>
+<span class="nc" id="L233">        prefs.put(JabRefPreferences.FONT_FAMILY, usedFont.getFamily());</span>
+<span class="nc" id="L234">        prefs.putInt(JabRefPreferences.FONT_STYLE, usedFont.getStyle());</span>
+<span class="nc" id="L235">        prefs.putInt(JabRefPreferences.FONT_SIZE, usedFont.getSize());</span>
+<span class="nc" id="L236">        prefs.putBoolean(JabRefPreferences.OVERRIDE_DEFAULT_FONTS, overrideFonts.isSelected());</span>
+<span class="nc" id="L237">        GUIGlobals.currentFont = usedFont;</span>
+<span class="nc" id="L238">        colorPanel.storeSettings();</span>
+<span class="nc" id="L239">        prefs.putBoolean(JabRefPreferences.TABLE_SHOW_GRID, showGrid.isSelected());</span>
+        try {
+<span class="nc" id="L241">            int size = Integer.parseInt(fontSize.getText());</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">            if ((overrideFonts.isSelected() != oldOverrideFontSize) ||</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">                    (size != oldMenuFontSize)) {</span>
+<span class="nc" id="L244">                prefs.putInt(JabRefPreferences.MENU_FONT_SIZE, size);</span>
+<span class="nc" id="L245">                JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L246">                        Localization.lang(&quot;You have changed the menu and label font size.&quot;)</span>
+<span class="nc" id="L247">                                .concat(&quot; &quot;)</span>
+<span class="nc" id="L248">                                .concat(Localization.lang(&quot;You must restart JabRef for this to come into effect.&quot;)),</span>
+<span class="nc" id="L249">                        Localization.lang(&quot;Changed font settings&quot;),</span>
+<span class="nc" id="L250">                        JOptionPane.WARNING_MESSAGE);</span>
+            }
+<span class="nc" id="L252">        } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L253">            LOGGER.info(&quot;Invalid font size&quot;, ex);</span>
+        }
+        try {
+<span class="nc" id="L256">            int padding = Integer.parseInt(rowPadding.getText());</span>
+<span class="nc" id="L257">            prefs.putInt(JabRefPreferences.TABLE_ROW_PADDING, padding);</span>
+<span class="nc" id="L258">        } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L259">            LOGGER.info(&quot;Invalid row padding&quot;, ex);</span>
+        }
+<span class="nc" id="L261">    }</span>
+
+    private boolean validateIntegerField(String fieldName, String fieldValue, String errorTitle) {
+        try {
+            // Test if the field value is a number:
+<span class="nc" id="L266">            Integer.parseInt(fieldValue);</span>
+<span class="nc" id="L267">        } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L268">            JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L269">                    Localization.lang(&quot;You must enter an integer value in the text field for&quot;) + &quot; '&quot; + fieldName + &quot;'&quot;,</span>
+<span class="nc" id="L270">                    errorTitle, JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L271">            return false;</span>
+        }
+<span class="nc" id="L273">        return true;</span>
+    }
+
+    @Override
+    public boolean validateSettings() {
+        // Test if font size is a number:
+<span class="nc" id="L279">        if (!validateIntegerField(Localization.lang(&quot;Menu and label font size&quot;), fontSize.getText(),</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">                Localization.lang(&quot;Invalid setting&quot;))) {</span>
+<span class="nc" id="L281">            return false;</span>
+        }
+
+        // Test if row padding is a number:
+<span class="nc" id="L285">        return validateIntegerField(Localization.lang(&quot;Table row height padding&quot;), rowPadding.getText(),</span>
+<span class="nc" id="L286">                Localization.lang(&quot;Invalid setting&quot;));</span>
+    }
+
+    @Override
+    public String getTabName() {
+<span class="nc" id="L291">        return Localization.lang(&quot;Appearance&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

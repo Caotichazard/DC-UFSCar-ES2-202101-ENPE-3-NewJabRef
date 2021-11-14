@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AdvancedTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">AdvancedTab.java</span></div><h1>AdvancedTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.util.Optional;
+
+import javax.swing.BorderFactory;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.gui.remote.JabRefMessageHandler;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.remote.RemotePreferences;
+import net.sf.jabref.logic.remote.RemoteUtil;
+
+import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+class AdvancedTab extends JPanel implements PrefsTab {
+
+    private final JabRefPreferences preferences;
+    private final JCheckBox useRemoteServer;
+    private final JCheckBox useIEEEAbrv;
+    private final JTextField remoteServerPort;
+
+    private final JCheckBox useConvertToEquation;
+    private final JCheckBox useCaseKeeperOnSearch;
+    private final JCheckBox useUnitFormatterOnSearch;
+    private final RemotePreferences remotePreferences;
+
+
+<span class="nc" id="L53">    public AdvancedTab(JabRefPreferences prefs) {</span>
+<span class="nc" id="L54">        preferences = prefs;</span>
+<span class="nc" id="L55">        remotePreferences = new RemotePreferences(preferences);</span>
+
+<span class="nc" id="L57">        useRemoteServer = new JCheckBox(Localization.lang(&quot;Listen for remote operation on port&quot;) + ':');</span>
+<span class="nc" id="L58">        useIEEEAbrv = new JCheckBox(Localization.lang(&quot;Use IEEE LaTeX abbreviations&quot;));</span>
+<span class="nc" id="L59">        remoteServerPort = new JTextField();</span>
+<span class="nc" id="L60">        useConvertToEquation = new JCheckBox(Localization.lang(&quot;Prefer converting subscripts and superscripts to equations rather than text&quot;));</span>
+<span class="nc" id="L61">        useCaseKeeperOnSearch = new JCheckBox(Localization.lang(&quot;Add {} to specified title words on search to keep the correct case&quot;));</span>
+<span class="nc" id="L62">        useUnitFormatterOnSearch = new JCheckBox(Localization.lang(&quot;Format units by adding non-breaking separators and keeping the correct case on search&quot;));</span>
+
+<span class="nc" id="L64">        FormLayout layout = new FormLayout</span>
+<span class="nc" id="L65">                (&quot;1dlu, 8dlu, left:pref, 4dlu, fill:3dlu&quot;,//, 4dlu, fill:pref&quot;,// 4dlu, left:pref, 4dlu&quot;,</span>
+<span class="nc" id="L66">                        &quot;&quot;);</span>
+<span class="nc" id="L67">        DefaultFormBuilder builder = new DefaultFormBuilder(layout);</span>
+<span class="nc" id="L68">        JPanel pan = new JPanel();</span>
+
+<span class="nc" id="L70">        builder.appendSeparator(Localization.lang(&quot;Remote operation&quot;));</span>
+<span class="nc" id="L71">        builder.nextLine();</span>
+<span class="nc" id="L72">        builder.append(new JPanel());</span>
+<span class="nc" id="L73">        builder.append(new JLabel(&quot;&lt;html&gt;&quot;</span>
+<span class="nc" id="L74">                + Localization.lang(&quot;This feature lets new files be opened or imported into an &quot;</span>
+                        + &quot;already running instance of JabRef&lt;BR&gt;instead of opening a new instance. For instance, this &quot;
+                        + &quot;is useful when you open a file in JabRef&lt;br&gt;from your web browser.&quot;
+                        + &quot;&lt;BR&gt;Note that this will prevent you from running more than one instance of JabRef at a time.&quot;)
+<span class="nc" id="L78">                + &quot;&lt;/html&gt;&quot;));</span>
+<span class="nc" id="L79">        builder.nextLine();</span>
+<span class="nc" id="L80">        builder.append(new JPanel());</span>
+
+<span class="nc" id="L82">        JPanel p = new JPanel();</span>
+<span class="nc" id="L83">        p.add(useRemoteServer);</span>
+<span class="nc" id="L84">        p.add(remoteServerPort);</span>
+<span class="nc" id="L85">        p.add(new HelpAction(HelpFiles.REMOTE).getHelpButton());</span>
+<span class="nc" id="L86">        builder.append(p);</span>
+
+        // IEEE
+<span class="nc" id="L89">        builder.nextLine();</span>
+<span class="nc" id="L90">        builder.appendSeparator(Localization.lang(&quot;Search %0&quot;, &quot;IEEEXplore&quot;));</span>
+<span class="nc" id="L91">        builder.nextLine();</span>
+<span class="nc" id="L92">        builder.append(new JPanel());</span>
+<span class="nc" id="L93">        builder.append(useIEEEAbrv);</span>
+
+<span class="nc" id="L95">        builder.nextLine();</span>
+<span class="nc" id="L96">        builder.appendSeparator(Localization.lang(&quot;Import conversions&quot;));</span>
+<span class="nc" id="L97">        builder.nextLine();</span>
+<span class="nc" id="L98">        builder.append(new JPanel());</span>
+<span class="nc" id="L99">        builder.append(useConvertToEquation);</span>
+<span class="nc" id="L100">        builder.nextLine();</span>
+<span class="nc" id="L101">        builder.append(pan);</span>
+<span class="nc" id="L102">        builder.append(useCaseKeeperOnSearch);</span>
+<span class="nc" id="L103">        builder.nextLine();</span>
+<span class="nc" id="L104">        builder.append(pan);</span>
+<span class="nc" id="L105">        builder.append(useUnitFormatterOnSearch);</span>
+
+<span class="nc" id="L107">        pan = builder.getPanel();</span>
+<span class="nc" id="L108">        pan.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L109">        setLayout(new BorderLayout());</span>
+<span class="nc" id="L110">        add(pan, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L112">    }</span>
+
+    @Override
+    public void setValues() {
+<span class="nc" id="L116">        useRemoteServer.setSelected(remotePreferences.useRemoteServer());</span>
+<span class="nc" id="L117">        remoteServerPort.setText(String.valueOf(remotePreferences.getPort()));</span>
+<span class="nc" id="L118">        useIEEEAbrv.setSelected(Globals.prefs.getBoolean(JabRefPreferences.USE_IEEE_ABRV));</span>
+<span class="nc" id="L119">        useConvertToEquation.setSelected(Globals.prefs.getBoolean(JabRefPreferences.USE_CONVERT_TO_EQUATION));</span>
+<span class="nc" id="L120">        useCaseKeeperOnSearch.setSelected(Globals.prefs.getBoolean(JabRefPreferences.USE_CASE_KEEPER_ON_SEARCH));</span>
+<span class="nc" id="L121">        useUnitFormatterOnSearch.setSelected(Globals.prefs.getBoolean(JabRefPreferences.USE_UNIT_FORMATTER_ON_SEARCH));</span>
+<span class="nc" id="L122">    }</span>
+
+    @Override
+    public void storeSettings() {
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (preferences.getBoolean(JabRefPreferences.USE_IEEE_ABRV) != useIEEEAbrv.isSelected()) {</span>
+<span class="nc" id="L127">            preferences.putBoolean(JabRefPreferences.USE_IEEE_ABRV, useIEEEAbrv.isSelected());</span>
+<span class="nc" id="L128">            Globals.journalAbbreviationLoader.update(preferences);</span>
+        }
+<span class="nc" id="L130">        storeRemoteSettings();</span>
+
+<span class="nc" id="L132">        preferences.putBoolean(JabRefPreferences.USE_CONVERT_TO_EQUATION, useConvertToEquation.isSelected());</span>
+<span class="nc" id="L133">        preferences.putBoolean(JabRefPreferences.USE_CASE_KEEPER_ON_SEARCH, useCaseKeeperOnSearch.isSelected());</span>
+<span class="nc" id="L134">        preferences.putBoolean(JabRefPreferences.USE_UNIT_FORMATTER_ON_SEARCH, useUnitFormatterOnSearch.isSelected());</span>
+<span class="nc" id="L135">    }</span>
+
+    private void storeRemoteSettings() {
+<span class="nc" id="L138">        getPortAsInt().ifPresent(newPort -&gt; {</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">            if (remotePreferences.isDifferentPort(newPort)) {</span>
+<span class="nc" id="L140">                remotePreferences.setPort(newPort);</span>
+
+<span class="nc bnc" id="L142" title="All 2 branches missed.">                if (remotePreferences.useRemoteServer()) {</span>
+<span class="nc" id="L143">                    JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L144">                            Localization.lang(&quot;Remote server port&quot;).concat(&quot; &quot;)</span>
+<span class="nc" id="L145">                                    .concat(Localization.lang(&quot;You must restart JabRef for this to come into effect.&quot;)),</span>
+<span class="nc" id="L146">                            Localization.lang(&quot;Remote server port&quot;), JOptionPane.WARNING_MESSAGE);</span>
+                }
+            }
+<span class="nc" id="L149">        });</span>
+
+<span class="nc" id="L151">        remotePreferences.setUseRemoteServer(useRemoteServer.isSelected());</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        if (remotePreferences.useRemoteServer()) {</span>
+<span class="nc" id="L153">            Globals.REMOTE_LISTENER.openAndStart(new JabRefMessageHandler(), remotePreferences.getPort());</span>
+<span class="nc" id="L154">        } else {</span>
+<span class="nc" id="L155">            Globals.REMOTE_LISTENER.stop();</span>
+        }
+<span class="nc" id="L157">    }</span>
+
+    private Optional&lt;Integer&gt; getPortAsInt() {
+        try {
+<span class="nc" id="L161">            return Optional.of(Integer.parseInt(remoteServerPort.getText()));</span>
+<span class="nc" id="L162">        } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L163">            return Optional.empty();</span>
+        }
+    }
+
+    @Override
+    public boolean validateSettings() {
+        try {
+<span class="nc" id="L170">            int portNumber = Integer.parseInt(remoteServerPort.getText());</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">            if (RemoteUtil.isUserPort(portNumber)) {</span>
+<span class="nc" id="L172">                return true;</span>
+            } else {
+<span class="nc" id="L174">                throw new NumberFormatException();</span>
+            }
+<span class="nc" id="L176">        } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L177">            JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L178">                    Localization.lang(&quot;You must enter an integer value in the interval 1025-65535 in the text field for&quot;)</span>
+<span class="nc" id="L179">                            + &quot; '&quot; + Localization.lang(&quot;Remote server port&quot;) + '\'',</span>
+<span class="nc" id="L180">                    Localization.lang(&quot;Remote server port&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L181">            return false;</span>
+        }
+    }
+
+    @Override
+    public String getTabName() {
+<span class="nc" id="L187">        return Localization.lang(&quot;Advanced&quot;);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

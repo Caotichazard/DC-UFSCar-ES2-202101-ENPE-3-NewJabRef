@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AutoCompletePreferences.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.autocompleter</a> &gt; <span class="el_source">AutoCompletePreferences.java</span></div><h1>AutoCompletePreferences.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.autocompleter;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import net.sf.jabref.JabRefPreferences;
+
+public class AutoCompletePreferences {
+
+    private final JabRefPreferences preferences;
+
+    private static final String PREF_SHORTEST_TO_COMPLETE = &quot;shortestToComplete&quot;;
+    private static final String PREF_FIRSTNAME_MODE = &quot;autoCompFirstNameMode&quot;;
+    private static final String PREF_LAST_FIRST = &quot;autoCompLF&quot;;
+    private static final String PREF_FIRST_LAST = &quot;autoCompFF&quot;;
+    private static final String PREF_COMPLETE_FIELDS = &quot;autoCompleteFields&quot;;
+
+
+    public static void putDefaults(Map&lt;String, Object&gt; defaults) {
+<span class="fc" id="L36">        defaults.put(PREF_SHORTEST_TO_COMPLETE, 1);</span>
+<span class="fc" id="L37">        defaults.put(PREF_FIRSTNAME_MODE, AutoCompleteFirstNameMode.BOTH.name());</span>
+<span class="fc" id="L38">        defaults.put(PREF_FIRST_LAST, Boolean.FALSE); // &quot;Autocomplete names in 'Firstname Lastname' format only&quot;</span>
+<span class="fc" id="L39">        defaults.put(PREF_LAST_FIRST, Boolean.FALSE); // &quot;Autocomplete names in 'Lastname, Firstname' format only&quot;</span>
+<span class="fc" id="L40">        defaults.put(PREF_COMPLETE_FIELDS, &quot;author;editor;title;journal;publisher;keywords;crossref&quot;);</span>
+<span class="fc" id="L41">    }</span>
+
+<span class="fc" id="L43">    public AutoCompletePreferences(JabRefPreferences preferences) {</span>
+<span class="fc" id="L44">        this.preferences = Objects.requireNonNull(preferences);</span>
+<span class="fc" id="L45">    }</span>
+
+    public int getShortestLengthToComplete() {
+<span class="fc" id="L48">        return preferences.getInt(PREF_SHORTEST_TO_COMPLETE);</span>
+    }
+
+    public void setShortestLengthToComplete(Integer value) {
+<span class="nc" id="L52">        preferences.putInt(PREF_SHORTEST_TO_COMPLETE, value);</span>
+<span class="nc" id="L53">    }</span>
+
+    /**
+     * Returns how the first names are handled.
+     * For &quot;ONLY_FULL&quot;, the auto completer returns the full name, e.g. &quot;Smith, Bob&quot;
+     * For &quot;ONLY_ABBREVIATED&quot;, the auto completer returns the first name abbreviated, e.g. &quot;Smith, B.&quot;
+     * For &quot;BOTH&quot;, the auto completer returns both versions.
+     */
+    public AutoCompleteFirstNameMode getFirstnameMode() {
+        try {
+<span class="fc" id="L63">            return AutoCompleteFirstNameMode.valueOf(preferences.get(PREF_FIRSTNAME_MODE));</span>
+<span class="nc" id="L64">        } catch (IllegalArgumentException ex) {</span>
+            // Should only occur when preferences are set directly via preferences.put and not via setFirstnameMode
+<span class="nc" id="L66">            return AutoCompleteFirstNameMode.BOTH;</span>
+        }
+    }
+
+    public void setFirstnameMode(AutoCompleteFirstNameMode mode) {
+<span class="nc" id="L71">        preferences.put(PREF_FIRSTNAME_MODE, mode.name());</span>
+<span class="nc" id="L72">    }</span>
+
+    public boolean getOnlyCompleteLastFirst() {
+<span class="fc" id="L75">        return preferences.getBoolean(PREF_LAST_FIRST);</span>
+    }
+
+    public void setOnlyCompleteLastFirst(boolean value) {
+<span class="nc" id="L79">        preferences.putBoolean(PREF_LAST_FIRST, value);</span>
+<span class="nc" id="L80">    }</span>
+
+    public boolean getOnlyCompleteFirstLast() {
+<span class="fc" id="L83">        return preferences.getBoolean(PREF_FIRST_LAST);</span>
+    }
+
+    public void setOnlyCompleteFirstLast(boolean value) {
+<span class="nc" id="L87">        preferences.putBoolean(PREF_FIRST_LAST, value);</span>
+<span class="nc" id="L88">    }</span>
+
+    public List&lt;String&gt; getCompleteNames() {
+<span class="fc" id="L91">        return preferences.getStringList(PREF_COMPLETE_FIELDS);</span>
+    }
+
+    public String getCompleteNamesAsString() {
+<span class="nc" id="L95">        return preferences.get(PREF_COMPLETE_FIELDS);</span>
+    }
+
+    public void setCompleteNames(String value) {
+<span class="nc" id="L99">        preferences.put(PREF_COMPLETE_FIELDS, value);</span>
+<span class="nc" id="L100">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

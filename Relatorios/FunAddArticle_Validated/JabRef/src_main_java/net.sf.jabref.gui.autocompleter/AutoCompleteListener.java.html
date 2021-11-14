@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AutoCompleteListener.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.autocompleter</a> &gt; <span class="el_source">AutoCompleteListener.java</span></div><h1>AutoCompleteListener.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.autocompleter;
+
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.util.List;
+
+import javax.swing.text.BadLocationException;
+import javax.swing.text.JTextComponent;
+
+import net.sf.jabref.logic.autocompleter.AutoCompleter;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Created by Morten O. Alver, 16 Feb. 2007
+ */
+<span class="pc bpc" id="L36" title="1 of 2 branches missed.">public class AutoCompleteListener extends KeyAdapter implements FocusListener {</span>
+
+    //TODO: The logging behavior in this class is probably too fine-grained and only understandable to its original author
+<span class="fc" id="L39">    private static final Log LOGGER = LogFactory.getLog(AutoCompleteListener.class);</span>
+
+    private final AutoCompleter&lt;String&gt; completer;
+
+    // These variables keep track of the situation from time to time.
+    private String toSetIn; // null indicates that there are no completions available
+    private String lastBeginning; // the letters, the user has typed until know
+<span class="fc" id="L46">    private int lastCaretPosition = -1;</span>
+    private List&lt;String&gt; lastCompletions;
+    private int lastShownCompletion;
+<span class="fc" id="L49">    private boolean consumeEnterKey = true;</span>
+
+    // This field is set if the focus listener should call another focus listener
+    // after finishing. This is needed because the autocomplete listener must
+    // run before the focus listener responsible for storing the current edit.
+    private FocusListener nextFocusListener;
+
+<span class="fc" id="L56">    public AutoCompleteListener(AutoCompleter&lt;String&gt; completer) {</span>
+        //    	if (logger.getHandlers().length == 0) {
+        //	    	logger.setLevel(Level.FINEST);
+        //	    	ConsoleHandler ch = new ConsoleHandler();
+        //	    	ch.setLevel(Level.FINEST);
+        //	    	logger.addHandler(ch);
+        //    	}
+<span class="fc" id="L63">        this.completer = completer;</span>
+<span class="fc" id="L64">    }</span>
+
+    /**
+     * This method is used if the focus listener should call another focus listener after finishing. This is needed
+     * because the autocomplete listener must run before the focus listener responsible for storing the current edit.
+     *
+     * @param listener The listener to call.
+     */
+    public void setNextFocusListener(FocusListener listener) {
+<span class="fc" id="L73">        this.nextFocusListener = listener;</span>
+<span class="fc" id="L74">    }</span>
+
+    /**
+     * This setting determines whether the autocomplete listener should consume the Enter key stroke when it leads to
+     * accepting a completion. If set to false, the JTextComponent will receive the Enter key press after the completion
+     * is done. The default value if true.
+     *
+     * @param t true to indicate that the Enter key should be consumed, false that it should be forwarded
+     */
+    public void setConsumeEnterKey(boolean t) {
+<span class="nc" id="L84">        this.consumeEnterKey = t;</span>
+<span class="nc" id="L85">    }</span>
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+<span class="pc bpc" id="L89" title="1 of 4 branches missed.">        if ((toSetIn != null) &amp;&amp; (e.getKeyCode() == KeyEvent.VK_ENTER)) {</span>
+<span class="nc" id="L90">            JTextComponent comp = (JTextComponent) e.getSource();</span>
+
+            // replace typed characters by characters from completion
+<span class="nc" id="L93">            lastBeginning = lastCompletions.get(lastShownCompletion);</span>
+
+<span class="nc" id="L95">            int end = comp.getSelectionEnd();</span>
+<span class="nc" id="L96">            comp.select(end, end);</span>
+<span class="nc" id="L97">            toSetIn = null;</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            if (consumeEnterKey) {</span>
+<span class="nc" id="L99">                e.consume();</span>
+            }
+<span class="nc" id="L101">        }</span>
+        // Cycle through alternative completions when user presses PGUP/PGDN:
+<span class="pc bpc" id="L103" title="3 of 4 branches missed.">        else if ((e.getKeyCode() == KeyEvent.VK_PAGE_DOWN) &amp;&amp; (toSetIn != null)) {</span>
+<span class="nc" id="L104">            cycle((JTextComponent) e.getSource(), 1);</span>
+<span class="nc" id="L105">            e.consume();</span>
+<span class="pc bpc" id="L106" title="3 of 4 branches missed.">        } else if ((e.getKeyCode() == KeyEvent.VK_PAGE_UP) &amp;&amp; (toSetIn != null)) {</span>
+<span class="nc" id="L107">            cycle((JTextComponent) e.getSource(), -1);</span>
+<span class="nc" id="L108">            e.consume();</span>
+<span class="nc" id="L109">        }</span>
+        //        else if ((e.getKeyCode() == KeyEvent.VK_BACK_SPACE)) {
+        //        	StringBuffer currentword = getCurrentWord((JTextComponent) e.getSource());
+        //        	// delete last char to obey semantics of back space
+        //        	currentword.deleteCharAt(currentword.length()-1);
+        //        	doCompletion(currentword, e);
+        //        }
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        else if (e.getKeyChar() == KeyEvent.CHAR_UNDEFINED) {</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">            if (e.getKeyCode() == KeyEvent.VK_SHIFT) {</span>
+                // shift is OK, everything else leads to a reset
+<span class="fc" id="L119">                LOGGER.debug(&quot;Special case: shift pressed. No action.&quot;);</span>
+<span class="fc" id="L120">            } else {</span>
+<span class="fc" id="L121">                resetAutoCompletion();</span>
+            }
+<span class="fc" id="L123">        } else {</span>
+<span class="fc" id="L124">            LOGGER.debug(&quot;Special case: defined character, but not caught above&quot;);</span>
+        }
+<span class="fc" id="L126">    }</span>
+
+    private void cycle(JTextComponent comp, int increment) {
+<span class="nc bnc" id="L129" title="All 4 branches missed.">        assert (lastCompletions != null);</span>
+<span class="nc bnc" id="L130" title="All 4 branches missed.">        assert (!lastCompletions.isEmpty());</span>
+<span class="nc" id="L131">        lastShownCompletion += increment;</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (lastShownCompletion &gt;= lastCompletions.size()) {</span>
+<span class="nc" id="L133">            lastShownCompletion = 0;</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        } else if (lastShownCompletion &lt; 0) {</span>
+<span class="nc" id="L135">            lastShownCompletion = lastCompletions.size() - 1;</span>
+        }
+<span class="nc" id="L137">        String sno = lastCompletions.get(lastShownCompletion);</span>
+<span class="nc" id="L138">        toSetIn = sno.substring(lastBeginning.length() - 1);</span>
+
+<span class="nc" id="L140">        StringBuilder alltext = new StringBuilder(comp.getText());</span>
+
+<span class="nc" id="L142">        int oldSelectionStart = comp.getSelectionStart();</span>
+<span class="nc" id="L143">        int oldSelectionEnd = comp.getSelectionEnd();</span>
+
+        // replace prefix with new prefix
+<span class="nc" id="L146">        int startPos = comp.getSelectionStart() - lastBeginning.length();</span>
+<span class="nc" id="L147">        alltext.delete(startPos, oldSelectionStart);</span>
+<span class="nc" id="L148">        alltext.insert(startPos, sno.subSequence(0, lastBeginning.length()));</span>
+
+        // replace suffix with new suffix
+<span class="nc" id="L151">        alltext.delete(oldSelectionStart, oldSelectionEnd);</span>
+        //int cp = oldSelectionEnd - deletedChars;
+<span class="nc" id="L153">        alltext.insert(oldSelectionStart, toSetIn.substring(1));</span>
+
+<span class="nc" id="L155">        LOGGER.debug(alltext.toString());</span>
+<span class="nc" id="L156">        comp.setText(alltext.toString());</span>
+        //comp.setCaretPosition(cp+toSetIn.length()-1);
+<span class="nc" id="L158">        comp.select(oldSelectionStart, (oldSelectionStart + toSetIn.length()) - 1);</span>
+<span class="nc" id="L159">        lastCaretPosition = comp.getCaretPosition();</span>
+<span class="nc" id="L160">        LOGGER.debug(&quot;ToSetIn: '&quot; + toSetIn + &quot;'&quot;);</span>
+<span class="nc" id="L161">    }</span>
+
+    private boolean atEndOfWord(JTextComponent textField) {
+<span class="fc" id="L164">        int nextCharPosition = textField.getCaretPosition();</span>
+
+        // position not at the end of input
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        if(nextCharPosition &lt; textField.getText().length()) {</span>
+<span class="nc" id="L168">            char nextChar = textField.getText().charAt(nextCharPosition);</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">            if (!Character.isWhitespace(nextChar)) {</span>
+<span class="nc" id="L170">                return false;</span>
+            }
+        }
+<span class="fc" id="L173">        return true;</span>
+    }
+
+    /**
+     * If user cancels autocompletion by a) entering another letter than the completed word (and there is no other auto
+     * completion) b) space the casing of the letters has to be kept
+     *
+     * Global variable &quot;lastBeginning&quot; keeps track of typed letters. We rely on this variable to reconstruct the text
+     *
+     * @param wordSeperatorTyped indicates whether the user has typed a white space character or a
+     */
+    private void setUnmodifiedTypedLetters(JTextComponent comp, boolean lastBeginningContainsTypedCharacter,
+            boolean wordSeperatorTyped) {
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (lastBeginning == null) {</span>
+<span class="fc" id="L187">            LOGGER.debug(&quot;No last beginning found&quot;);</span>
+            // There was no previous input (if the user typed a word, where no autocompletion is available)
+            // Thus, there is nothing to replace
+<span class="fc" id="L190">            return;</span>
+        }
+<span class="fc" id="L192">        LOGGER.debug(&quot;lastBeginning: &gt;&quot; + lastBeginning + '&lt;');</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        if (comp.getSelectedText() == null) {</span>
+            // if there is no selection
+            // the user has typed the complete word, but possibly with a different casing
+            // we need a replacement
+<span class="fc bfc" id="L197" title="All 2 branches covered.">            if (wordSeperatorTyped) {</span>
+<span class="fc" id="L198">                LOGGER.debug(&quot;Replacing complete word&quot;);</span>
+<span class="fc" id="L199">            } else {</span>
+                // if user did not press a white space character (space, ...),
+                // then we do not do anything
+<span class="fc" id="L202">                return;</span>
+            }
+        } else {
+<span class="fc" id="L205">            LOGGER.debug(&quot;Selected text &quot; + comp.getSelectedText() + &quot; will be removed&quot;);</span>
+            // remove completion suggestion
+<span class="fc" id="L207">            comp.replaceSelection(&quot;&quot;);</span>
+        }
+
+<span class="fc" id="L210">        lastCaretPosition = comp.getCaretPosition();</span>
+
+<span class="fc" id="L212">        int endIndex = lastCaretPosition - lastBeginning.length();</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">        if (lastBeginningContainsTypedCharacter) {</span>
+            // the current letter is NOT contained in comp.getText(), but in lastBeginning
+            // thus lastBeginning.length() is one too large
+<span class="fc" id="L216">            endIndex++;</span>
+        }
+<span class="fc" id="L218">        String text = comp.getText();</span>
+<span class="fc" id="L219">        comp.setText(text.substring(0, endIndex).concat(lastBeginning).concat(text.substring(lastCaretPosition)));</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">        if (lastBeginningContainsTypedCharacter) {</span>
+            // the current letter is NOT contained in comp.getText()
+            // Thus, cursor position also did not get updated
+<span class="fc" id="L223">            lastCaretPosition++;</span>
+        }
+<span class="fc" id="L225">        comp.setCaretPosition(lastCaretPosition);</span>
+<span class="fc" id="L226">        lastBeginning = null;</span>
+<span class="fc" id="L227">    }</span>
+
+    /**
+     * Start a new completion attempt (instead of treating a continuation of an existing word or an interrupt of the
+     * current word)
+     */
+    private void startCompletion(StringBuffer currentword, KeyEvent e) {
+<span class="fc" id="L234">        JTextComponent comp = (JTextComponent) e.getSource();</span>
+
+<span class="fc" id="L236">        List&lt;String&gt; completed = findCompletions(currentword.toString());</span>
+<span class="fc" id="L237">        String prefix = completer.getPrefix();</span>
+<span class="pc bpc" id="L238" title="2 of 4 branches missed.">        String cWord = (prefix != null) &amp;&amp; (!prefix.isEmpty()) ? currentword.toString()</span>
+<span class="pc" id="L239">                .substring(prefix.length()) : currentword.toString();</span>
+
+<span class="fc" id="L241">        LOGGER.debug(&quot;StartCompletion currentword: &gt;&quot; + currentword + &quot;'&lt;' prefix: &gt;&quot; + prefix + &quot;'&lt;' cword: &gt;&quot; + cWord</span>
+<span class="fc" id="L242">                + '&lt;');</span>
+
+<span class="fc" id="L244">        int no = 0; // We use the first word in the array of completions.</span>
+<span class="pc bpc" id="L245" title="1 of 4 branches missed.">        if ((completed != null) &amp;&amp; (!completed.isEmpty())) {</span>
+<span class="fc" id="L246">            lastShownCompletion = 0;</span>
+<span class="fc" id="L247">            lastCompletions = completed;</span>
+<span class="fc" id="L248">            String sno = completed.get(no);</span>
+
+            // these two lines obey the user's input
+            //toSetIn = Character.toString(ch);
+            //toSetIn = toSetIn.concat(sno.substring(cWord.length()));
+            // BUT we obey the completion
+<span class="fc" id="L254">            toSetIn = sno.substring(cWord.length() - 1);</span>
+
+<span class="fc" id="L256">            LOGGER.debug(&quot;toSetIn: &gt;&quot; + toSetIn + '&lt;');</span>
+
+<span class="fc" id="L258">            StringBuilder alltext = new StringBuilder(comp.getText());</span>
+<span class="fc" id="L259">            int cp = comp.getCaretPosition();</span>
+<span class="fc" id="L260">            alltext.insert(cp, toSetIn);</span>
+<span class="fc" id="L261">            comp.setText(alltext.toString());</span>
+<span class="fc" id="L262">            comp.setCaretPosition(cp);</span>
+<span class="fc" id="L263">            comp.select(cp + 1, (cp + 1 + sno.length()) - cWord.length());</span>
+<span class="fc" id="L264">            e.consume();</span>
+<span class="fc" id="L265">            lastCaretPosition = comp.getCaretPosition();</span>
+<span class="fc" id="L266">            char ch = e.getKeyChar();</span>
+
+<span class="fc" id="L268">            LOGGER.debug(&quot;Appending &gt;&quot; + ch + '&lt;');</span>
+
+<span class="fc bfc" id="L270" title="All 2 branches covered.">            if (cWord.length() &lt;= 1) {</span>
+<span class="fc" id="L271">                lastBeginning = Character.toString(ch);</span>
+<span class="fc" id="L272">            } else {</span>
+<span class="fc" id="L273">                lastBeginning = cWord.substring(0, cWord.length() - 1).concat(Character.toString(ch));</span>
+            }
+        }
+
+<span class="fc" id="L277">    }</span>
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+<span class="fc" id="L281">        LOGGER.debug(&quot;key typed event caught &quot; + e.getKeyCode());</span>
+<span class="fc" id="L282">        char ch = e.getKeyChar();</span>
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">        if (ch == '\n') {</span>
+            // this case is handled at keyPressed(e)
+<span class="nc" id="L285">            return;</span>
+        }
+
+        // don't do auto completion inside words
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">        if (!atEndOfWord((JTextComponent) e.getSource())) {</span>
+<span class="nc" id="L290">            return;</span>
+        }
+
+<span class="pc bpc" id="L293" title="1 of 2 branches missed.">        if ((e.getModifiers() | InputEvent.SHIFT_MASK) == InputEvent.SHIFT_MASK) {</span>
+            // plain key or SHIFT + key is pressed, no handling of CTRL+key,  META+key, ...
+<span class="pc bpc" id="L295" title="1 of 4 branches missed.">            if (Character.isLetter(ch) || Character.isDigit(ch)</span>
+<span class="pc bpc" id="L296" title="1 of 4 branches missed.">                    || (Character.isWhitespace(ch) &amp;&amp; completer.isSingleUnitField())) {</span>
+<span class="fc" id="L297">                JTextComponent comp = (JTextComponent) e.getSource();</span>
+
+<span class="fc bfc" id="L299" title="All 2 branches covered.">                if (toSetIn == null) {</span>
+<span class="fc" id="L300">                    LOGGER.debug(&quot;toSetIn is null&quot;);</span>
+<span class="fc" id="L301">                } else {</span>
+<span class="fc" id="L302">                    LOGGER.debug(&quot;toSetIn: &gt;&quot; + toSetIn + '&lt;');</span>
+                }
+
+                // The case-insensitive system is a bit tricky here
+                // If keyword is &quot;TODO&quot; and user types &quot;tO&quot;, then this is treated as &quot;continue&quot; as the &quot;O&quot; matches the &quot;O&quot;
+                // If keyword is &quot;TODO&quot; and user types &quot;To&quot;, then this is treated as &quot;discont&quot; as the &quot;o&quot; does NOT match the &quot;O&quot;.
+
+<span class="pc bpc" id="L309" title="1 of 6 branches missed.">                if ((toSetIn != null) &amp;&amp; (toSetIn.length() &gt; 1) &amp;&amp; (ch == toSetIn.charAt(1))) {</span>
+                    // User continues on the word that was suggested.
+<span class="fc" id="L311">                    LOGGER.debug(&quot;cont&quot;);</span>
+
+<span class="fc" id="L313">                    toSetIn = toSetIn.substring(1);</span>
+<span class="pc bpc" id="L314" title="1 of 2 branches missed.">                    if (!toSetIn.isEmpty()) {</span>
+<span class="fc" id="L315">                        int cp = comp.getCaretPosition();</span>
+                        //comp.setCaretPosition(cp+1-toSetIn.);
+<span class="fc" id="L317">                        comp.select((cp + 1) - toSetIn.length(), cp);</span>
+<span class="fc" id="L318">                        lastBeginning = lastBeginning + ch;</span>
+
+<span class="fc" id="L320">                        e.consume();</span>
+<span class="fc" id="L321">                        lastCaretPosition = comp.getCaretPosition();</span>
+
+<span class="fc" id="L323">                        lastCompletions = findCompletions(lastBeginning);</span>
+<span class="fc" id="L324">                        lastShownCompletion = 0;</span>
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">                        for (int i = 0; i &lt; lastCompletions.size(); i++) {</span>
+<span class="fc" id="L326">                            String lastCompletion = lastCompletions.get(i);</span>
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">                            if (lastCompletion.endsWith(toSetIn)) {</span>
+<span class="fc" id="L328">                                lastShownCompletion = i;</span>
+<span class="fc" id="L329">                                break;</span>
+                            }
+
+                        }
+<span class="fc bfc" id="L333" title="All 2 branches covered.">                        if (toSetIn.length() &lt; 2) {</span>
+                            // User typed the last character of the autocompleted word
+                            // We have to replace the automcompletion word by the typed word.
+                            // This helps if the user presses &quot;space&quot; after the completion
+                            // &quot;space&quot; indicates that the user does NOT want the autocompletion,
+                            // but the typed word
+<span class="fc" id="L339">                            String text = comp.getText();</span>
+<span class="fc" id="L340">                            comp.setText(text.substring(0, lastCaretPosition - lastBeginning.length()) + lastBeginning</span>
+<span class="fc" id="L341">                                    + text.substring(lastCaretPosition));</span>
+                            // there is no selected text, therefore we are not updating the selection
+<span class="fc" id="L343">                            toSetIn = null;</span>
+                        }
+<span class="fc" id="L345">                        return;</span>
+                    }
+                }
+
+<span class="pc bpc" id="L349" title="2 of 6 branches missed.">                if ((toSetIn != null) &amp;&amp; ((toSetIn.length() &lt;= 1) || (ch != toSetIn.charAt(1)))) {</span>
+                    // User discontinues the word that was suggested.
+<span class="fc" id="L351">                    lastBeginning = lastBeginning + ch;</span>
+
+<span class="fc" id="L353">                    LOGGER.debug(&quot;discont toSetIn: &gt;&quot; + toSetIn + &quot;'&lt;' lastBeginning: &gt;&quot; + lastBeginning + '&lt;');</span>
+
+<span class="fc" id="L355">                    List&lt;String&gt; completed = findCompletions(lastBeginning);</span>
+<span class="pc bpc" id="L356" title="1 of 4 branches missed.">                    if ((completed != null) &amp;&amp; (!completed.isEmpty())) {</span>
+<span class="fc" id="L357">                        lastShownCompletion = 0;</span>
+<span class="fc" id="L358">                        lastCompletions = completed;</span>
+<span class="fc" id="L359">                        String sno = completed.get(0);</span>
+                        // toSetIn = string used for autocompletion last time
+                        // this string has to be removed
+                        // lastCaretPosition is the position of the caret after toSetIn.
+<span class="fc" id="L363">                        int lastLen = toSetIn.length() - 1;</span>
+<span class="fc" id="L364">                        toSetIn = sno.substring(lastBeginning.length() - 1);</span>
+<span class="fc" id="L365">                        String text = comp.getText();</span>
+                        //we do not use toSetIn as we want to obey the casing of &quot;sno&quot;
+<span class="fc" id="L367">                        comp.setText(text.substring(0, (lastCaretPosition - lastLen - lastBeginning.length()) + 1) + sno</span>
+<span class="fc" id="L368">                                + text.substring(lastCaretPosition));</span>
+<span class="fc" id="L369">                        int startSelect = (lastCaretPosition + 1) - lastLen;</span>
+<span class="fc" id="L370">                        int endSelect = (lastCaretPosition + toSetIn.length()) - lastLen;</span>
+<span class="fc" id="L371">                        comp.select(startSelect, endSelect);</span>
+
+<span class="fc" id="L373">                        lastCaretPosition = comp.getCaretPosition();</span>
+<span class="fc" id="L374">                        e.consume();</span>
+<span class="fc" id="L375">                        return;</span>
+                    } else {
+<span class="fc" id="L377">                        setUnmodifiedTypedLetters(comp, true, false);</span>
+<span class="fc" id="L378">                        e.consume();</span>
+<span class="fc" id="L379">                        toSetIn = null;</span>
+<span class="fc" id="L380">                        return;</span>
+                    }
+                }
+
+<span class="fc" id="L384">                LOGGER.debug(&quot;case else&quot;);</span>
+
+<span class="fc" id="L386">                comp.replaceSelection(&quot;&quot;);</span>
+
+<span class="fc" id="L388">                StringBuffer currentword = getCurrentWord(comp);</span>
+
+                // only &quot;real characters&quot; end up here
+<span class="pc bpc" id="L391" title="3 of 4 branches missed.">                assert (!Character.isISOControl(ch));</span>
+<span class="fc" id="L392">                currentword.append(ch);</span>
+<span class="fc" id="L393">                startCompletion(currentword, e);</span>
+<span class="fc" id="L394">                return;</span>
+            } else {
+<span class="pc bpc" id="L396" title="1 of 2 branches missed.">                if (Character.isWhitespace(ch)) {</span>
+<span class="nc bnc" id="L397" title="All 4 branches missed.">                    assert (!completer.isSingleUnitField());</span>
+<span class="nc" id="L398">                    LOGGER.debug(&quot;whitespace &amp;&amp; !singleUnitField&quot;);</span>
+                    // start a new search if end-of-field is reached
+
+                    // replace displayed letters with typed letters
+<span class="nc" id="L402">                    setUnmodifiedTypedLetters((JTextComponent) e.getSource(), false, true);</span>
+<span class="nc" id="L403">                    resetAutoCompletion();</span>
+<span class="nc" id="L404">                    return;</span>
+                }
+
+<span class="fc" id="L407">                LOGGER.debug(&quot;No letter/digit/whitespace or CHAR_UNDEFINED&quot;);</span>
+                // replace displayed letters with typed letters
+<span class="fc bfc" id="L409" title="All 2 branches covered.">                setUnmodifiedTypedLetters((JTextComponent) e.getSource(), false, !Character.isISOControl(ch));</span>
+<span class="fc" id="L410">                resetAutoCompletion();</span>
+<span class="fc" id="L411">                return;</span>
+            }
+        }
+<span class="nc" id="L414">        resetAutoCompletion();</span>
+<span class="nc" id="L415">    }</span>
+
+    /**
+     * Resets the auto completion data in a way that no leftovers are there
+     */
+    private void resetAutoCompletion() {
+<span class="fc" id="L421">        LOGGER.debug(&quot;Resetting autocompletion&quot;);</span>
+<span class="fc" id="L422">        toSetIn = null;</span>
+<span class="fc" id="L423">        lastBeginning = null;</span>
+<span class="fc" id="L424">    }</span>
+
+    private List&lt;String&gt; findCompletions(String beginning) {
+<span class="fc" id="L427">        return completer.complete(beginning);</span>
+    }
+
+    private StringBuffer getCurrentWord(JTextComponent comp) {
+<span class="fc" id="L431">        StringBuffer res = new StringBuffer();</span>
+        String upToCaret;
+
+        try {
+<span class="fc" id="L435">            upToCaret = comp.getText(0, comp.getCaretPosition());</span>
+            // We now have the text from the start of the field up to the caret position.
+            // In most fields, we are only interested in the currently edited word, so we
+            // seek from the caret backward to the closest space:
+<span class="fc bfc" id="L439" title="All 2 branches covered.">            if (!completer.isSingleUnitField()) {</span>
+<span class="pc bpc" id="L440" title="1 of 2 branches missed.">                if ((comp.getCaretPosition() &lt; comp.getText().length())</span>
+<span class="nc bnc" id="L441" title="All 2 branches missed.">                        &amp;&amp; Character.isWhitespace(comp.getText().charAt(comp.getCaretPosition()))) {</span>
+                    // caret is in the middle of the text AND current character is a whitespace
+                    // that means: a new word is started and there is no current word
+<span class="nc" id="L444">                    return new StringBuffer();</span>
+                }
+
+<span class="fc" id="L447">                int piv = upToCaret.length() - 1;</span>
+<span class="pc bpc" id="L448" title="1 of 4 branches missed.">                while ((piv &gt;= 0) &amp;&amp; !Character.isWhitespace(upToCaret.charAt(piv))) {</span>
+<span class="fc" id="L449">                    piv--;</span>
+                }
+                // piv points to whitespace char or piv is -1
+                // copy everything from the next char up to the end of &quot;upToCaret&quot;
+<span class="fc" id="L453">                res.append(upToCaret.substring(piv + 1));</span>
+<span class="fc" id="L454">            } else {</span>
+                // For fields such as &quot;journal&quot; it is more reasonable to try to complete on the entire
+                // text field content, so we skip the searching and keep the entire part up to the caret:
+<span class="fc" id="L457">                res.append(upToCaret);</span>
+            }
+<span class="fc" id="L459">            LOGGER.debug(&quot;AutoCompListener: &quot; + res);</span>
+<span class="pc" id="L460">        } catch (BadLocationException ignore) {</span>
+            // Ignored
+        }
+
+<span class="fc" id="L464">        return res;</span>
+    }
+
+    @Override
+    public void focusGained(FocusEvent event) {
+<span class="pc bpc" id="L469" title="1 of 2 branches missed.">        if (nextFocusListener != null) {</span>
+<span class="fc" id="L470">            nextFocusListener.focusGained(event);</span>
+        }
+<span class="fc" id="L472">    }</span>
+
+    @Override
+    public void focusLost(FocusEvent event) {
+<span class="fc bfc" id="L476" title="All 2 branches covered.">        if (toSetIn != null) {</span>
+<span class="fc" id="L477">            JTextComponent comp = (JTextComponent) event.getSource();</span>
+<span class="fc" id="L478">            clearCurrentSuggestion(comp);</span>
+        }
+<span class="pc bpc" id="L480" title="1 of 2 branches missed.">        if (nextFocusListener != null) {</span>
+<span class="fc" id="L481">            nextFocusListener.focusLost(event);</span>
+        }
+<span class="fc" id="L483">    }</span>
+
+    public void clearCurrentSuggestion(JTextComponent comp) {
+<span class="pc bpc" id="L486" title="1 of 2 branches missed.">        if (toSetIn != null) {</span>
+<span class="fc" id="L487">            int selStart = comp.getSelectionStart();</span>
+<span class="fc" id="L488">            String text = comp.getText();</span>
+<span class="fc" id="L489">            comp.setText(text.substring(0, selStart) + text.substring(comp.getSelectionEnd()));</span>
+<span class="fc" id="L490">            comp.setCaretPosition(selStart);</span>
+<span class="fc" id="L491">            lastCompletions = null;</span>
+<span class="fc" id="L492">            lastShownCompletion = 0;</span>
+<span class="fc" id="L493">            lastCaretPosition = -1;</span>
+<span class="fc" id="L494">            toSetIn = null;</span>
+        }
+<span class="fc" id="L496">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

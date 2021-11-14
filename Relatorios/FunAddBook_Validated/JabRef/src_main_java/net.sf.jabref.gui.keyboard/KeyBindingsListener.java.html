@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>KeyBindingsListener.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.keyboard</a> &gt; <span class="el_source">KeyBindingsListener.java</span></div><h1>KeyBindingsListener.java</h1><pre class="source lang-java linenums">package net.sf.jabref.gui.keyboard;
+
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+
+/**
+ * respond to grabKey and display the key binding
+ */
+public class KeyBindingsListener extends KeyAdapter {
+
+    private final KeyBindingTable table;
+
+<span class="nc" id="L13">    public KeyBindingsListener(KeyBindingTable table) {</span>
+<span class="nc" id="L14">        this.table = table;</span>
+<span class="nc" id="L15">    }</span>
+
+    @Override
+    public void keyPressed(KeyEvent evt) {
+        // first check if anything is selected if not the return
+<span class="nc" id="L20">        final int selRow = table.getSelectedRow();</span>
+<span class="nc bnc" id="L21" title="All 2 branches missed.">        boolean isAnyRowSelected = selRow &gt;= 0;</span>
+<span class="nc bnc" id="L22" title="All 2 branches missed.">        if (!isAnyRowSelected) {</span>
+<span class="nc" id="L23">            return;</span>
+        }
+
+<span class="nc" id="L26">        final String modifier = KeyEvent.getKeyModifiersText(evt.getModifiers());</span>
+
+        // VALIDATE code and modifier
+        // all key bindings must have a modifier: ctrl alt etc
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (&quot;&quot;.equals(modifier)) {</span>
+<span class="nc" id="L31">            int kc = evt.getKeyCode();</span>
+<span class="nc bnc" id="L32" title="All 4 branches missed.">            boolean isFunctionKey = (kc &gt;= KeyEvent.VK_F1) &amp;&amp; (kc &lt;= KeyEvent.VK_F12);</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">            boolean isEscapeKey = kc == KeyEvent.VK_ESCAPE;</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">            boolean isDeleteKey = kc == KeyEvent.VK_DELETE;</span>
+<span class="nc bnc" id="L35" title="All 6 branches missed.">            if (!(isFunctionKey || isEscapeKey || isDeleteKey)) {</span>
+<span class="nc" id="L36">                return; // need a modifier except for function, escape and delete keys</span>
+            }
+        }
+
+<span class="nc" id="L40">        final String code = KeyEvent.getKeyText(evt.getKeyCode());</span>
+        // second key cannot be a modifiers
+<span class="nc bnc" id="L42" title="All 2 branches missed.">        if (&quot;Tab&quot;.equals(code)</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">                || &quot;Backspace&quot;.equals(code)</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">                || &quot;Enter&quot;.equals(code)</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">                || &quot;Space&quot;.equals(code)</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">                || &quot;Ctrl&quot;.equals(code)</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">                || &quot;Shift&quot;.equals(code)</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">                || &quot;Alt&quot;.equals(code)) {</span>
+<span class="nc" id="L49">            return;</span>
+        }
+
+        // COMPUTE new key binding
+        String newKey;
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (&quot;&quot;.equals(modifier)) {</span>
+<span class="nc" id="L55">            newKey = code;</span>
+<span class="nc" id="L56">        } else {</span>
+<span class="nc" id="L57">            newKey = modifier.toLowerCase().replace(&quot;+&quot;, &quot; &quot;) + &quot; &quot; + code;</span>
+        }
+
+        // SHOW new key binding
+        //find which key is selected and set its value
+<span class="nc" id="L62">        table.setValueAt(newKey, selRow, 1);</span>
+<span class="nc" id="L63">        table.revalidate();</span>
+<span class="nc" id="L64">        table.repaint();</span>
+<span class="nc" id="L65">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

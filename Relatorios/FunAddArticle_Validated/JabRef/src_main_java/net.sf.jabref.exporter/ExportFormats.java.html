@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ExportFormats.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">ExportFormats.java</span></div><h1>ExportFormats.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.exporter;
+
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileFilter;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.actions.MnemonicAwareAction;
+import net.sf.jabref.gui.worker.AbstractWorker;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * User: alver
+ *
+ * Date: Oct 18, 2006
+ *
+ * Time: 9:35:08 PM
+ */
+<span class="nc" id="L52">public class ExportFormats {</span>
+
+<span class="fc" id="L54">    private static final Log LOGGER = LogFactory.getLog(ExportFormats.class);</span>
+
+<span class="fc" id="L56">    private static final Map&lt;String, IExportFormat&gt; EXPORT_FORMATS = new TreeMap&lt;&gt;();</span>
+
+    // Global variable that is used for counting output entries when exporting:
+<span class="fc" id="L59">    public static int entryNumber;</span>
+
+
+    public static void initAllExports() {
+
+<span class="fc" id="L64">        ExportFormats.EXPORT_FORMATS.clear();</span>
+
+        // Initialize Build-In Export Formats
+<span class="fc" id="L67">        ExportFormats.putFormat(new ExportFormat(&quot;HTML&quot;, &quot;html&quot;, &quot;html&quot;, null, &quot;.html&quot;));</span>
+<span class="fc" id="L68">        ExportFormats.putFormat(new ExportFormat(Localization.lang(&quot;Simple HTML&quot;), &quot;simplehtml&quot;, &quot;simplehtml&quot;, null, &quot;.html&quot;));</span>
+<span class="fc" id="L69">        ExportFormats.putFormat(new ExportFormat(&quot;DocBook 4.4&quot;, &quot;docbook&quot;, &quot;docbook&quot;, null, &quot;.xml&quot;));</span>
+<span class="fc" id="L70">        ExportFormats.putFormat(new ExportFormat(&quot;DIN 1505&quot;, &quot;din1505&quot;, &quot;din1505winword&quot;, &quot;din1505&quot;, &quot;.rtf&quot;));</span>
+<span class="fc" id="L71">        ExportFormats.putFormat(new ExportFormat(&quot;BibTeXML&quot;, &quot;bibtexml&quot;, &quot;bibtexml&quot;, null, &quot;.xml&quot;));</span>
+<span class="fc" id="L72">        ExportFormats.putFormat(new ExportFormat(&quot;BibO RDF&quot;, &quot;bibordf&quot;, &quot;bibordf&quot;, null, &quot;.rdf&quot;));</span>
+<span class="fc" id="L73">        ExportFormats.putFormat(new ModsExportFormat());</span>
+<span class="fc" id="L74">        ExportFormats.putFormat(new ExportFormat(Localization.lang(&quot;HTML table&quot;), &quot;tablerefs&quot;, &quot;tablerefs&quot;, &quot;tablerefs&quot;, &quot;.html&quot;));</span>
+<span class="fc" id="L75">        ExportFormats.putFormat(new ExportFormat(Localization.lang(&quot;HTML list&quot;),</span>
+<span class="fc" id="L76">                &quot;listrefs&quot;, &quot;listrefs&quot;, &quot;listrefs&quot;, &quot;.html&quot;));</span>
+<span class="fc" id="L77">        ExportFormats.putFormat(new ExportFormat(Localization.lang(&quot;HTML table (with Abstract &amp; BibTeX)&quot;),</span>
+<span class="fc" id="L78">                &quot;tablerefsabsbib&quot;, &quot;tablerefsabsbib&quot;, &quot;tablerefsabsbib&quot;, &quot;.html&quot;));</span>
+<span class="fc" id="L79">        ExportFormats.putFormat(new ExportFormat(&quot;Harvard RTF&quot;, &quot;harvard&quot;, &quot;harvard&quot;,</span>
+<span class="fc" id="L80">                &quot;harvard&quot;, &quot;.rtf&quot;));</span>
+<span class="fc" id="L81">        ExportFormats.putFormat(new ExportFormat(&quot;ISO 690&quot;, &quot;iso690rtf&quot;, &quot;iso690RTF&quot;, &quot;iso690rtf&quot;, &quot;.rtf&quot;));</span>
+<span class="fc" id="L82">        ExportFormats.putFormat(new ExportFormat(&quot;ISO 690&quot;, &quot;iso690txt&quot;, &quot;iso690&quot;, &quot;iso690txt&quot;, &quot;.txt&quot;));</span>
+<span class="fc" id="L83">        ExportFormats.putFormat(new ExportFormat(&quot;Endnote&quot;, &quot;endnote&quot;, &quot;EndNote&quot;, &quot;endnote&quot;, &quot;.txt&quot;));</span>
+<span class="fc" id="L84">        ExportFormats.putFormat(new ExportFormat(&quot;OpenOffice/LibreOffice CSV&quot;, &quot;oocsv&quot;, &quot;openoffice-csv&quot;,</span>
+<span class="fc" id="L85">                &quot;openoffice&quot;, &quot;.csv&quot;));</span>
+<span class="fc" id="L86">        ExportFormat ef = new ExportFormat(&quot;RIS&quot;, &quot;ris&quot;, &quot;ris&quot;, &quot;ris&quot;, &quot;.ris&quot;);</span>
+<span class="fc" id="L87">        ef.setEncoding(StandardCharsets.UTF_8);</span>
+<span class="fc" id="L88">        ExportFormats.putFormat(ef);</span>
+<span class="fc" id="L89">        ExportFormats.putFormat(new ExportFormat(&quot;MIS Quarterly&quot;, &quot;misq&quot;, &quot;misq&quot;, &quot;misq&quot;, &quot;.rtf&quot;));</span>
+
+<span class="fc" id="L91">        ExportFormats.putFormat(new OpenOfficeDocumentCreator());</span>
+<span class="fc" id="L92">        ExportFormats.putFormat(new OpenDocumentSpreadsheetCreator());</span>
+<span class="fc" id="L93">        ExportFormats.putFormat(new MSBibExportFormat());</span>
+<span class="fc" id="L94">        ExportFormats.putFormat(new ModsExportFormat());</span>
+
+        // Now add custom export formats
+<span class="fc" id="L97">        Map&lt;String, ExportFormat&gt; customFormats = Globals.prefs.customExports.getCustomExportFormats();</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        for (IExportFormat format : customFormats.values()) {</span>
+<span class="nc" id="L99">            ExportFormats.putFormat(format);</span>
+        }
+<span class="fc" id="L101">    }</span>
+
+    /**
+     * Build a string listing of all available export formats.
+     *
+     * @param maxLineLength
+     *            The max line length before a line break must be added.
+     * @param linePrefix
+     *            If a line break is added, this prefix will be inserted at the
+     *            beginning of the next line.
+     * @return The string describing available formats.
+     */
+    public static String getConsoleExportList(int maxLineLength, int firstLineSubtr,
+            String linePrefix) {
+<span class="nc" id="L115">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L116">        int lastBreak = -firstLineSubtr;</span>
+
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        for (String name : ExportFormats.EXPORT_FORMATS.keySet()) {</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            if (((sb.length() + 2 + name.length()) - lastBreak) &gt; maxLineLength) {</span>
+<span class="nc" id="L120">                sb.append(&quot;,\n&quot;);</span>
+<span class="nc" id="L121">                lastBreak = sb.length();</span>
+<span class="nc" id="L122">                sb.append(linePrefix);</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">            } else if (sb.length() &gt; 0) {</span>
+<span class="nc" id="L124">                sb.append(&quot;, &quot;);</span>
+            }
+<span class="nc" id="L126">            sb.append(name);</span>
+        }
+
+<span class="nc" id="L129">        return sb.toString();</span>
+    }
+
+    /**
+     * Get a Map of all export formats.
+     * @return A Map containing all export formats, mapped to their console names.
+     */
+    public static Map&lt;String, IExportFormat&gt; getExportFormats() {
+        // It is perhaps overly paranoid to make a defensive copy in this case:
+<span class="nc" id="L138">        return Collections.unmodifiableMap(ExportFormats.EXPORT_FORMATS);</span>
+    }
+
+    /**
+     * Look up the named export format.
+     *
+     * @param consoleName
+     *            The export name given in the JabRef console help information.
+     * @return The ExportFormat, or null if no exportformat with that name is
+     *         registered.
+     */
+    public static IExportFormat getExportFormat(String consoleName) {
+<span class="nc" id="L150">        return ExportFormats.EXPORT_FORMATS.get(consoleName);</span>
+    }
+
+    /**
+     * Create an AbstractAction for performing an export operation.
+     *
+     * @param frame
+     *            The JabRefFrame of this JabRef instance.
+     * @param selectedOnly
+     *            true indicates that only selected entries should be exported,
+     *            false indicates that all entries should be exported.
+     * @return The action.
+     */
+    public static AbstractAction getExportAction(JabRefFrame frame, boolean selectedOnly) {
+
+        class ExportAction extends MnemonicAwareAction {
+
+            private final JabRefFrame frame;
+
+            private final boolean selectedOnly;
+
+
+<span class="fc" id="L172">            public ExportAction(JabRefFrame frame, boolean selectedOnly) {</span>
+<span class="fc" id="L173">                this.frame = frame;</span>
+<span class="fc" id="L174">                this.selectedOnly = selectedOnly;</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">                putValue(Action.NAME, selectedOnly ? Localization.menuTitle(&quot;Export selected entries&quot;) :</span>
+<span class="fc" id="L176">                    Localization.menuTitle(&quot;Export&quot;));</span>
+<span class="fc" id="L177">            }</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L181">                ExportFormats.initAllExports();</span>
+<span class="nc" id="L182">                JFileChooser fc = ExportFormats.createExportFileChooser(</span>
+<span class="nc" id="L183">                        Globals.prefs.get(JabRefPreferences.EXPORT_WORKING_DIRECTORY));</span>
+<span class="nc" id="L184">                fc.showSaveDialog(frame);</span>
+<span class="nc" id="L185">                File file = fc.getSelectedFile();</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">                if (file == null) {</span>
+<span class="nc" id="L187">                    return;</span>
+                }
+<span class="nc" id="L189">                FileFilter ff = fc.getFileFilter();</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                if (ff instanceof ExportFileFilter) {</span>
+
+<span class="nc" id="L192">                    ExportFileFilter eff = (ExportFileFilter) ff;</span>
+<span class="nc" id="L193">                    String path = file.getPath();</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">                    if (!path.endsWith(eff.getExtension())) {</span>
+<span class="nc" id="L195">                        path = path + eff.getExtension();</span>
+                    }
+<span class="nc" id="L197">                    file = new File(path);</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">                    if (file.exists()) {</span>
+                        // Warn that the file exists:
+<span class="nc bnc" id="L200" title="All 2 branches missed.">                        if (JOptionPane.showConfirmDialog(frame,</span>
+<span class="nc" id="L201">                                Localization.lang(&quot;'%0' exists. Overwrite file?&quot;, file.getName()),</span>
+<span class="nc" id="L202">                                Localization.lang(&quot;Export&quot;), JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) {</span>
+<span class="nc" id="L203">                            return;</span>
+                        }
+                    }
+<span class="nc" id="L206">                    final IExportFormat format = eff.getExportFormat();</span>
+                    List&lt;BibEntry&gt; entries;
+<span class="nc bnc" id="L208" title="All 2 branches missed.">                    if (selectedOnly) {</span>
+                        // Selected entries
+<span class="nc" id="L210">                        entries = frame.getCurrentBasePanel().getSelectedEntries();</span>
+<span class="nc" id="L211">                    } else {</span>
+                        // All entries
+<span class="nc" id="L213">                        entries = frame.getCurrentBasePanel().getDatabase().getEntries();</span>
+                    }
+
+                    // Set the global variable for this database's file directory before exporting,
+                    // so formatters can resolve linked files correctly.
+                    // (This is an ugly hack!)
+<span class="nc" id="L219">                    Globals.prefs.fileDirForDatabase = frame.getCurrentBasePanel().getBibDatabaseContext()</span>
+<span class="nc" id="L220">                            .getFileDirectory();</span>
+
+                    // Make sure we remember which filter was used, to set
+                    // the default for next time:
+<span class="nc" id="L224">                    Globals.prefs.put(JabRefPreferences.LAST_USED_EXPORT, format.getConsoleName());</span>
+<span class="nc" id="L225">                    Globals.prefs.put(JabRefPreferences.EXPORT_WORKING_DIRECTORY, file.getParent());</span>
+
+<span class="nc" id="L227">                    final File finFile = file;</span>
+<span class="nc" id="L228">                    final List&lt;BibEntry&gt; finEntries = entries;</span>
+<span class="nc" id="L229">                    AbstractWorker exportWorker = new AbstractWorker() {</span>
+
+                        String errorMessage;
+
+
+                        @Override
+                        public void run() {
+                            try {
+<span class="nc" id="L237">                                format.performExport(frame.getCurrentBasePanel().getBibDatabaseContext(),</span>
+<span class="nc" id="L238">                                        finFile.getPath(), frame.getCurrentBasePanel().getEncoding(), finEntries);</span>
+<span class="nc" id="L239">                            } catch (Exception ex) {</span>
+<span class="nc" id="L240">                                LOGGER.warn(&quot;Problem exporting&quot;, ex);</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">                                if (ex.getMessage() == null) {</span>
+<span class="nc" id="L242">                                    errorMessage = ex.toString();</span>
+<span class="nc" id="L243">                                } else {</span>
+<span class="nc" id="L244">                                    errorMessage = ex.getMessage();</span>
+                                }
+                            }
+<span class="nc" id="L247">                        }</span>
+
+                        @Override
+                        public void update() {
+                            // No error message. Report success:
+<span class="nc bnc" id="L252" title="All 2 branches missed.">                            if (errorMessage == null) {</span>
+<span class="nc" id="L253">                                frame.output(Localization.lang(&quot;%0 export successful&quot;, format.getDisplayName()));</span>
+<span class="nc" id="L254">                            }</span>
+                            // ... or show an error dialog:
+                            else {
+<span class="nc" id="L257">                                frame.output(Localization.lang(&quot;Could not save file.&quot;)</span>
+<span class="nc" id="L258">                                        + &quot; - &quot; + errorMessage);</span>
+                                // Need to warn the user that saving failed!
+<span class="nc" id="L260">                                JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Could not save file.&quot;)</span>
+<span class="nc" id="L261">                                        + &quot;\n&quot; + errorMessage, Localization.lang(&quot;Save database&quot;),</span>
+<span class="nc" id="L262">                                        JOptionPane.ERROR_MESSAGE);</span>
+                            }
+<span class="nc" id="L264">                        }</span>
+                    };
+
+                    // Run the export action in a background thread:
+<span class="nc" id="L268">                    exportWorker.getWorker().run();</span>
+                    // Run the update method:
+<span class="nc" id="L270">                    exportWorker.update();</span>
+                }
+<span class="nc" id="L272">            }</span>
+        }
+
+<span class="fc" id="L275">        return new ExportAction(frame, selectedOnly);</span>
+    }
+
+    private static JFileChooser createExportFileChooser(String currentDir) {
+<span class="nc" id="L279">        String lastUsedFormat = Globals.prefs.get(JabRefPreferences.LAST_USED_EXPORT);</span>
+<span class="nc" id="L280">        FileFilter defaultFilter = null;</span>
+<span class="nc" id="L281">        JFileChooser fc = new JFileChooser(currentDir);</span>
+<span class="nc" id="L282">        Set&lt;FileFilter&gt; filters = new TreeSet&lt;&gt;();</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">        for (Map.Entry&lt;String, IExportFormat&gt; e : ExportFormats.EXPORT_FORMATS.entrySet()) {</span>
+<span class="nc" id="L284">            String formatName = e.getKey();</span>
+<span class="nc" id="L285">            IExportFormat format = e.getValue();</span>
+<span class="nc" id="L286">            filters.add(format.getFileFilter());</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">            if (formatName.equals(lastUsedFormat)) {</span>
+<span class="nc" id="L288">                defaultFilter = format.getFileFilter();</span>
+            }
+        }
+<span class="nc bnc" id="L291" title="All 2 branches missed.">        for (FileFilter ff : filters) {</span>
+<span class="nc" id="L292">            fc.addChoosableFileFilter(ff);</span>
+        }
+<span class="nc" id="L294">        fc.setAcceptAllFileFilterUsed(false);</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">        if (defaultFilter != null) {</span>
+<span class="nc" id="L296">            fc.setFileFilter(defaultFilter);</span>
+        }
+<span class="nc" id="L298">        return fc;</span>
+    }
+
+    private static void putFormat(IExportFormat format) {
+<span class="fc" id="L302">        ExportFormats.EXPORT_FORMATS.put(format.getConsoleName(), format);</span>
+<span class="fc" id="L303">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

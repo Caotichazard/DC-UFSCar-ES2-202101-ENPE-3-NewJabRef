@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BrowseAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.actions</a> &gt; <span class="el_source">BrowseAction.java</span></div><h1>BrowseAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.actions;
+
+import java.awt.event.ActionEvent;
+import java.io.File;
+
+import javax.swing.AbstractAction;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JTextField;
+
+import net.sf.jabref.gui.FileDialogs;
+import net.sf.jabref.gui.util.FocusRequester;
+import net.sf.jabref.logic.l10n.Localization;
+
+
+/**
+ * Action used to produce a &quot;Browse&quot; button for one of the text fields.
+ */
+public final class BrowseAction extends AbstractAction {
+    private final JFrame frame;
+    private final JTextField comp;
+    private final boolean dir;
+    private final JComponent focusTarget;
+    private final String extension;
+
+    public static BrowseAction buildForDir(JFrame frame, JTextField tc) {
+<span class="nc" id="L43">        return new BrowseAction(frame, tc, true, null, &quot;&quot;);</span>
+    }
+
+    public static BrowseAction buildForDir(JTextField tc) {
+<span class="nc" id="L47">        return new BrowseAction(null, tc, true, null, &quot;&quot;);</span>
+    }
+
+    public static BrowseAction buildForFile(JTextField tc) {
+<span class="nc" id="L51">        return new BrowseAction(null, tc, false, null, &quot;&quot;);</span>
+    }
+
+    public static BrowseAction buildForFile(JTextField tc, JComponent focusTarget, String extension) {
+<span class="nc" id="L55">        return new BrowseAction(null, tc, false, focusTarget, extension);</span>
+}
+
+    public static BrowseAction buildForDir(JTextField tc, JComponent focusTarget) {
+<span class="nc" id="L59">        return new BrowseAction(null, tc, true, focusTarget, null);</span>
+    }
+
+    private BrowseAction(JFrame frame, JTextField tc, boolean dir, JComponent focusTarget, String extension) {
+<span class="nc" id="L63">        super(Localization.lang(&quot;Browse&quot;));</span>
+<span class="nc" id="L64">        this.frame = frame;</span>
+<span class="nc" id="L65">        this.dir = dir;</span>
+<span class="nc" id="L66">        this.comp = tc;</span>
+<span class="nc" id="L67">        this.focusTarget = focusTarget;</span>
+<span class="nc" id="L68">        this.extension = extension;</span>
+<span class="nc" id="L69">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L73">        String chosen = askUser();</span>
+
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (chosen != null) {</span>
+<span class="nc" id="L76">            File newFile = new File(chosen);</span>
+<span class="nc" id="L77">            comp.setText(newFile.getPath());</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">            if (focusTarget != null) {</span>
+<span class="nc" id="L79">                new FocusRequester(focusTarget);</span>
+            }
+        }
+<span class="nc" id="L82">    }</span>
+
+    private String askUser() {
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (dir) {</span>
+<span class="nc" id="L86">            return FileDialogs.getNewDir(frame, new File(comp.getText()), extension,</span>
+<span class="nc" id="L87">                    JFileChooser.OPEN_DIALOG, false);</span>
+        } else {
+<span class="nc" id="L89">            return FileDialogs.getNewFile(frame, new File(comp.getText()), extension,</span>
+<span class="nc" id="L90">                    JFileChooser.OPEN_DIALOG, false);</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

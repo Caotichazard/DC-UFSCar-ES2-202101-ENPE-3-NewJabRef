@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MySQL.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.sql.database</a> &gt; <span class="el_source">MySQL.java</span></div><h1>MySQL.java</h1><pre class="source lang-java linenums">package net.sf.jabref.sql.database;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+import net.sf.jabref.model.entry.IdGenerator;
+import net.sf.jabref.sql.DBStrings;
+import net.sf.jabref.sql.Database;
+import net.sf.jabref.sql.DatabaseType;
+import net.sf.jabref.sql.SQLUtil;
+
+<span class="nc" id="L13">public class MySQL implements Database {</span>
+
+    public static final String DRIVER = &quot;com.mysql.jdbc.Driver&quot;;
+
+
+    private void loadDriver() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+<span class="nc" id="L19">        Class.forName(DRIVER).newInstance();</span>
+<span class="nc" id="L20">    }</span>
+
+    @Override
+    public Connection connect(String url, String username, String password)
+            throws IllegalAccessException, InstantiationException, ClassNotFoundException, SQLException {
+<span class="nc" id="L25">        loadDriver();</span>
+
+<span class="nc" id="L27">        return DriverManager.getConnection(url, username, password);</span>
+    }
+
+    @Override
+    public String getReadColumnNamesQuery() {
+<span class="nc" id="L32">        return &quot;SHOW columns FROM entries;&quot;;</span>
+    }
+
+    @Override
+    public String getCreateTableSQL(Table table) {
+<span class="nc bnc" id="L37" title="All 8 branches missed.">        switch (table) {</span>
+
+        case JABREF_DATABASE:
+<span class="nc" id="L40">            return</span>
+<span class="nc" id="L41">                    &quot;CREATE TABLE IF NOT EXISTS jabref_database ( \n&quot;</span>
+                            + &quot;database_id INT UNSIGNED NOT NULL AUTO_INCREMENT, \n&quot;
+                            + &quot;database_name VARCHAR(64) NOT NULL, \n&quot;
+                            + &quot;md5_path VARCHAR(32) NOT NULL, \n&quot;
+                            + &quot;PRIMARY KEY (database_id)\n );&quot;;
+        case ENTRY_TYPES:
+<span class="nc" id="L47">            return &quot;CREATE TABLE IF NOT EXISTS entry_types ( \n&quot;</span>
+                    + &quot;entry_types_id    INT UNSIGNED  NOT NULL AUTO_INCREMENT, \n&quot;
+                    + &quot;label			 TEXT, \n&quot;
+<span class="nc" id="L50">                    + SQLUtil.fieldsAsCols(SQLUtil.getAllFields(),</span>
+<span class="nc" id="L51">                    &quot; VARCHAR(3) DEFAULT NULL&quot;) + &quot;, \n&quot;</span>
+<span class="nc" id="L52">                    + &quot;PRIMARY KEY (entry_types_id) \n&quot; + &quot;);&quot;;</span>
+        case ENTRIES:
+<span class="nc" id="L54">            return</span>
+<span class="nc" id="L55">                    &quot;CREATE TABLE IF NOT EXISTS entries ( \n&quot;</span>
+                            + &quot;entries_id      INTEGER         NOT NULL AUTO_INCREMENT, \n&quot;
+                            + &quot;jabref_eid      VARCHAR(&quot;
+<span class="nc" id="L58">                            + IdGenerator.getMinimumIntegerDigits()</span>
+<span class="nc" id="L59">                            + &quot;)   DEFAULT NULL, \n&quot;</span>
+<span class="nc" id="L60">                            + &quot;database_id INT UNSIGNED, \n&quot;</span>
+<span class="nc" id="L61">                            + &quot;entry_types_id  INT UNSIGNED         DEFAULT NULL, \n&quot;</span>
+<span class="nc" id="L62">                            + &quot;cite_key        VARCHAR(100)     DEFAULT NULL, \n&quot;</span>
+<span class="nc" id="L63">                            + SQLUtil.fieldsAsCols(SQLUtil.getAllFields(),</span>
+<span class="nc" id="L64">                            &quot; TEXT DEFAULT NULL&quot;)</span>
+<span class="nc" id="L65">                            + &quot;,\n&quot;</span>
+<span class="nc" id="L66">                            + &quot;PRIMARY KEY (entries_id), \n&quot;</span>
+<span class="nc" id="L67">                            + &quot;INDEX(entry_types_id), \n&quot;</span>
+<span class="nc" id="L68">                            + &quot;FOREIGN KEY (entry_types_id) REFERENCES entry_types(entry_types_id), \n&quot;</span>
+<span class="nc" id="L69">                            + &quot;FOREIGN KEY (database_id) REFERENCES jabref_database(database_id) \n);&quot;;</span>
+        case STRINGS:
+<span class="nc" id="L71">            return &quot;CREATE TABLE IF NOT EXISTS strings ( \n&quot;</span>
+                    + &quot;strings_id      INTEGER         NOT NULL AUTO_INCREMENT, \n&quot;
+                    + &quot;label      VARCHAR(100)  DEFAULT NULL, \n&quot;
+                    + &quot;content    VARCHAR(200)  DEFAULT NULL, \n&quot;
+                    + &quot;database_id INT UNSIGNED, \n&quot;
+                    + &quot;FOREIGN KEY (database_id) REFERENCES jabref_database(database_id), \n&quot;
+                    + &quot;PRIMARY KEY (strings_id) \n&quot; + &quot;);&quot;;
+        case GROUP_TYPES:
+<span class="nc" id="L79">            return &quot;CREATE TABLE IF NOT EXISTS group_types ( \n&quot;</span>
+                    + &quot;group_types_id  INTEGER     NOT NULL AUTO_INCREMENT, \n&quot;
+                    + &quot;label   VARCHAR(100)    DEFAULT NULL, \n&quot;
+                    + &quot;PRIMARY KEY (group_types_id) \n&quot; + &quot;);&quot;;
+        case GROUPS:
+<span class="nc" id="L84">            return</span>
+<span class="nc" id="L85">                    &quot;CREATE TABLE IF NOT EXISTS groups ( \n&quot;</span>
+                            + &quot;groups_id       INTEGER         NOT NULL AUTO_INCREMENT, \n&quot;
+                            + &quot;group_types_id  INTEGER         DEFAULT NULL, \n&quot;
+                            + &quot;label           VARCHAR(100)    DEFAULT NULL, \n&quot;
+                            + &quot;database_id INT UNSIGNED, \n&quot;
+                            + &quot;parent_id       INTEGER         DEFAULT NULL, \n&quot;
+                            + &quot;search_field       VARCHAR(100)          DEFAULT NULL, \n&quot;
+                            + &quot;search_expression  VARCHAR(200)          DEFAULT NULL, \n&quot;
+                            + &quot;case_sensitive  BOOL          DEFAULT NULL, \n&quot;
+                            + &quot;reg_exp BOOL DEFAULT NULL, \n&quot;
+                            + &quot;hierarchical_context INTEGER DEFAULT NULL, \n&quot;
+                            + &quot;FOREIGN KEY (database_id) REFERENCES jabref_database(database_id), \n&quot;
+                            + &quot;PRIMARY KEY (groups_id) \n&quot; + &quot;);&quot;;
+        case ENTRY_GROUP:
+<span class="nc" id="L99">            return</span>
+<span class="nc" id="L100">                    &quot;CREATE TABLE IF NOT EXISTS entry_group ( \n&quot;</span>
+                            + &quot;entries_id       INTEGER        NOT NULL AUTO_INCREMENT, \n&quot;
+                            + &quot;groups_id        INTEGER        DEFAULT NULL, \n&quot;
+                            + &quot;INDEX(entries_id), \n&quot;
+                            + &quot;INDEX(groups_id), \n&quot;
+                            + &quot;FOREIGN KEY (entries_id) REFERENCES entries(entries_id) ON DELETE CASCADE, \n&quot;
+                            + &quot;FOREIGN KEY (groups_id)  REFERENCES groups(groups_id), \n&quot;
+                            + &quot;PRIMARY KEY (groups_id, entries_id) \n&quot; + &quot;);&quot;;
+        default:
+<span class="nc" id="L109">            return &quot;&quot;;</span>
+        }
+
+    }
+
+    private static final String OPT_ALLOW_MULTI_QUERIES = &quot;?allowMultiQueries=true&quot;;
+
+    @Override
+    public Connection connectAndEnsureDatabaseExists(DBStrings dbStrings)
+            throws SQLException, IllegalAccessException, ClassNotFoundException, InstantiationException {
+
+<span class="nc" id="L120">        dbStrings.setDbParameters(OPT_ALLOW_MULTI_QUERIES);</span>
+<span class="nc" id="L121">        String url = SQLUtil.createJDBCurl(dbStrings, false);</span>
+
+<span class="nc" id="L123">        Connection conn = connect(url, dbStrings.getDbPreferences().getUsername(), dbStrings.getPassword());</span>
+
+<span class="nc" id="L125">        String query = &quot;CREATE DATABASE IF NOT EXISTS `&quot; + dbStrings.getDbPreferences().getDatabase() + '`';</span>
+<span class="nc" id="L126">        SQLUtil.processQuery(conn, query);</span>
+<span class="nc" id="L127">        conn.setCatalog(dbStrings.getDbPreferences().getDatabase());</span>
+
+<span class="nc" id="L129">        return conn;</span>
+    }
+
+    @Override
+    public DatabaseType getType() {
+<span class="nc" id="L134">        return DatabaseType.MYSQL;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

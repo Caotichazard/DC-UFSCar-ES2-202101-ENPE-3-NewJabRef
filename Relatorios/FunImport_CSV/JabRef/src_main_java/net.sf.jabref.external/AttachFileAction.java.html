@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AttachFileAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.external</a> &gt; <span class="el_source">AttachFileAction.java</span></div><h1>AttachFileAction.java</h1><pre class="source lang-java linenums">package net.sf.jabref.external;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.FileListEntry;
+import net.sf.jabref.gui.FileListEntryEditor;
+import net.sf.jabref.gui.FileListTableModel;
+import net.sf.jabref.gui.actions.BaseAction;
+import net.sf.jabref.gui.undo.UndoableFieldChange;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: alver
+ * Date: 5/24/12
+ * Time: 8:48 PM
+ * To change this template use File | Settings | File Templates.
+ */
+public class AttachFileAction implements BaseAction {
+
+    private final BasePanel panel;
+
+
+<span class="fc" id="L25">    public AttachFileAction(BasePanel panel) {</span>
+<span class="fc" id="L26">        this.panel = panel;</span>
+<span class="fc" id="L27">    }</span>
+
+    @Override
+    public void action() {
+<span class="nc bnc" id="L31" title="All 2 branches missed.">        if (panel.getSelectedEntries().size() != 1) {</span>
+<span class="nc" id="L32">            panel.output(Localization.lang(&quot;This operation requires exactly one item to be selected.&quot;));</span>
+<span class="nc" id="L33">            return;</span>
+        }
+<span class="nc" id="L35">        BibEntry entry = panel.getSelectedEntries().get(0);</span>
+<span class="nc" id="L36">        FileListEntry flEntry = new FileListEntry(&quot;&quot;, &quot;&quot;);</span>
+<span class="nc" id="L37">        FileListEntryEditor editor = new FileListEntryEditor(panel.frame(), flEntry, false, true,</span>
+<span class="nc" id="L38">                panel.getBibDatabaseContext());</span>
+<span class="nc" id="L39">        editor.setVisible(true, true);</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (editor.okPressed()) {</span>
+<span class="nc" id="L41">            FileListTableModel model = new FileListTableModel();</span>
+<span class="nc" id="L42">            entry.getFieldOptional(Globals.FILE_FIELD).ifPresent(model::setContent);</span>
+<span class="nc" id="L43">            model.addEntry(model.getRowCount(), flEntry);</span>
+<span class="nc" id="L44">            String newVal = model.getStringRepresentation();</span>
+
+<span class="nc" id="L46">            UndoableFieldChange ce = new UndoableFieldChange(entry, Globals.FILE_FIELD,</span>
+<span class="nc" id="L47">                    entry.getField(Globals.FILE_FIELD), newVal);</span>
+<span class="nc" id="L48">            entry.setField(Globals.FILE_FIELD, newVal);</span>
+<span class="nc" id="L49">            panel.undoManager.addEdit(ce);</span>
+<span class="nc" id="L50">            panel.markBaseChanged();</span>
+        }
+<span class="nc" id="L52">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

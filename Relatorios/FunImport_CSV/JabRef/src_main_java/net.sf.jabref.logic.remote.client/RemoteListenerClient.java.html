@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>RemoteListenerClient.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.remote.client</a> &gt; <span class="el_source">RemoteListenerClient.java</span></div><h1>RemoteListenerClient.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.remote.client;
+
+import java.net.InetAddress;
+import java.net.Socket;
+
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.remote.shared.Protocol;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+<span class="nc" id="L12">public class RemoteListenerClient {</span>
+
+<span class="nc" id="L14">    private static final Log LOGGER = LogFactory.getLog(RemoteListenerClient.class);</span>
+
+<span class="nc" id="L16">    private static final int TIMEOUT = 2000;</span>
+
+
+    /**
+     * Attempt to send command line arguments to already running JabRef instance.
+     *
+     * @param args Command line arguments.
+     * @return true if successful, false otherwise.
+     */
+    public static boolean sendToActiveJabRefInstance(String[] args, int remoteServerPort) {
+<span class="nc" id="L26">        try (Socket socket = new Socket(InetAddress.getByName(&quot;localhost&quot;), remoteServerPort)) {</span>
+<span class="nc" id="L27">            socket.setSoTimeout(TIMEOUT);</span>
+
+<span class="nc" id="L29">            Protocol protocol = new Protocol(socket);</span>
+            try {
+<span class="nc" id="L31">                String identifier = protocol.receiveMessage();</span>
+
+<span class="nc bnc" id="L33" title="All 2 branches missed.">                if (!Protocol.IDENTIFIER.equals(identifier)) {</span>
+<span class="nc" id="L34">                    String port = String.valueOf(remoteServerPort);</span>
+<span class="nc" id="L35">                    String error = Localization.lang(&quot;Cannot use port %0 for remote operation; another application may be using it. Try specifying another port.&quot;, port);</span>
+<span class="nc" id="L36">                    System.out.println(error);</span>
+<span class="nc" id="L37">                    return false;</span>
+                }
+<span class="nc" id="L39">                protocol.sendMessage(String.join(&quot;\n&quot;, args));</span>
+<span class="nc" id="L40">                return true;</span>
+            } finally {
+<span class="nc" id="L42">                protocol.close();</span>
+            }
+<span class="nc" id="L44">        } catch (Exception e) {</span>
+<span class="nc" id="L45">            LOGGER.debug(</span>
+<span class="nc" id="L46">                    &quot;Could not send args &quot; + String.join(&quot;, &quot;, args) + &quot; to the server at port &quot; + remoteServerPort, e);</span>
+<span class="nc" id="L47">            return false;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

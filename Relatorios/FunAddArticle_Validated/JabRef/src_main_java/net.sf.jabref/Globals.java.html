@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>Globals.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref</a> &gt; <span class="el_source">Globals.java</span></div><h1>Globals.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref;
+
+import net.sf.jabref.collab.FileUpdateMonitor;
+import net.sf.jabref.exporter.AutoSaveManager;
+import net.sf.jabref.gui.GlobalFocusListener;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.keyboard.KeyBindingPreferences;
+import net.sf.jabref.importer.ImportFormatReader;
+import net.sf.jabref.logic.error.StreamEavesdropper;
+import net.sf.jabref.logic.journals.JournalAbbreviationLoader;
+import net.sf.jabref.logic.remote.server.RemoteListenerServerLifecycle;
+import net.sf.jabref.logic.util.BuildInfo;
+
+<span class="nc" id="L29">public class Globals {</span>
+
+    public static final String FILE_FIELD = &quot;file&quot;;
+    public static final String FOLDER_FIELD = &quot;folder&quot;;
+    public static final String DIR_SUFFIX = &quot;Directory&quot;;
+
+    // JabRef version info
+<span class="fc" id="L36">    public static final BuildInfo BUILD_INFO = new BuildInfo();</span>
+    // Signature written at the top of the .bib file.
+    public static final String SIGNATURE = &quot;This file was created with JabRef&quot;;
+    public static final String ENCODING_PREFIX = &quot;Encoding: &quot;;
+    // Newlines
+    // will be overridden in initialization due to feature #857 @ JabRef.java
+<span class="fc" id="L42">    public static String NEWLINE = System.lineSeparator();</span>
+
+    // Remote listener
+<span class="fc" id="L45">    public static final RemoteListenerServerLifecycle REMOTE_LISTENER = new RemoteListenerServerLifecycle();</span>
+
+<span class="fc" id="L47">    public static final ImportFormatReader IMPORT_FORMAT_READER = new ImportFormatReader();</span>
+
+
+
+    public static final String SPECIAL_COMMAND_CHARS = &quot;\&quot;`^~'c=&quot;;
+
+    // In the main program, this field is initialized in JabRef.java
+    // Each test case initializes this field if required
+    public static JabRefPreferences prefs;
+
+    /**
+     * This field is initialized upon startup.
+     * Only GUI code is allowed to access it, logic code should use dependency injection.
+     */
+    public static JournalAbbreviationLoader journalAbbreviationLoader;
+
+    private static KeyBindingPreferences keyPrefs;
+
+    public static KeyBindingPreferences getKeyPrefs() {
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (keyPrefs == null) {</span>
+<span class="fc" id="L67">            keyPrefs = new KeyBindingPreferences(prefs);</span>
+        }
+<span class="fc" id="L69">        return keyPrefs;</span>
+    }
+
+
+    // Background tasks
+    public static GlobalFocusListener focusListener;
+    public static FileUpdateMonitor fileUpdateMonitor;
+    public static StreamEavesdropper streamEavesdropper;
+
+    public static void startBackgroundTasks() {
+<span class="fc" id="L79">        Globals.focusListener = new GlobalFocusListener();</span>
+
+<span class="fc" id="L81">        Globals.streamEavesdropper = StreamEavesdropper.eavesdropOnSystem();</span>
+
+<span class="fc" id="L83">        Globals.fileUpdateMonitor = new FileUpdateMonitor();</span>
+<span class="fc" id="L84">        JabRefExecutorService.INSTANCE.executeWithLowPriorityInOwnThread(Globals.fileUpdateMonitor, &quot;FileUpdateMonitor&quot;);</span>
+<span class="fc" id="L85">    }</span>
+
+
+    // Autosave manager
+<span class="fc" id="L89">    public static AutoSaveManager autoSaveManager;</span>
+
+    public static void startAutoSaveManager(JabRefFrame frame) {
+<span class="fc" id="L92">        Globals.autoSaveManager = new AutoSaveManager(frame);</span>
+<span class="fc" id="L93">        Globals.autoSaveManager.startAutoSaveTimer();</span>
+<span class="fc" id="L94">    }</span>
+
+    // Stop the autosave manager if it has been started
+    public static void stopAutoSaveManager() {
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        if (Globals.autoSaveManager != null) {</span>
+<span class="fc" id="L99">            Globals.autoSaveManager.stopAutoSaveTimer();</span>
+<span class="fc" id="L100">            Globals.autoSaveManager.clearAutoSaves();</span>
+<span class="fc" id="L101">            Globals.autoSaveManager = null;</span>
+        }
+<span class="fc" id="L103">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

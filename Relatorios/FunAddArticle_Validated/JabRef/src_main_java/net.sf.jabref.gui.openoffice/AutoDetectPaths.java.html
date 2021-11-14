@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AutoDetectPaths.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.openoffice</a> &gt; <span class="el_source">AutoDetectPaths.java</span></div><h1>AutoDetectPaths.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.openoffice;
+
+import java.awt.BorderLayout;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JProgressBar;
+import javax.swing.JRadioButton;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
+
+import net.sf.jabref.gui.worker.AbstractWorker;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.openoffice.OpenOfficeFileSearch;
+import net.sf.jabref.logic.openoffice.OpenOfficePreferences;
+import net.sf.jabref.logic.util.OS;
+
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+/**
+ * Tools for automatically detecting jar and executable paths to OpenOffice and/or LibreOffice.
+ */
+public class AutoDetectPaths extends AbstractWorker {
+
+    private final OpenOfficePreferences preferences;
+
+    private boolean foundPaths;
+    private boolean fileSearchCanceled;
+    private JDialog prog;
+    private final JDialog parent;
+
+
+<span class="nc" id="L60">    private final OpenOfficeFileSearch fileSearch = new OpenOfficeFileSearch();</span>
+
+
+<span class="nc" id="L63">    public AutoDetectPaths(JDialog parent, OpenOfficePreferences preferences) {</span>
+<span class="nc" id="L64">        this.parent = parent;</span>
+<span class="nc" id="L65">        this.preferences = preferences;</span>
+<span class="nc" id="L66">    }</span>
+
+    public boolean runAutodetection() {
+<span class="nc" id="L69">        foundPaths = false;</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (preferences.checkAutoDetectedPaths()) {</span>
+<span class="nc" id="L71">            return true;</span>
+        }
+<span class="nc" id="L73">        init();</span>
+<span class="nc" id="L74">        getWorker().run();</span>
+<span class="nc" id="L75">        update();</span>
+<span class="nc" id="L76">        return foundPaths;</span>
+    }
+
+    @Override
+    public void run() {
+<span class="nc" id="L81">        foundPaths = autoDetectPaths();</span>
+<span class="nc" id="L82">    }</span>
+
+    public boolean canceled() {
+<span class="nc" id="L85">        return fileSearchCanceled;</span>
+    }
+
+    @Override
+    public void init() {
+<span class="nc" id="L90">        prog = showProgressDialog(parent, Localization.lang(&quot;Autodetecting paths...&quot;),</span>
+<span class="nc" id="L91">                Localization.lang(&quot;Please wait...&quot;), true);</span>
+<span class="nc" id="L92">    }</span>
+
+    @Override
+    public void update() {
+<span class="nc" id="L96">        prog.dispose();</span>
+<span class="nc" id="L97">    }</span>
+
+    private boolean autoDetectPaths() {
+<span class="nc" id="L100">        fileSearch.resetFileSearch();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (OS.WINDOWS) {</span>
+<span class="nc" id="L102">            List&lt;File&gt; progFiles = fileSearch.findWindowsProgramFilesDir();</span>
+<span class="nc" id="L103">            List&lt;File&gt; sofficeFiles = new ArrayList&lt;&gt;(</span>
+<span class="nc" id="L104">                    fileSearch.findFileInDirs(progFiles, OpenOfficePreferences.WINDOWS_EXECUTABLE));</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">            if (fileSearchCanceled) {</span>
+<span class="nc" id="L106">                return false;</span>
+            }
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            if (sofficeFiles.isEmpty()) {</span>
+<span class="nc" id="L109">                JOptionPane.showMessageDialog(parent,</span>
+                        Localization
+<span class="nc" id="L111">                                .lang(&quot;Unable to autodetect OpenOffice/LibreOffice installation. Please choose the installation directory manually.&quot;),</span>
+<span class="nc" id="L112">                        Localization.lang(&quot;Could not find OpenOffice/LibreOffice installation&quot;),</span>
+<span class="nc" id="L113">                        JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L114">                JFileChooser fileChooser = new JFileChooser(new File(System.getenv(&quot;ProgramFiles&quot;)));</span>
+<span class="nc" id="L115">                fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);</span>
+<span class="nc" id="L116">                fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {</span>
+
+                    @Override
+                    public boolean accept(File file) {
+<span class="nc" id="L120">                        return file.isDirectory();</span>
+                    }
+
+                    @Override
+                    public String getDescription() {
+<span class="nc" id="L125">                        return Localization.lang(&quot;Directories&quot;);</span>
+                    }
+                });
+<span class="nc" id="L128">                fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);</span>
+<span class="nc" id="L129">                fileChooser.showOpenDialog(parent);</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                if (fileChooser.getSelectedFile() != null) {</span>
+<span class="nc" id="L131">                    sofficeFiles.add(fileChooser.getSelectedFile());</span>
+                }
+            }
+<span class="nc" id="L134">            Optional&lt;File&gt; actualFile = checkAndSelectAmongMultipleInstalls(sofficeFiles);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            if (actualFile.isPresent()) {</span>
+<span class="nc" id="L136">                return setupPreferencesForOO(actualFile.get().getParentFile(), actualFile.get(),</span>
+<span class="nc" id="L137">                        OpenOfficePreferences.WINDOWS_EXECUTABLE);</span>
+            } else {
+<span class="nc" id="L139">                return false;</span>
+            }
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        } else if (OS.OS_X) {</span>
+<span class="nc" id="L142">            List&lt;File&gt; dirList = fileSearch.findOSXProgramFilesDir();</span>
+<span class="nc" id="L143">            List&lt;File&gt; sofficeFiles = new ArrayList&lt;&gt;(</span>
+<span class="nc" id="L144">                    fileSearch.findFileInDirs(dirList, OpenOfficePreferences.OSX_EXECUTABLE));</span>
+
+<span class="nc bnc" id="L146" title="All 2 branches missed.">            if (fileSearchCanceled) {</span>
+<span class="nc" id="L147">                return false;</span>
+            }
+<span class="nc" id="L149">            Optional&lt;File&gt; actualFile = checkAndSelectAmongMultipleInstalls(sofficeFiles);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            if (actualFile.isPresent()) {</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">                for (File rootdir : dirList) {</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">                    if (actualFile.get().getPath().startsWith(rootdir.getPath())) {</span>
+<span class="nc" id="L153">                        return setupPreferencesForOO(rootdir, actualFile.get(), OpenOfficePreferences.OSX_EXECUTABLE);</span>
+                    }
+                }
+            }
+<span class="nc" id="L157">            return false;</span>
+        } else {
+            // Linux:
+<span class="nc" id="L160">            String usrRoot = &quot;/usr/lib&quot;;</span>
+<span class="nc" id="L161">            Optional&lt;File&gt; inUsr = fileSearch.findFileInDir(new File(usrRoot), OpenOfficePreferences.LINUX_EXECUTABLE);</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">            if (fileSearchCanceled) {</span>
+<span class="nc" id="L163">                return false;</span>
+            }
+<span class="nc bnc" id="L165" title="All 2 branches missed.">            if (!inUsr.isPresent()) {</span>
+<span class="nc" id="L166">                inUsr = fileSearch.findFileInDir(new File(&quot;/usr/lib64&quot;), OpenOfficePreferences.LINUX_EXECUTABLE);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">                if (inUsr.isPresent()) {</span>
+<span class="nc" id="L168">                    usrRoot = &quot;/usr/lib64&quot;;</span>
+                }
+            }
+
+<span class="nc bnc" id="L172" title="All 2 branches missed.">            if (fileSearchCanceled) {</span>
+<span class="nc" id="L173">                return false;</span>
+            }
+<span class="nc" id="L175">            Optional&lt;File&gt; inOpt = fileSearch.findFileInDir(new File(&quot;/opt&quot;), OpenOfficePreferences.LINUX_EXECUTABLE);</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">            if (fileSearchCanceled) {</span>
+<span class="nc" id="L177">                return false;</span>
+            }
+<span class="nc bnc" id="L179" title="All 4 branches missed.">            if ((inUsr.isPresent()) &amp;&amp; (!inOpt.isPresent())) {</span>
+<span class="nc" id="L180">                return setupPreferencesForOO(usrRoot, inUsr.get(), OpenOfficePreferences.LINUX_EXECUTABLE);</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            } else if (inOpt.isPresent()) {</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">                if (!inUsr.isPresent()) {</span>
+<span class="nc" id="L183">                    return setupPreferencesForOO(&quot;/opt&quot;, inOpt.get(), OpenOfficePreferences.LINUX_EXECUTABLE);</span>
+                } else { // Found both
+<span class="nc" id="L185">                    JRadioButton optRB = new JRadioButton(inOpt.get().getPath(), true);</span>
+<span class="nc" id="L186">                    JRadioButton usrRB = new JRadioButton(inUsr.get().getPath(), false);</span>
+<span class="nc" id="L187">                    ButtonGroup bg = new ButtonGroup();</span>
+<span class="nc" id="L188">                    bg.add(optRB);</span>
+<span class="nc" id="L189">                    bg.add(usrRB);</span>
+<span class="nc" id="L190">                    FormBuilder b = FormBuilder.create()</span>
+<span class="nc" id="L191">                            .layout(new FormLayout(&quot;left:pref&quot;, &quot;pref, 2dlu, pref, 2dlu, pref &quot;));</span>
+<span class="nc" id="L192">                    b.add(Localization</span>
+<span class="nc" id="L193">                            .lang(&quot;Found more than one OpenOffice/LibreOffice executable.&quot;) + &quot; &quot;</span>
+<span class="nc" id="L194">                            + Localization.lang(&quot;Please choose which one to connect to:&quot;))</span>
+<span class="nc" id="L195">                            .xy(1, 1);</span>
+<span class="nc" id="L196">                    b.add(optRB).xy(1, 3);</span>
+<span class="nc" id="L197">                    b.add(usrRB).xy(1, 5);</span>
+<span class="nc" id="L198">                    int answer = JOptionPane.showConfirmDialog(null, b.getPanel(),</span>
+<span class="nc" id="L199">                            Localization.lang(&quot;Choose OpenOffice/LibreOffice executable&quot;),</span>
+<span class="nc" id="L200">                            JOptionPane.OK_CANCEL_OPTION);</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">                    if (answer == JOptionPane.CANCEL_OPTION) {</span>
+<span class="nc" id="L202">                        return false;</span>
+                    }
+<span class="nc bnc" id="L204" title="All 2 branches missed.">                    if (optRB.isSelected()) {</span>
+<span class="nc" id="L205">                        return setupPreferencesForOO(&quot;/opt&quot;, inOpt.get(), OpenOfficePreferences.LINUX_EXECUTABLE);</span>
+                    } else {
+<span class="nc" id="L207">                        return setupPreferencesForOO(usrRoot, inUsr.get(), OpenOfficePreferences.LINUX_EXECUTABLE);</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L212">        return false;</span>
+    }
+
+    private boolean setupPreferencesForOO(String usrRoot, File inUsr, String sofficeName) {
+<span class="nc" id="L216">        return setupPreferencesForOO(new File(usrRoot), inUsr, sofficeName);</span>
+    }
+
+    private boolean setupPreferencesForOO(File rootDir, File inUsr, String sofficeName) {
+<span class="nc" id="L220">        preferences.setExecutablePath(new File(inUsr, sofficeName).getPath());</span>
+<span class="nc" id="L221">        Optional&lt;File&gt; jurt = fileSearch.findFileInDir(rootDir, &quot;jurt.jar&quot;);</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (fileSearchCanceled) {</span>
+<span class="nc" id="L223">            return false;</span>
+        }
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        if (jurt.isPresent()) {</span>
+<span class="nc" id="L226">            preferences.setJarsPath(jurt.get().getPath());</span>
+<span class="nc" id="L227">            return true;</span>
+        } else {
+<span class="nc" id="L229">            return false;</span>
+        }
+    }
+
+    private Optional&lt;File&gt; checkAndSelectAmongMultipleInstalls(List&lt;File&gt; sofficeFiles) {
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (sofficeFiles.isEmpty()) {</span>
+<span class="nc" id="L235">            return Optional.empty();</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">        } else if (sofficeFiles.size() == 1) {</span>
+<span class="nc" id="L237">            return Optional.of(sofficeFiles.get(0));</span>
+        }
+        // Otherwise more than one file found, select among them
+<span class="nc" id="L240">        DefaultListModel&lt;File&gt; mod = new DefaultListModel&lt;&gt;();</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        for (File tmpfile : sofficeFiles) {</span>
+<span class="nc" id="L242">            mod.addElement(tmpfile);</span>
+        }
+<span class="nc" id="L244">        JList&lt;File&gt; fileList = new JList&lt;&gt;(mod);</span>
+<span class="nc" id="L245">        fileList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="nc" id="L246">        fileList.setSelectedIndex(0);</span>
+<span class="nc" id="L247">        FormBuilder builder = FormBuilder.create().layout(new FormLayout(&quot;left:pref&quot;, &quot;pref, 2dlu, pref, 4dlu, pref&quot;));</span>
+<span class="nc" id="L248">        builder.add(Localization.lang(&quot;Found more than one OpenOffice/LibreOffice executable.&quot;)).xy(1, 1);</span>
+<span class="nc" id="L249">        builder.add(Localization.lang(&quot;Please choose which one to connect to:&quot;)).xy(1, 3);</span>
+<span class="nc" id="L250">        builder.add(fileList).xy(1, 5);</span>
+<span class="nc" id="L251">        int answer = JOptionPane.showConfirmDialog(null, builder.getPanel(),</span>
+<span class="nc" id="L252">                Localization.lang(&quot;Choose OpenOffice/LibreOffice executable&quot;), JOptionPane.OK_CANCEL_OPTION);</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        if (answer == JOptionPane.CANCEL_OPTION) {</span>
+<span class="nc" id="L254">            return Optional.empty();</span>
+        } else {
+<span class="nc" id="L256">            return Optional.of(fileList.getSelectedValue());</span>
+        }
+
+    }
+
+
+    public JDialog showProgressDialog(JDialog progressParent, String title, String message, boolean includeCancelButton) {
+<span class="nc" id="L263">        fileSearchCanceled = false;</span>
+<span class="nc" id="L264">        JProgressBar bar = new JProgressBar(SwingConstants.HORIZONTAL);</span>
+<span class="nc" id="L265">        final JDialog progressDialog = new JDialog(progressParent, title, false);</span>
+<span class="nc" id="L266">        bar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));</span>
+<span class="nc" id="L267">        bar.setIndeterminate(true);</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">        if (includeCancelButton) {</span>
+<span class="nc" id="L269">            JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L270">            cancel.addActionListener(event -&gt; {</span>
+<span class="nc" id="L271">                fileSearchCanceled = true;</span>
+<span class="nc" id="L272">                fileSearch.cancelFileSearch();</span>
+<span class="nc" id="L273">                ((JButton) event.getSource()).setEnabled(false);</span>
+<span class="nc" id="L274">            });</span>
+<span class="nc" id="L275">            progressDialog.add(cancel, BorderLayout.SOUTH);</span>
+        }
+<span class="nc" id="L277">        progressDialog.add(new JLabel(message), BorderLayout.NORTH);</span>
+<span class="nc" id="L278">        progressDialog.add(bar, BorderLayout.CENTER);</span>
+<span class="nc" id="L279">        progressDialog.pack();</span>
+<span class="nc" id="L280">        progressDialog.setLocationRelativeTo(null);</span>
+<span class="nc" id="L281">        progressDialog.setVisible(true);</span>
+<span class="nc" id="L282">        return progressDialog;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

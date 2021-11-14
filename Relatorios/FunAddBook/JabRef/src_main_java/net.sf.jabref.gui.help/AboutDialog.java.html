@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AboutDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.help</a> &gt; <span class="el_source">AboutDialog.java</span></div><h1>AboutDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.help;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.util.Objects;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextPane;
+import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.actions.CopyVersionToClipboardAction;
+import net.sf.jabref.logic.l10n.Localization;
+
+public class AboutDialog extends JDialog {
+
+    public AboutDialog(JabRefFrame bf) {
+<span class="fc" id="L46">        super(Objects.requireNonNull(bf), Localization.lang(&quot;About JabRef&quot;), true);</span>
+<span class="fc" id="L47">        setSize(new Dimension(750, 600));</span>
+<span class="fc" id="L48">        setLocationRelativeTo(bf);</span>
+
+<span class="fc" id="L50">        JPanel panel = new JPanel();</span>
+<span class="fc" id="L51">        panel.setLayout(new BorderLayout());</span>
+<span class="fc" id="L52">        JPanel headerPanel = new JPanel();</span>
+<span class="fc" id="L53">        headerPanel.setLayout(new BorderLayout());</span>
+
+<span class="fc" id="L55">        JTextPane textArea = new JTextPane();</span>
+<span class="fc" id="L56">        JLabel versionLabel = new JLabel();</span>
+<span class="fc" id="L57">        JButton copyVersionButton = new JButton();</span>
+<span class="fc" id="L58">        Box spaceHolder = new Box(BoxLayout.X_AXIS);</span>
+
+<span class="fc" id="L60">        textArea.setEditable(false);</span>
+<span class="fc" id="L61">        textArea.setCursor(null);</span>
+<span class="fc" id="L62">        textArea.setOpaque(false);</span>
+<span class="fc" id="L63">        textArea.setFocusable(false);</span>
+
+        // center everything
+<span class="fc" id="L66">        StyledDocument doc = textArea.getStyledDocument();</span>
+<span class="fc" id="L67">        SimpleAttributeSet center = new SimpleAttributeSet();</span>
+<span class="fc" id="L68">        StyleConstants.setAlignment(center, StyleConstants.ALIGN_CENTER);</span>
+<span class="fc" id="L69">        doc.setParagraphAttributes(0, doc.getLength(), center, false);</span>
+
+<span class="fc" id="L71">        panel.add(headerPanel, BorderLayout.NORTH);</span>
+<span class="fc" id="L72">        JScrollPane textAreaScrollPanel = new JScrollPane(textArea);</span>
+<span class="fc" id="L73">        textAreaScrollPanel.setBorder(new EmptyBorder(1, 1, 1, 1));</span>
+<span class="fc" id="L74">        panel.add(textAreaScrollPanel, BorderLayout.CENTER);</span>
+
+<span class="fc" id="L76">        headerPanel.setBackground(Color.WHITE);</span>
+<span class="fc" id="L77">        headerPanel.add(spaceHolder, BorderLayout.WEST);</span>
+<span class="fc" id="L78">        headerPanel.add(versionLabel, BorderLayout.CENTER);</span>
+<span class="fc" id="L79">        headerPanel.add(copyVersionButton, BorderLayout.EAST);</span>
+
+<span class="fc" id="L81">        String version = String.format(&quot;JabRef %s&quot;, Globals.BUILD_INFO.getVersion());</span>
+<span class="fc" id="L82">        versionLabel.setText(version);</span>
+<span class="fc" id="L83">        versionLabel.setOpaque(false);</span>
+<span class="fc" id="L84">        versionLabel.setHorizontalAlignment(SwingConstants.CENTER);</span>
+
+<span class="fc" id="L86">        styleButtonToHyperlink(copyVersionButton);</span>
+<span class="fc" id="L87">        copyVersionButton.addActionListener(new CopyVersionToClipboardAction());</span>
+<span class="fc" id="L88">        spaceHolder.setPreferredSize(copyVersionButton.getPreferredSize());</span>
+
+<span class="fc" id="L90">        String text = String.format(&quot;%n2003-%s%n%s%n%s%n%nDevelopers: %s%n%nAuthors: %s%n%nExternal Libraries: %s%nCode: %s&quot;,</span>
+<span class="fc" id="L91">                Globals.BUILD_INFO.getYear(),</span>
+<span class="fc" id="L92">                &quot;http://www.jabref.org&quot;,</span>
+<span class="fc" id="L93">                &quot;GNU General Public License v2 or later&quot;,</span>
+<span class="fc" id="L94">                Globals.BUILD_INFO.getDevelopers(),</span>
+<span class="fc" id="L95">                Globals.BUILD_INFO.getAuthors(),</span>
+<span class="fc" id="L96">                &quot;https://github.com/JabRef/jabref/blob/master/external-libraries.txt&quot;,</span>
+<span class="fc" id="L97">                &quot;https://github.com/JabRef/jabref&quot;);</span>
+
+<span class="fc" id="L99">        textArea.setText(text);</span>
+
+<span class="fc" id="L101">        getContentPane().add(panel);</span>
+<span class="fc" id="L102">    }</span>
+
+    private void styleButtonToHyperlink(JButton copyVersionButton) {
+<span class="fc" id="L105">        String copy = String.format(&quot;&lt;HTML&gt;&lt;FONT Color=\&quot;#000099\&quot;&lt;U&gt;%s&lt;/U&gt;&lt;/FONT&gt;&lt;/HTML&gt;&quot;,</span>
+<span class="fc" id="L106">                Localization.lang(&quot;Copy_version_to_clipboard&quot;));</span>
+<span class="fc" id="L107">        copyVersionButton.setText(copy);</span>
+<span class="fc" id="L108">        copyVersionButton.setOpaque(false);</span>
+<span class="fc" id="L109">        copyVersionButton.setBorder(new EmptyBorder(1, 1, 1, 1));</span>
+<span class="fc" id="L110">        copyVersionButton.setFocusable(false);</span>
+<span class="fc" id="L111">        copyVersionButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));</span>
+<span class="fc" id="L112">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

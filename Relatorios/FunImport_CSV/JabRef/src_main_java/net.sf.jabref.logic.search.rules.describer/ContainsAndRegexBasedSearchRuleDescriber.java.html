@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ContainsAndRegexBasedSearchRuleDescriber.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.search.rules.describer</a> &gt; <span class="el_source">ContainsAndRegexBasedSearchRuleDescriber.java</span></div><h1>ContainsAndRegexBasedSearchRuleDescriber.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.search.rules.describer;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.search.rules.SentenceAnalyzer;
+import net.sf.jabref.logic.util.strings.StringUtil;
+
+public class ContainsAndRegexBasedSearchRuleDescriber implements SearchDescriber {
+
+    private final boolean regExp;
+    private final boolean caseSensitive;
+    private final String query;
+
+<span class="nc" id="L31">    public ContainsAndRegexBasedSearchRuleDescriber(boolean caseSensitive, boolean regExp, String query) {</span>
+<span class="nc" id="L32">        this.caseSensitive = caseSensitive;</span>
+<span class="nc" id="L33">        this.regExp = regExp;</span>
+<span class="nc" id="L34">        this.query = query;</span>
+<span class="nc" id="L35">    }</span>
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L39">        List&lt;String&gt; words = new SentenceAnalyzer(query).getWords();</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        String firstWord = words.isEmpty() ? &quot;&quot; : words.get(0);</span>
+
+<span class="nc bnc" id="L42" title="All 2 branches missed.">        StringBuilder searchDescription = new StringBuilder(regExp ? Localization.lang(</span>
+<span class="nc" id="L43">                &quot;This search contains entries in which any field contains the regular expression &lt;b&gt;%0&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L44">                StringUtil.quoteForHTML(firstWord))</span>
+<span class="nc" id="L45">                : Localization.lang(&quot;This search contains entries in which any field contains the term &lt;b&gt;%0&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L46">                        StringUtil.quoteForHTML(firstWord)));</span>
+
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        if(words.size() &gt; 1) {</span>
+<span class="nc" id="L49">            List&lt;String&gt; unprocessedWords = words.subList(1, words.size());</span>
+<span class="nc" id="L50">            List&lt;String&gt; unprocessedWordsInHtmlFormat = new LinkedList&lt;&gt;();</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">            for(String word : unprocessedWords) {</span>
+<span class="nc" id="L52">                unprocessedWordsInHtmlFormat.add(String.format(&quot;&lt;b&gt;%s&lt;/b&gt;&quot;, StringUtil.quoteForHTML(word)));</span>
+            }
+<span class="nc" id="L54">            String andSeparator = String.format(&quot; %s &quot;, Localization.lang(&quot;and&quot;));</span>
+<span class="nc" id="L55">            searchDescription.append(String.join(andSeparator, unprocessedWordsInHtmlFormat));</span>
+        }
+
+<span class="nc" id="L58">        String caseSensitiveDescription = getCaseSensitiveDescription();</span>
+<span class="nc" id="L59">        String genericDescription = &quot;&lt;p&gt;&lt;br&gt;&quot; + Localization.lang(&quot;Hint: To search specific fields only, enter for example:&lt;p&gt;&lt;tt&gt;author=smith and title=electrical&lt;/tt&gt;&quot;);</span>
+<span class="nc" id="L60">        return String.format(&quot;%s (%s). %s&quot;, searchDescription.toString(), caseSensitiveDescription, genericDescription);</span>
+    }
+
+    private String getCaseSensitiveDescription() {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if(caseSensitive) {</span>
+<span class="nc" id="L65">            return Localization.lang(&quot;case sensitive&quot;);</span>
+        } else {
+<span class="nc" id="L67">            return Localization.lang(&quot;case insensitive&quot;);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

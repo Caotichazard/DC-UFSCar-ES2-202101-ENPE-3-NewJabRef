@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ADSFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">ADSFetcher.java</span></div><h1>ADSFetcher.java</h1><pre class="source lang-java linenums">/* Copyright (C) 2003-2016 JabRef Contributors
+ * Copyright (c) 2009, Ryo IGARASHI &lt;rigarash@gmail.com&gt;
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *        notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package net.sf.jabref.importer.fetcher;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.Charset;
+
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.importer.ParserResult;
+import net.sf.jabref.importer.fileformat.BibtexParser;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ *
+ * This class handles accessing and obtaining BibTeX entry
+ * from ADS(The NASA Astrophysics Data System).
+ * Fetching using DOI(Document Object Identifier) is only supported.
+ *
+ * @author Ryo IGARASHI
+ */
+<span class="fc" id="L62">public class ADSFetcher implements EntryFetcher {</span>
+
+<span class="fc" id="L64">    private static final Log LOGGER = LogFactory.getLog(ADSFetcher.class);</span>
+
+
+    @Override
+    public JPanel getOptionsPanel() {
+<span class="nc" id="L69">        return null;</span>
+    }
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L74">        return HelpFiles.FETCHER_ADS;</span>
+    }
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L79">        return &quot;ADS from ADS-DOI&quot;;</span>
+    }
+
+    @Override
+    public boolean processQuery(String query, ImportInspector dialog, OutputPrinter status) {
+        try {
+            /* Remove &quot;doi:&quot; scheme identifier */
+            /* Allow fetching only 1 key */
+<span class="nc" id="L87">            String key = query.replaceAll(&quot;^(doi:|DOI:)&quot;, &quot;&quot;);</span>
+            /* Query ADS and load the results into the BibDatabase */
+<span class="nc" id="L89">            status.setStatus(Localization.lang(&quot;Processing %0&quot;, key));</span>
+<span class="nc" id="L90">            BibDatabase bd = importADSEntries(key, status);</span>
+<span class="nc bnc" id="L91" title="All 4 branches missed.">            if ((bd != null) &amp;&amp; bd.hasEntries()) {</span>
+                /* Add the entry to the inspection dialog */
+<span class="nc bnc" id="L93" title="All 2 branches missed.">                for (BibEntry entry : bd.getEntries()) {</span>
+<span class="nc" id="L94">                    importADSAbstract(key, entry, status);</span>
+<span class="nc" id="L95">                    dialog.addEntry(entry);</span>
+                }
+<span class="nc" id="L97">            } else {</span>
+<span class="nc" id="L98">                return false;</span>
+            }
+<span class="nc" id="L100">        } catch (Exception e) {</span>
+<span class="nc" id="L101">            status.setStatus(Localization.lang(&quot;Error while fetching from %0&quot;, &quot;ADS&quot;) + &quot;: &quot; + e.getMessage());</span>
+<span class="nc" id="L102">            LOGGER.warn(&quot;Error while fetching from ADS&quot;, e);</span>
+        }
+<span class="nc" id="L104">        return true;</span>
+    }
+
+    @Override
+    public void stopFetching() {
+        // Do nothing
+<span class="nc" id="L110">    }</span>
+
+    private BibDatabase importADSEntries(String key, OutputPrinter status) {
+<span class="nc" id="L113">        String url = constructUrl(key);</span>
+        try {
+<span class="nc" id="L115">            URL ADSUrl = new URL(url + &quot;&amp;data_type=BIBTEX&quot;);</span>
+<span class="nc" id="L116">            HttpURLConnection ADSConnection = (HttpURLConnection) ADSUrl.openConnection();</span>
+<span class="nc" id="L117">            ADSConnection.setRequestProperty(&quot;User-Agent&quot;, &quot;JabRef&quot;);</span>
+<span class="nc" id="L118">            try (BufferedReader reader = new BufferedReader(</span>
+<span class="nc" id="L119">                    new InputStreamReader(ADSConnection.getInputStream(), Charset.forName(&quot;ISO-8859-1&quot;)))) {</span>
+<span class="nc" id="L120">                ParserResult pr = BibtexParser.parse(reader);</span>
+<span class="nc" id="L121">                return pr.getDatabase();</span>
+            }
+<span class="nc" id="L123">        } catch (FileNotFoundException e) {</span>
+<span class="nc" id="L124">            status.showMessage(</span>
+<span class="nc" id="L125">                    Localization.lang(&quot;'%0' is not a valid ADS bibcode.&quot;, key) + &quot;\n\n&quot; + Localization</span>
+<span class="nc" id="L126">                            .lang(&quot;Note: A full text search is currently not supported for %0&quot;, getTitle()),</span>
+<span class="nc" id="L127">                    getTitle(), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L128">            LOGGER.debug(&quot;File not found&quot;, e);</span>
+<span class="nc" id="L129">        } catch (IOException e) {</span>
+<span class="nc" id="L130">            status.showMessage(Localization.lang(&quot;An Exception occurred while accessing '%0'&quot;, url) + &quot;\n\n&quot; + e,</span>
+<span class="nc" id="L131">                    getTitle(), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L132">            LOGGER.debug(&quot;Problem accessing URL&quot;, e);</span>
+<span class="nc" id="L133">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L134">            status.showMessage(</span>
+<span class="nc" id="L135">                    Localization.lang(&quot;An Error occurred while fetching from ADS (%0):&quot;, url) + &quot;\n\n&quot; + e.getMessage(),</span>
+<span class="nc" id="L136">                    getTitle(), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L137">            LOGGER.warn(&quot;Problem fetching from ADS&quot;, e);</span>
+        }
+<span class="nc" id="L139">        return null;</span>
+    }
+
+    private static String constructUrl(String key) {
+<span class="nc" id="L143">        return &quot;http://adsabs.harvard.edu/doi/&quot; + key;</span>
+    }
+
+    private void importADSAbstract(String key, BibEntry entry, OutputPrinter status) {
+        /* TODO: construct ADSUrl from BibEntry */
+<span class="nc" id="L148">        String url = constructUrl(key);</span>
+        try {
+<span class="nc" id="L150">            URL ADSUrl = new URL(url + &quot;&amp;data_type=XML&quot;);</span>
+<span class="nc" id="L151">            HttpURLConnection ADSConnection = (HttpURLConnection) ADSUrl.openConnection();</span>
+<span class="nc" id="L152">            ADSConnection.setRequestProperty(&quot;User-Agent&quot;, &quot;JabRef&quot;);</span>
+<span class="nc" id="L153">            BufferedInputStream bis = new BufferedInputStream(ADSConnection.getInputStream());</span>
+
+<span class="nc" id="L155">            XMLInputFactory factory = XMLInputFactory.newInstance();</span>
+<span class="nc" id="L156">            XMLStreamReader reader = factory.createXMLStreamReader(bis);</span>
+<span class="nc" id="L157">            boolean isAbstract = false;</span>
+<span class="nc" id="L158">            StringBuilder abstractSB = new StringBuilder();</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">            while (reader.hasNext()) {</span>
+<span class="nc" id="L160">                reader.next();</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">                if (reader.isStartElement() &amp;&amp;</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                        &quot;abstract&quot;.equals(reader.getLocalName())) {</span>
+<span class="nc" id="L163">                    isAbstract = true;</span>
+                }
+<span class="nc bnc" id="L165" title="All 4 branches missed.">                if (isAbstract &amp;&amp; reader.isCharacters()) {</span>
+<span class="nc" id="L166">                    abstractSB.append(reader.getText());</span>
+                }
+<span class="nc bnc" id="L168" title="All 4 branches missed.">                if (isAbstract &amp;&amp; reader.isEndElement()) {</span>
+<span class="nc" id="L169">                    isAbstract = false;</span>
+                }
+            }
+<span class="nc" id="L172">            String abstractText = abstractSB.toString();</span>
+<span class="nc" id="L173">            abstractText = abstractText.replace(&quot;\n&quot;, &quot; &quot;);</span>
+<span class="nc" id="L174">            entry.setField(&quot;abstract&quot;, abstractText);</span>
+<span class="nc" id="L175">        } catch (XMLStreamException e) {</span>
+<span class="nc" id="L176">            status.showMessage(Localization.lang(&quot;An Error occurred while parsing abstract&quot;), getTitle(),</span>
+<span class="nc" id="L177">                    JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L178">        } catch (IOException e) {</span>
+<span class="nc" id="L179">            status.showMessage(Localization.lang(&quot;An Exception occurred while accessing '%0'&quot;, url) + &quot;\n\n&quot; + e,</span>
+<span class="nc" id="L180">                    getTitle(), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L181">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L182">            status.showMessage(</span>
+<span class="nc" id="L183">                    Localization.lang(&quot;An Error occurred while fetching from ADS (%0):&quot;, url) + &quot;\n\n&quot; + e.getMessage(),</span>
+<span class="nc" id="L184">                    getTitle(), JOptionPane.ERROR_MESSAGE);</span>
+        }
+<span class="nc" id="L186">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

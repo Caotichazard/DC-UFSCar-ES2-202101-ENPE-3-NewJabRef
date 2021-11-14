@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>LatexToUnicodeFormatter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.layout.format</a> &gt; <span class="el_source">LatexToUnicodeFormatter.java</span></div><h1>LatexToUnicodeFormatter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.logic.layout.format;
+
+import java.util.Map;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.logic.formatter.Formatter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.layout.LayoutFormatter;
+import net.sf.jabref.logic.util.strings.HTMLUnicodeConversionMaps;
+import net.sf.jabref.logic.util.strings.StringUtil;
+
+/**
+ * This formatter converts LaTeX character sequences their equivalent unicode characters,
+ * and removes other LaTeX commands without handling them.
+ */
+<span class="fc" id="L31">public class LatexToUnicodeFormatter implements LayoutFormatter, Formatter {</span>
+
+<span class="fc" id="L33">    private static final Map&lt;String, String&gt; CHARS = HTMLUnicodeConversionMaps.LATEX_UNICODE_CONVERSION_MAP;</span>
+
+    @Override
+    public String getName() {
+<span class="fc" id="L37">        return Localization.lang(&quot;LaTeX to Unicode&quot;);</span>
+    }
+
+    @Override
+    public String getKey() {
+<span class="nc" id="L42">        return &quot;latex_to_unicode&quot;;</span>
+    }
+
+    @Override
+    public String format(String inField) {
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        if (inField.isEmpty()) {</span>
+<span class="nc" id="L48">            return &quot;&quot;;</span>
+        }
+        int i;
+<span class="fc" id="L51">        String field = inField.replaceAll(&quot;&amp;|\\\\&amp;&quot;, &quot;&amp;amp;&quot;).replaceAll(&quot;[\\n]{1,}&quot;, &quot;&lt;p&gt;&quot;).replace(&quot;\\$&quot;, &quot;&amp;dollar;&quot;) // Replace \$ with &amp;dollar;</span>
+<span class="fc" id="L52">                .replaceAll(&quot;\\$([^\\$]*)\\$&quot;, &quot;\\{$1\\}&quot;);</span>
+
+<span class="fc" id="L54">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L55">        StringBuilder currentCommand = null;</span>
+
+        char c;
+<span class="fc" id="L58">        boolean escaped = false;</span>
+<span class="fc" id="L59">        boolean incommand = false;</span>
+
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        for (i = 0; i &lt; field.length(); i++) {</span>
+<span class="fc" id="L62">            c = field.charAt(i);</span>
+<span class="pc bpc" id="L63" title="3 of 4 branches missed.">            if (escaped &amp;&amp; (c == '\\')) {</span>
+<span class="nc" id="L64">                sb.append('\\');</span>
+<span class="nc" id="L65">                escaped = false;</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">            } else if (c == '\\') {</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">                if (incommand) {</span>
+                    /* Close Command */
+<span class="nc" id="L69">                    String command = currentCommand.toString();</span>
+<span class="nc" id="L70">                    Object result = LatexToUnicodeFormatter.CHARS.get(command);</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">                    if (result == null) {</span>
+<span class="nc" id="L72">                        sb.append(command);</span>
+<span class="nc" id="L73">                    } else {</span>
+<span class="nc" id="L74">                        sb.append((String) result);</span>
+                    }
+                }
+<span class="nc" id="L77">                escaped = true;</span>
+<span class="nc" id="L78">                incommand = true;</span>
+<span class="nc" id="L79">                currentCommand = new StringBuilder();</span>
+<span class="pc bpc" id="L80" title="3 of 6 branches missed.">            } else if (!incommand &amp;&amp; ((c == '{') || (c == '}'))) {</span>
+                // Swallow the brace.
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">            } else if (Character.isLetter(c) || (c == '%')</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">                    || Globals.SPECIAL_COMMAND_CHARS.contains(String.valueOf(c))) {</span>
+<span class="fc" id="L84">                escaped = false;</span>
+
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">                if (!incommand) {</span>
+<span class="fc" id="L87">                    sb.append(c);</span>
+<span class="fc" id="L88">                } else {</span>
+<span class="nc" id="L89">                    currentCommand.append(c);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">                    testCharCom: if ((currentCommand.length() == 1)</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">                            &amp;&amp; Globals.SPECIAL_COMMAND_CHARS.contains(currentCommand.toString())) {</span>
+                        // This indicates that we are in a command of the type
+                        // \^o or \~{n}
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                        if (i &gt;= (field.length() - 1)) {</span>
+<span class="nc" id="L95">                            break testCharCom;</span>
+                        }
+
+<span class="nc" id="L98">                        String command = currentCommand.toString();</span>
+<span class="nc" id="L99">                        i++;</span>
+<span class="nc" id="L100">                        c = field.charAt(i);</span>
+                        String combody;
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                        if (c == '{') {</span>
+<span class="nc" id="L103">                            String part = StringUtil.getPart(field, i, false);</span>
+<span class="nc" id="L104">                            i += part.length();</span>
+<span class="nc" id="L105">                            combody = part;</span>
+<span class="nc" id="L106">                        } else {</span>
+<span class="nc" id="L107">                            combody = field.substring(i, i + 1);</span>
+                        }
+<span class="nc" id="L109">                        Object result = LatexToUnicodeFormatter.CHARS.get(command + combody);</span>
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                        if (result != null) {</span>
+<span class="nc" id="L112">                            sb.append((String) result);</span>
+                        }
+
+<span class="nc" id="L115">                        incommand = false;</span>
+<span class="nc" id="L116">                        escaped = false;</span>
+<span class="nc" id="L117">                    } else {</span>
+                        //	Are we already at the end of the string?
+<span class="nc bnc" id="L119" title="All 2 branches missed.">                        if ((i + 1) == field.length()) {</span>
+<span class="nc" id="L120">                            String command = currentCommand.toString();</span>
+<span class="nc" id="L121">                            Object result = LatexToUnicodeFormatter.CHARS.get(command);</span>
+                            /* If found, then use translated version. If not,
+                             * then keep
+                             * the text of the parameter intact.
+                             */
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                            if (result == null) {</span>
+<span class="nc" id="L127">                                sb.append(command);</span>
+<span class="nc" id="L128">                            } else {</span>
+<span class="nc" id="L129">                                sb.append((String) result);</span>
+                            }
+
+                        }
+                    }
+                }
+<span class="nc" id="L135">            } else {</span>
+                String argument;
+
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">                if (!incommand) {</span>
+<span class="fc" id="L139">                    sb.append(c);</span>
+<span class="pc bnc" id="L140" title="All 6 branches missed.">                } else if (Character.isWhitespace(c) || (c == '{') || (c == '}')) {</span>
+                    // First test if we are already at the end of the string.
+                    // if (i &gt;= field.length()-1)
+                    // break testContent;
+
+<span class="nc" id="L145">                    String command = currentCommand.toString();</span>
+
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                    if (c == '{') {</span>
+<span class="nc" id="L148">                        String part = StringUtil.getPart(field, i, true);</span>
+<span class="nc" id="L149">                        i += part.length();</span>
+<span class="nc" id="L150">                        argument = part;</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">                        if (argument != null) {</span>
+                            // handle common case of general latex command
+<span class="nc" id="L153">                            Object result = LatexToUnicodeFormatter.CHARS.get(command + argument);</span>
+                            // If found, then use translated version. If not, then keep
+                            // the
+                            // text of the parameter intact.
+<span class="nc bnc" id="L157" title="All 2 branches missed.">                            if (result == null) {</span>
+<span class="nc" id="L158">                                sb.append(argument);</span>
+<span class="nc" id="L159">                            } else {</span>
+<span class="nc" id="L160">                                sb.append((String) result);</span>
+                            }
+                        }
+<span class="nc bnc" id="L163" title="All 2 branches missed.">                    } else if (c == '}') {</span>
+                        // This end brace terminates a command. This can be the case in
+                        // constructs like {\aa}. The correct behaviour should be to
+                        // substitute the evaluated command and swallow the brace:
+<span class="nc" id="L167">                        Object result = LatexToUnicodeFormatter.CHARS.get(command);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                        if (result == null) {</span>
+                            // If the command is unknown, just print it:
+<span class="nc" id="L170">                            sb.append(command);</span>
+<span class="nc" id="L171">                        } else {</span>
+<span class="nc" id="L172">                            sb.append((String) result);</span>
+                        }
+<span class="nc" id="L174">                    } else {</span>
+<span class="nc" id="L175">                        Object result = LatexToUnicodeFormatter.CHARS.get(command);</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">                        if (result == null) {</span>
+<span class="nc" id="L177">                            sb.append(command);</span>
+<span class="nc" id="L178">                        } else {</span>
+<span class="nc" id="L179">                            sb.append((String) result);</span>
+                        }
+<span class="nc" id="L181">                        sb.append(' ');</span>
+                    }
+                }/* else if (c == '}') {
+                    System.out.printf(&quot;com term by }: '%s'\n&quot;, currentCommand.toString());
+
+                    argument = &quot;&quot;;
+                 }*/else {
+                     /*
+                      * TODO: this point is reached, apparently, if a command is
+                      * terminated in a strange way, such as with &quot;$\omega$&quot;.
+                      * Also, the command &quot;\&amp;&quot; causes us to get here. The former
+                      * issue is maybe a little difficult to address, since it
+                      * involves the LaTeX math mode. We don't have a complete
+                      * LaTeX parser, so maybe it's better to ignore these
+                      * commands?
+                      */
+                 }
+
+<span class="fc" id="L199">                incommand = false;</span>
+<span class="fc" id="L200">                escaped = false;</span>
+            }
+        }
+
+<span class="fc" id="L204">        return sb.toString().replace(&quot;&amp;amp;&quot;, &quot;&amp;&quot;).replace(&quot;&lt;p&gt;&quot;, Globals.NEWLINE).replace(&quot;&amp;dollar;&quot;, &quot;$&quot;).replace(&quot;~&quot;,</span>
+<span class="fc" id="L205">                &quot;\u00A0&quot;);</span>
+    }
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L210">        return Localization.lang(&quot;Converts LaTeX encoding to Unicode characters.&quot;);</span>
+    }
+
+    @Override
+    public String getExampleInput() {
+<span class="nc" id="L215">        return &quot;M{\\\&quot;{o}}nch&quot;;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>IconTheme.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">IconTheme.java</span></div><h1>IconTheme.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+package net.sf.jabref.gui;
+
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.FontFormatException;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+<span class="nc" id="L43">public class IconTheme {</span>
+
+    public static Font FONT;
+    public static Font FONT_16;
+
+    /* Colors */
+
+    // JabRef's default colors
+<span class="fc" id="L51">    public static final Color DEFAULT_COLOR = new Color(79, 95, 143); // The purple color of the logo</span>
+<span class="fc" id="L52">    public static final Color DEFAULT_DISABLED_COLOR = new Color(200, 200, 200);</span>
+
+    // Christmas edition
+    //public static final Color DEFAULT_COLOR = new Color(0x155115);
+    //public static final Color DEFAULT_DISABLED_COLOR = new Color(0x990000);
+
+
+    public static final int DEFAULT_SIZE = 24;
+    public static final int SMALL_SIZE = 16;
+
+<span class="fc" id="L62">    private static final Map&lt;String, String&gt; KEY_TO_ICON = readIconThemeFile(</span>
+<span class="fc" id="L63">            IconTheme.class.getResource(&quot;/images/Icons.properties&quot;), &quot;/images/external/&quot;);</span>
+    private static final String DEFAULT_ICON_PATH = &quot;/images/external/red.png&quot;;
+
+
+<span class="fc" id="L67">    private static final Log LOGGER = LogFactory.getLog(IconTheme.class);</span>
+
+    static {
+<span class="fc" id="L70">        try (InputStream stream = FontBasedIcon.class.getResourceAsStream(&quot;/fonts/materialdesignicons-webfont.ttf&quot;)) {</span>
+<span class="fc" id="L71">            FONT = Font.createFont(Font.TRUETYPE_FONT, stream);</span>
+<span class="fc" id="L72">            FONT_16 = FONT.deriveFont(Font.PLAIN, 16f);</span>
+<span class="nc" id="L73">        } catch (FontFormatException | IOException e) {</span>
+<span class="nc" id="L74">            LOGGER.warn(&quot;Error loading font&quot;, e);</span>
+        }
+<span class="fc" id="L76">    }</span>
+
+<span class="fc" id="L78">    public enum JabRefIcon {</span>
+
+<span class="fc" id="L80">        ADD(&quot;\uf416&quot;) /*css: mdi-plus-box*/,</span>
+<span class="fc" id="L81">        ADD_NOBOX(&quot;\uf415&quot;) /*css: plus */,</span>
+<span class="fc" id="L82">        ADD_ENTRY(&quot;\uf527&quot;) /*css: tooltip-outline-plus */,</span>
+<span class="fc" id="L83">        EDIT_ENTRY(&quot;\uf524&quot;) /*css: tooltip-edit */,</span>
+<span class="fc" id="L84">        EDIT_STRINGS(&quot;\uf528&quot;) /*css: tooltip-text */,</span>
+<span class="fc" id="L85">        FOLDER(&quot;\uf24b&quot;), /*css: folder */</span>
+<span class="fc" id="L86">        REMOVE(&quot;\uf375&quot;), /*css: minus-box */</span>
+<span class="fc" id="L87">        REMOVE_NOBOX(&quot;\uf374&quot;) /*css: minus */,</span>
+<span class="fc" id="L88">        FILE(&quot;\uf214&quot;), /* css: file*/</span>
+<span class="fc" id="L89">        PDF_FILE(&quot;\uf225&quot;), /* css: file-pdf*/</span>
+<span class="fc" id="L90">        DOI(&quot;\uf59f&quot;) /*css: web*/,</span>
+<span class="fc" id="L91">        DUPLICATE(&quot;\uf191&quot;) /*css: content-duplicate */,</span>
+<span class="fc" id="L92">        EDIT(&quot;\uf3eb&quot;) /*css: pencil */,</span>
+<span class="fc" id="L93">        NEW(&quot;\uf224&quot;) /* css: file-outline */,</span>
+<span class="fc" id="L94">        SAVE(&quot;\uf193&quot;) /*css: content-save*/,</span>
+<span class="fc" id="L95">        SAVE_ALL(&quot;\uf194&quot;) /*css: content-save-all*/,</span>
+<span class="fc" id="L96">        CLOSE(&quot;\uf156&quot;) /* css: close */,</span>
+<span class="fc" id="L97">        PASTE(&quot;\uf192&quot;) /*css: content-paste*/,</span>
+<span class="fc" id="L98">        CUT(&quot;\uf190&quot;) /*css: content-cut*/,</span>
+<span class="fc" id="L99">        COPY(&quot;\uf18f&quot;) /*css: content-copy */,</span>
+<span class="fc" id="L100">        REDO(&quot;\uf44e&quot;) /*css: redo*/,</span>
+<span class="fc" id="L101">        UNDO(&quot;\uf54c&quot;) /*css: undo*/,</span>
+<span class="fc" id="L102">        MARK_ENTRIES(&quot;\uf0c0&quot;) /*css: bookmark */,</span>
+<span class="fc" id="L103">        UNMARK_ENTRIES(&quot;\uf0c3&quot;) /*css: bookmark-outline */,</span>
+<span class="fc" id="L104">        REFRESH(&quot;\uf450&quot;) /*css: refresh */,</span>
+<span class="fc" id="L105">        DELETE_ENTRY(&quot;\uf1c0&quot;) /*css: delete */,</span>
+<span class="fc" id="L106">        SEARCH(&quot;\uf349&quot;) /*css: magnify */,</span>
+<span class="fc" id="L107">        PREFERENCES(&quot;\uf493&quot;) /*css: settings */,</span>
+<span class="fc" id="L108">        HELP(&quot;\uf2d7&quot;) /*css: help-circle*/,</span>
+<span class="fc" id="L109">        UP(&quot;\uf143&quot;) /*css: chevron-up */,</span>
+<span class="fc" id="L110">        DOWN(&quot;\uf140&quot;) /*css: chevron-down */,</span>
+<span class="fc" id="L111">        LEFT(&quot;\uf04e&quot;) /* css; arrow-left-bold */,</span>
+<span class="fc" id="L112">        RIGHT(&quot;\uf055&quot;) /*css: arrow-right-bold */,</span>
+<span class="fc" id="L113">        SOURCE(&quot;\uf169&quot;) /*css: code-braces*/,</span>
+<span class="fc" id="L114">        MAKE_KEY(&quot;\uf30b&quot;) /*css: key-variant */,</span>
+<span class="fc" id="L115">        CLEANUP_ENTRIES(&quot;\uf0e2&quot;) /*css: broom */,</span>
+<span class="fc" id="L116">        PRIORITY(&quot;\uf23b&quot;) /*css: flag */,</span>
+<span class="fc" id="L117">        PRIORITY_HIGH(&quot;\uF23B&quot;, Color.RED) /*css: flag */,</span>
+<span class="fc" id="L118">        PRIORITY_MEDIUM(&quot;\uF23B&quot;, Color.ORANGE) /*css: flag */,</span>
+<span class="fc" id="L119">        PRIORITY_LOW(&quot;\uF23B&quot;, new Color(111, 204, 117)) /*css: flag */,</span>
+<span class="fc" id="L120">        PRINTED(&quot;\uf42a&quot;) /*css: printer */,</span>
+<span class="fc" id="L121">        RANKING(&quot;\uf4ce&quot;) /*css: star + star-outline: f4d2*/,</span>
+<span class="fc" id="L122">        RANK1(&quot;\uF4CE\uF4D2\uF4D2\uF4D2\uf4d2&quot;),</span>
+<span class="fc" id="L123">        RANK2(&quot;\uF4CE\uF4CE\uF4D2\uF4D2\uF4D2&quot;),</span>
+<span class="fc" id="L124">        RANK3(&quot;\uF4CE\uF4CE\uF4CE\uF4D2\uF4D2&quot;),</span>
+<span class="fc" id="L125">        RANK4(&quot;\uF4CE\uF4CE\uF4CE\uF4CE\uF4D2&quot;),</span>
+<span class="fc" id="L126">        RANK5(&quot;\uF4CE\uF4CE\uF4CE\uF4CE\uF4CE&quot;),</span>
+<span class="fc" id="L127">        WWW(&quot;\uf59f&quot;) /*css: web*/,</span>
+<span class="fc" id="L128">        GROUP_INCLUDING(&quot;\uf233&quot;) /*css: filter-outline*/,</span>
+<span class="fc" id="L129">        GROUP_REFINING(&quot;\uf232&quot;) /*css: filter*/,</span>
+<span class="fc" id="L130">        AUTO_GROUP(&quot;\uf068&quot;), /*css: auto-fix*/</span>
+<span class="fc" id="L131">        EMAIL(&quot;\uf1ee&quot;) /*css: email*/,</span>
+<span class="fc" id="L132">        EXPORT_TO_CLIPBOARD(&quot;\uf14b&quot;) /*css: clipboard-arrow-left */,</span>
+<span class="fc" id="L133">        ATTACH_FILE(&quot;\uf3e2&quot;) /*css: paperclip*/,</span>
+<span class="fc" id="L134">        AUTO_FILE_LINK(&quot;\uf21e&quot;) /*css: file-find */,</span>
+<span class="fc" id="L135">        QUALITY_ASSURED(&quot;\uf124&quot;), /*css: certificate */</span>
+<span class="fc" id="L136">        QUALITY(&quot;\uF124&quot;),/*css: certificate */</span>
+<span class="fc" id="L137">        OPEN(&quot;\uf24b&quot;) /*css: folder */,</span>
+<span class="fc" id="L138">        ADD_ROW(&quot;\uf490&quot;) /* css: server-plus*/,</span>
+<span class="fc" id="L139">        REMOVE_ROW(&quot;\uf48c&quot;) /*css: server-minus */,</span>
+<span class="fc" id="L140">        PICTURE(&quot;\uf21f&quot;) /*css: file-image */,</span>
+<span class="fc" id="L141">        READ_STATUS_READ(&quot;\uf208&quot;, new Color(111, 204, 117)), /*css: eye */</span>
+<span class="fc" id="L142">        READ_STATUS_SKIMMED(&quot;\uF208&quot;, Color.ORANGE), /*css: eye */</span>
+<span class="fc" id="L143">        READ_STATUS(&quot;\uF208&quot;),/*css: eye */</span>
+<span class="fc" id="L144">        RELEVANCE(&quot;\uf4cf&quot;),/*css: star-circle */</span>
+<span class="fc" id="L145">        MERGE_ENTRIES(&quot;\uf18a&quot;), /* css: compare */</span>
+<span class="fc" id="L146">        CONNECT_OPEN_OFFICE(&quot;\uf3cb&quot;) /*css: open-in-app */,</span>
+<span class="fc" id="L147">        PLAIN_TEXT_IMPORT_TODO(&quot;\uf130&quot;) /* css: checkbox-blank-circle-outline*/,</span>
+<span class="fc" id="L148">        PLAIN_TEXT_IMPORT_DONE(&quot;\uf134&quot;) /* checkbox-marked-circle-outline */,</span>
+<span class="fc" id="L149">        DONATE(&quot;\uf2a1&quot;), /* css: gift */</span>
+<span class="fc" id="L150">        MOVE_TAB_ARROW(&quot;\uf05e&quot;), /*css:  arrow-up-bold */</span>
+<span class="fc" id="L151">        OPTIONAL(&quot;\uf316&quot;), /*css: label-outline */</span>
+<span class="fc" id="L152">        REQUIRED(&quot;\uf315&quot;), /*css: label */</span>
+<span class="fc" id="L153">        INTEGRITY_FAIL(&quot;\uf159&quot;, Color.RED), /*css: close-circle */</span>
+<span class="fc" id="L154">        INTEGRITY_INFO(&quot;\uf2fc&quot;), /*css: information */</span>
+<span class="fc" id="L155">        INTEGRITY_WARN(&quot;\uf028&quot;), /*css alert-circle */</span>
+<span class="fc" id="L156">        INTEGRITY_SUCCESS(&quot;\uF134&quot;) /*css: checkbox-marked-circle-outline */,</span>
+<span class="fc" id="L157">        GITHUB(&quot;\uf2a4&quot;), /*css: github-circle*/</span>
+<span class="fc" id="L158">        TOGGLE_ENTRY_PREVIEW(&quot;\uf332&quot;), /*css: library-books */</span>
+<span class="fc" id="L159">        TOGGLE_GROUPS(&quot;\uf572&quot;), /*css: view-list */</span>
+<span class="fc" id="L160">        WRITE_XMP(&quot;\uf2fa&quot;), /* css: import */</span>
+<span class="fc" id="L161">        FILE_WORD(&quot;\uf22c&quot;), /*css: file-word */</span>
+<span class="fc" id="L162">        FILE_EXCEL(&quot;\uf21b&quot;), /*css: file-excel */</span>
+<span class="fc" id="L163">        FILE_POWERPOINT(&quot;\uf227&quot;), /*css: file-powerpoint */</span>
+<span class="fc" id="L164">        FILE_TEXT(&quot;\uf219&quot;), /*css: file-document */</span>
+<span class="fc" id="L165">        FILE_MULTIPLE(&quot;\uf222&quot;), /*css: file-multiple */</span>
+<span class="fc" id="L166">        KEY_BINDINGS(&quot;\uf30c&quot;), /*css: keyboard */</span>
+<span class="fc" id="L167">        FIND_DUPLICATES(&quot;\uf16b&quot;), /*css: code-equal */</span>
+
+<span class="fc" id="L169">        OPEN_IN_NEW_WINDOW(&quot;\uf3cc&quot;), /*css: open-in-new */</span>
+<span class="fc" id="L170">        CASE_SENSITIVE(&quot;\uf02c&quot;), /* css: mdi-alphabetical */</span>
+<span class="fc" id="L171">        REG_EX(&quot;\uf451&quot;), /*css: mdi-regex */</span>
+<span class="fc" id="L172">        CONSOLE(&quot;\uf18d&quot;), /*css: console */</span>
+        // STILL MISSING:
+<span class="fc" id="L174">        GROUP_REGULAR(&quot;\uF4E6&quot;, Color.RED);</span>
+
+        private final String code;
+        private final Color color;
+
+        JabRefIcon(String code) {
+<span class="fc" id="L180">            this(code, IconTheme.DEFAULT_COLOR);</span>
+<span class="fc" id="L181">        }</span>
+
+<span class="fc" id="L183">        JabRefIcon(String code, Color color) {</span>
+<span class="fc" id="L184">            this.code = code;</span>
+<span class="fc" id="L185">            this.color = color;</span>
+<span class="fc" id="L186">        }</span>
+
+        public FontBasedIcon getIcon() {
+<span class="fc" id="L189">            return new FontBasedIcon(this.code, this.color);</span>
+        }
+
+        public FontBasedIcon getSmallIcon() {
+<span class="fc" id="L193">            return new FontBasedIcon(this.code, this.color, IconTheme.SMALL_SIZE);</span>
+        }
+
+        public String getCode() {
+<span class="nc" id="L197">            return this.code;</span>
+        }
+    }
+
+    public static class FontBasedIcon implements Icon {
+
+        private final String iconCode;
+        private final Color iconColor;
+        private final int size;
+
+<span class="fc" id="L207">        public FontBasedIcon(String code, Color iconColor) {</span>
+<span class="fc" id="L208">            this.iconCode = code;</span>
+<span class="fc" id="L209">            this.iconColor = iconColor;</span>
+<span class="fc" id="L210">            this.size = IconTheme.DEFAULT_SIZE;</span>
+<span class="fc" id="L211">        }</span>
+
+<span class="fc" id="L213">        public FontBasedIcon(String code, Color iconColor, int size) {</span>
+<span class="fc" id="L214">            this.iconCode = code;</span>
+<span class="fc" id="L215">            this.iconColor = iconColor;</span>
+<span class="fc" id="L216">            this.size = size;</span>
+<span class="fc" id="L217">        }</span>
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+<span class="fc" id="L221">            Graphics2D g2 = (Graphics2D) g.create();</span>
+
+<span class="fc" id="L223">            RenderingHints rh = new RenderingHints(</span>
+<span class="fc" id="L224">                    RenderingHints.KEY_TEXT_ANTIALIASING,</span>
+<span class="fc" id="L225">                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);</span>
+<span class="fc" id="L226">            g2.setRenderingHints(rh);</span>
+
+<span class="fc" id="L228">            g2.setFont(FONT.deriveFont(Font.PLAIN, size));</span>
+<span class="fc" id="L229">            g2.setColor(iconColor);</span>
+<span class="fc" id="L230">            FontMetrics fm = g2.getFontMetrics();</span>
+
+<span class="fc" id="L232">            g2.translate(x, y + fm.getAscent());</span>
+<span class="fc" id="L233">            g2.drawString(iconCode, 0, 0);</span>
+
+<span class="fc" id="L235">            g2.dispose();</span>
+<span class="fc" id="L236">        }</span>
+
+        @Override
+        public int getIconWidth() {
+<span class="fc" id="L240">            return size;</span>
+        }
+
+        @Override
+        public int getIconHeight() {
+<span class="fc" id="L245">            return size;</span>
+        }
+
+        public FontBasedIcon createDisabledIcon() {
+<span class="fc" id="L249">            return new FontBasedIcon(this.iconCode, IconTheme.DEFAULT_DISABLED_COLOR, this.size);</span>
+        }
+
+        public FontBasedIcon createSmallIcon() {
+<span class="fc" id="L253">            return new FontBasedIcon(this.iconCode, this.iconColor, IconTheme.SMALL_SIZE);</span>
+        }
+
+        public FontBasedIcon createWithNewColor(Color newColor) {
+<span class="nc" id="L257">            return new FontBasedIcon(this.iconCode, newColor, this.size);</span>
+        }
+
+    }
+
+
+    /**
+     * Constructs an ImageIcon for the image representing the given function, in the resource
+     * file listing images.
+     *
+     * @param name The name of the icon, such as &quot;open&quot;, &quot;save&quot;, &quot;saveAs&quot; etc.
+     * @return The ImageIcon for the function.
+     */
+    public static ImageIcon getImage(String name) {
+<span class="fc" id="L271">        return new ImageIcon(getIconUrl(name));</span>
+    }
+
+    /**
+     * Looks up the URL for the image representing the given function, in the resource
+     * file listing images.
+     *
+     * @param name The name of the icon, such as &quot;open&quot;, &quot;save&quot;, &quot;saveAs&quot; etc.
+     * @return The URL to the actual image to use.
+     */
+    public static URL getIconUrl(String name) {
+<span class="fc" id="L282">        String key = Objects.requireNonNull(name, &quot;icon name&quot;);</span>
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">        if (!KEY_TO_ICON.containsKey(key)) {</span>
+<span class="nc" id="L284">            LOGGER.warn(&quot;Could not find icon url by name &quot; + name + &quot;, so falling back on default icon &quot;</span>
+<span class="nc" id="L285">                    + DEFAULT_ICON_PATH);</span>
+        }
+<span class="fc" id="L287">        String path = KEY_TO_ICON.getOrDefault(key, DEFAULT_ICON_PATH);</span>
+<span class="fc" id="L288">        return Objects.requireNonNull(IconTheme.class.getResource(path), &quot;Path must not be null for key &quot; + key);</span>
+    }
+
+    /**
+     * Read a typical java property url into a Map. Currently doesn't support escaping
+     * of the '=' character - it simply looks for the first '=' to determine where the key ends.
+     * Both the key and the value is trimmed for whitespace at the ends.
+     *
+     * @param url    The URL to read information from.
+     * @param prefix A String to prefix to all values read. Can represent e.g. the directory
+     *               where icon files are to be found.
+     * @return A Map containing all key-value pairs found.
+     */
+    // FIXME: prefix can be removed?!
+    private static Map&lt;String, String&gt; readIconThemeFile(URL url, String prefix) {
+<span class="fc" id="L303">        Objects.requireNonNull(url, &quot;url&quot;);</span>
+<span class="fc" id="L304">        Objects.requireNonNull(prefix, &quot;prefix&quot;);</span>
+
+<span class="fc" id="L306">        Map&lt;String, String&gt; result = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L308">        try (BufferedReader in = new BufferedReader(</span>
+<span class="fc" id="L309">                new InputStreamReader(url.openStream(), StandardCharsets.ISO_8859_1))) {</span>
+            String line;
+<span class="fc bfc" id="L311" title="All 2 branches covered.">            while ((line = in.readLine()) != null) {</span>
+<span class="fc bfc" id="L312" title="All 2 branches covered.">                if (!line.contains(&quot;=&quot;)) {</span>
+<span class="fc" id="L313">                    continue;</span>
+                }
+
+<span class="fc" id="L316">                int index = line.indexOf('=');</span>
+<span class="fc" id="L317">                String key = line.substring(0, index).trim();</span>
+<span class="fc" id="L318">                String value = prefix + line.substring(index + 1).trim();</span>
+<span class="fc" id="L319">                result.put(key, value);</span>
+            }
+<span class="nc" id="L321">        } catch (IOException e) {</span>
+<span class="nc" id="L322">            LOGGER.warn(&quot;Unable to read default icon theme.&quot;, e);</span>
+        }
+<span class="fc" id="L324">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

@@ -1,0 +1,696 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ManageJournalsPanel.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.journals</a> &gt; <span class="el_source">ManageJournalsPanel.java</span></div><h1>ManageJournalsPanel.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.journals;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.ButtonGroup;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.table.AbstractTableModel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.FileDialogs;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.gui.net.MonitoredURLDownload;
+import net.sf.jabref.logic.journals.Abbreviation;
+import net.sf.jabref.logic.journals.JournalAbbreviationLoader;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import com.jgoodies.forms.builder.ButtonStackBuilder;
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Created by IntelliJ IDEA. User: alver Date: Sep 19, 2005 Time: 7:57:29 PM To browseOld this template use File |
+ * Settings | File Templates.
+ */
+class ManageJournalsPanel extends JPanel {
+
+<span class="nc" id="L82">    private static final Log LOGGER = LogFactory.getLog(ManageJournalsPanel.class);</span>
+
+    private final JabRefFrame frame;
+<span class="nc" id="L85">    private final JTextField personalFile = new JTextField();</span>
+<span class="nc" id="L86">    private final AbbreviationsTableModel tableModel = new AbbreviationsTableModel();</span>
+    private JTable userTable; // builtInTable
+<span class="nc" id="L88">    private final JPanel userPanel = new JPanel();</span>
+    private final JPanel journalEditPanel;
+<span class="nc" id="L90">    private final JPanel externalFilesPanel = new JPanel();</span>
+<span class="nc" id="L91">    private final JPanel addExtPan = new JPanel();</span>
+<span class="nc" id="L92">    private final JTextField nameTf = new JTextField();</span>
+<span class="nc" id="L93">    private final JTextField newNameTf = new JTextField();</span>
+<span class="nc" id="L94">    private final JTextField abbrTf = new JTextField();</span>
+<span class="nc" id="L95">    private final List&lt;ExternalFileEntry&gt; externals = new ArrayList&lt;&gt;(); // To hold references to external journal lists.</span>
+    private final JDialog dialog;
+<span class="nc" id="L97">    private final JRadioButton newFile = new JRadioButton(Localization.lang(&quot;New file&quot;));</span>
+<span class="nc" id="L98">    private final JRadioButton oldFile = new JRadioButton(Localization.lang(&quot;Existing file&quot;));</span>
+
+<span class="nc" id="L100">    private final JButton add = new JButton(IconTheme.JabRefIcon.ADD_NOBOX.getIcon());</span>
+<span class="nc" id="L101">    private final JButton remove = new JButton(IconTheme.JabRefIcon.REMOVE_NOBOX.getIcon());</span>
+
+
+<span class="nc" id="L104">    public ManageJournalsPanel(final JabRefFrame frame) {</span>
+<span class="nc" id="L105">        this.frame = frame;</span>
+
+<span class="nc" id="L107">        personalFile.setEditable(false);</span>
+
+<span class="nc" id="L109">        ButtonGroup group = new ButtonGroup();</span>
+<span class="nc" id="L110">        group.add(newFile);</span>
+<span class="nc" id="L111">        group.add(oldFile);</span>
+<span class="nc" id="L112">        addExtPan.setLayout(new BorderLayout());</span>
+<span class="nc" id="L113">        JButton addExt = new JButton(IconTheme.JabRefIcon.ADD.getIcon());</span>
+<span class="nc" id="L114">        addExtPan.add(addExt, BorderLayout.EAST);</span>
+<span class="nc" id="L115">        addExtPan.setToolTipText(Localization.lang(&quot;Add&quot;));</span>
+<span class="nc" id="L116">        FormLayout layout = new FormLayout(&quot;1dlu, 8dlu, left:pref, 4dlu, fill:200dlu:grow, 4dlu, fill:pref&quot;,</span>
+<span class="nc" id="L117">                &quot;pref, pref, pref, 20dlu, 20dlu, fill:200dlu, 4dlu, pref&quot;);</span>
+<span class="nc" id="L118">        FormBuilder builder = FormBuilder.create().layout(layout);</span>
+
+<span class="nc" id="L120">        builder.addSeparator(Localization.lang(&quot;Built-in journal list&quot;)).xyw(2, 1, 6);</span>
+<span class="nc" id="L121">        JLabel description = new JLabel(</span>
+<span class="nc" id="L122">                &quot;&lt;HTML&gt;&quot; + Localization.lang(&quot;JabRef includes a built-in list of journal abbreviations.&quot;) + &quot;&lt;br&gt;&quot;</span>
+<span class="nc" id="L123">                        + Localization</span>
+<span class="nc" id="L124">                                .lang(&quot;You can add additional journal names by setting up a personal journal list,&lt;br&gt;as &quot;</span>
+                                        + &quot;well as linking to external journal lists.&quot;)
+<span class="nc" id="L126">                        + &quot;&lt;/HTML&gt;&quot;);</span>
+<span class="nc" id="L127">        description.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));</span>
+<span class="nc" id="L128">        builder.add(description).xyw(2, 2, 6);</span>
+<span class="nc" id="L129">        JButton viewBuiltin = new JButton(Localization.lang(&quot;View&quot;));</span>
+<span class="nc" id="L130">        builder.add(viewBuiltin).xy(7, 2);</span>
+<span class="nc" id="L131">        builder.addSeparator(Localization.lang(&quot;Personal journal list&quot;)).xyw(2, 3, 6);</span>
+
+<span class="nc" id="L133">        builder.add(newFile).xy(3, 4);</span>
+<span class="nc" id="L134">        builder.add(newNameTf).xy(5, 4);</span>
+<span class="nc" id="L135">        JButton browseNew = new JButton(Localization.lang(&quot;Browse&quot;));</span>
+<span class="nc" id="L136">        builder.add(browseNew).xy(7, 4);</span>
+<span class="nc" id="L137">        builder.add(oldFile).xy(3, 5);</span>
+<span class="nc" id="L138">        builder.add(personalFile).xy(5, 5);</span>
+<span class="nc" id="L139">        JButton browseOld = new JButton(Localization.lang(&quot;Browse&quot;));</span>
+<span class="nc" id="L140">        builder.add(browseOld).xy(7, 5);</span>
+
+<span class="nc" id="L142">        userPanel.setLayout(new BorderLayout());</span>
+<span class="nc" id="L143">        builder.add(userPanel).xyw(2, 6, 4);</span>
+<span class="nc" id="L144">        ButtonStackBuilder butBul = new ButtonStackBuilder();</span>
+<span class="nc" id="L145">        butBul.addButton(add);</span>
+<span class="nc" id="L146">        butBul.addButton(remove);</span>
+
+<span class="nc" id="L148">        butBul.addGlue();</span>
+<span class="nc" id="L149">        builder.add(butBul.getPanel()).xy(7, 6);</span>
+
+<span class="nc" id="L151">        builder.addSeparator(Localization.lang(&quot;External files&quot;)).xyw(2, 8, 6);</span>
+<span class="nc" id="L152">        externalFilesPanel.setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L154">        setLayout(new BorderLayout());</span>
+<span class="nc" id="L155">        builder.getPanel().setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L156">        add(builder.getPanel(), BorderLayout.NORTH);</span>
+<span class="nc" id="L157">        add(externalFilesPanel, BorderLayout.CENTER);</span>
+<span class="nc" id="L158">        ButtonBarBuilder bb = new ButtonBarBuilder();</span>
+<span class="nc" id="L159">        bb.addGlue();</span>
+<span class="nc" id="L160">        JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+<span class="nc" id="L161">        bb.addButton(ok);</span>
+<span class="nc" id="L162">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L163">        bb.addButton(cancel);</span>
+<span class="nc" id="L164">        bb.addUnrelatedGap();</span>
+
+<span class="nc" id="L166">        JButton help = new HelpAction(HelpFiles.JOURNAL_ABBREV).getHelpButton();</span>
+<span class="nc" id="L167">        bb.addButton(help);</span>
+<span class="nc" id="L168">        bb.addGlue();</span>
+<span class="nc" id="L169">        bb.getPanel().setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L170">        dialog = new JDialog(frame, Localization.lang(&quot;Journal abbreviations&quot;), false);</span>
+<span class="nc" id="L171">        dialog.getContentPane().add(this, BorderLayout.CENTER);</span>
+<span class="nc" id="L172">        dialog.getContentPane().add(bb.getPanel(), BorderLayout.SOUTH);</span>
+
+        // Set up panel for editing a single journal, to be used in a dialog box:
+<span class="nc" id="L175">        FormLayout layout2 = new FormLayout(&quot;right:pref, 4dlu, fill:180dlu&quot;, &quot;p, 2dlu, p&quot;);</span>
+<span class="nc" id="L176">        FormBuilder builder2 = FormBuilder.create().layout(layout2);</span>
+<span class="nc" id="L177">        builder2.add(Localization.lang(&quot;Journal name&quot;)).xy(1, 1);</span>
+<span class="nc" id="L178">        builder2.add(nameTf).xy(3, 1);</span>
+<span class="nc" id="L179">        builder2.add(Localization.lang(&quot;ISO abbreviation&quot;)).xy(1, 3);</span>
+<span class="nc" id="L180">        builder2.add(abbrTf).xy(3, 3);</span>
+<span class="nc" id="L181">        journalEditPanel = builder2.getPanel();</span>
+
+<span class="nc" id="L183">        viewBuiltin.addActionListener(e -&gt; {</span>
+<span class="nc" id="L184">            JTable table = new JTable(JournalAbbreviationsUtil</span>
+<span class="nc" id="L185">                    .getTableModel(Globals.journalAbbreviationLoader.getRepository().getAbbreviations()));</span>
+<span class="nc" id="L186">            JScrollPane pane = new JScrollPane(table);</span>
+<span class="nc" id="L187">            JOptionPane.showMessageDialog(null, pane, Localization.lang(&quot;Journal list preview&quot;),</span>
+<span class="nc" id="L188">                    JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L189">        });</span>
+
+<span class="nc" id="L191">        browseNew.addActionListener(e -&gt; {</span>
+<span class="nc" id="L192">            File old = null;</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">            if (!&quot;&quot;.equals(newNameTf.getText())) {</span>
+<span class="nc" id="L194">                old = new File(newNameTf.getText());</span>
+            }
+<span class="nc" id="L196">            String name = FileDialogs.getNewFile(frame, old, null, JFileChooser.SAVE_DIALOG, false);</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">            if (name != null) {</span>
+<span class="nc" id="L198">                newNameTf.setText(name);</span>
+<span class="nc" id="L199">                newFile.setSelected(true);</span>
+            }
+<span class="nc" id="L201">        });</span>
+
+<span class="nc" id="L203">        browseOld.addActionListener(e -&gt; {</span>
+<span class="nc" id="L204">            File old = null;</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">            if (!&quot;&quot;.equals(personalFile.getText())) {</span>
+<span class="nc" id="L206">                old = new File(personalFile.getText());</span>
+            }
+<span class="nc" id="L208">            String name = FileDialogs.getNewFile(frame, old, null, JFileChooser.OPEN_DIALOG, false);</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">            if (name != null) {</span>
+<span class="nc" id="L210">                personalFile.setText(name);</span>
+<span class="nc" id="L211">                oldFile.setSelected(true);</span>
+<span class="nc" id="L212">                oldFile.setEnabled(true);</span>
+<span class="nc" id="L213">                setupUserTable();</span>
+            }
+<span class="nc" id="L215">        });</span>
+
+<span class="nc" id="L217">        ok.addActionListener(e -&gt; {</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">            if (readyToClose()) {</span>
+                try {
+<span class="nc" id="L220">                    storeSettings();</span>
+<span class="nc" id="L221">                    dialog.dispose();</span>
+<span class="nc" id="L222">                } catch (FileNotFoundException ex) {</span>
+<span class="nc" id="L223">                    JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L224">                            Localization.lang(&quot;Error opening file&quot;) + &quot;: &quot; + ex.getMessage(),</span>
+<span class="nc" id="L225">                            Localization.lang(&quot;Error opening file&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L226">                    LOGGER.debug(&quot;Cannot find abbreviation file&quot;, ex);</span>
+                }
+            }
+<span class="nc" id="L229">        });</span>
+
+<span class="nc" id="L231">        Action cancelAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L235">                dialog.dispose();</span>
+<span class="nc" id="L236">            }</span>
+        };
+<span class="nc" id="L238">        cancel.addActionListener(cancelAction);</span>
+
+<span class="nc" id="L240">        add.addActionListener(tableModel);</span>
+<span class="nc" id="L241">        remove.addActionListener(tableModel);</span>
+<span class="nc" id="L242">        addExt.addActionListener(e -&gt; {</span>
+<span class="nc" id="L243">            externals.add(new ExternalFileEntry());</span>
+<span class="nc" id="L244">            buildExternalsPanel();</span>
+<span class="nc" id="L245">        });</span>
+
+        // Key bindings:
+<span class="nc" id="L248">        ActionMap am = getActionMap();</span>
+<span class="nc" id="L249">        InputMap im = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+<span class="nc" id="L250">        im.put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L251">        am.put(&quot;close&quot;, cancelAction);</span>
+
+<span class="nc" id="L253">        int xSize = getPreferredSize().width;</span>
+<span class="nc" id="L254">        dialog.setSize(xSize + 10, 700);</span>
+<span class="nc" id="L255">    }</span>
+
+    public JDialog getDialog() {
+<span class="nc" id="L258">        return dialog;</span>
+    }
+
+    public void setValues() {
+<span class="nc" id="L262">        personalFile.setText(Globals.prefs.get(JabRefPreferences.PERSONAL_JOURNAL_LIST));</span>
+<span class="nc bnc" id="L263" title="All 2 branches missed.">        if (personalFile.getText().isEmpty()) {</span>
+<span class="nc" id="L264">            newFile.setSelected(true);</span>
+<span class="nc" id="L265">            newFile.setEnabled(true);</span>
+<span class="nc" id="L266">            oldFile.setSelected(false);</span>
+<span class="nc" id="L267">            oldFile.setEnabled(false);</span>
+<span class="nc" id="L268">        } else {</span>
+<span class="nc" id="L269">            newFile.setSelected(false);</span>
+<span class="nc" id="L270">            newFile.setEnabled(false);</span>
+<span class="nc" id="L271">            oldFile.setSelected(true);</span>
+<span class="nc" id="L272">            oldFile.setEnabled(true);</span>
+        }
+<span class="nc" id="L274">        setupUserTable();</span>
+<span class="nc" id="L275">        setupExternals();</span>
+<span class="nc" id="L276">        buildExternalsPanel();</span>
+
+<span class="nc" id="L278">    }</span>
+
+    private void buildExternalsPanel() {
+
+<span class="nc" id="L282">        FormBuilder builder = FormBuilder.create().layout(new FormLayout(&quot;fill:pref:grow&quot;, &quot;p&quot;));</span>
+<span class="nc" id="L283">        int row = 1;</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        for (ExternalFileEntry efe : externals) {</span>
+<span class="nc" id="L285">            builder.add(efe.getPanel()).xy(1, row);</span>
+<span class="nc" id="L286">            builder.appendRows(&quot;2dlu, p&quot;);</span>
+<span class="nc" id="L287">            row += 2;</span>
+        }
+<span class="nc" id="L289">        builder.add(Box.createVerticalGlue()).xy(1, row);</span>
+<span class="nc" id="L290">        builder.appendRows(&quot;2dlu, p, 2dlu, p&quot;);</span>
+<span class="nc" id="L291">        builder.add(addExtPan).xy(1, row + 2);</span>
+<span class="nc" id="L292">        builder.add(Box.createVerticalGlue()).xy(1, row + 2);</span>
+
+        //builder.getPanel().setBorder(BorderFactory.createMatteBorder(1,1,1,1,Color.green));
+        //externalFilesPanel.setBorder(BorderFactory.createMatteBorder(1,1,1,1,Color.red));
+<span class="nc" id="L296">        JScrollPane pane = new JScrollPane(builder.getPanel());</span>
+<span class="nc" id="L297">        pane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L298">        externalFilesPanel.setMinimumSize(new Dimension(400, 400));</span>
+<span class="nc" id="L299">        externalFilesPanel.setPreferredSize(new Dimension(400, 400));</span>
+<span class="nc" id="L300">        externalFilesPanel.removeAll();</span>
+<span class="nc" id="L301">        externalFilesPanel.add(pane, BorderLayout.CENTER);</span>
+<span class="nc" id="L302">        externalFilesPanel.revalidate();</span>
+<span class="nc" id="L303">        externalFilesPanel.repaint();</span>
+
+<span class="nc" id="L305">    }</span>
+
+    private void setupExternals() {
+<span class="nc" id="L308">        List&lt;String&gt; externalFiles = Globals.prefs.getStringList(JabRefPreferences.EXTERNAL_JOURNAL_LISTS);</span>
+<span class="nc bnc" id="L309" title="All 2 branches missed.">        if (externalFiles.isEmpty()) {</span>
+<span class="nc" id="L310">            ExternalFileEntry efe = new ExternalFileEntry();</span>
+<span class="nc" id="L311">            externals.add(efe);</span>
+<span class="nc" id="L312">        } else {</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">            for (String externalFile : externalFiles) {</span>
+<span class="nc" id="L314">                ExternalFileEntry efe = new ExternalFileEntry(externalFile);</span>
+<span class="nc" id="L315">                externals.add(efe);</span>
+            }
+        }
+<span class="nc" id="L318">    }</span>
+
+    private void setupUserTable() {
+<span class="nc" id="L321">        List&lt;Abbreviation&gt; userAbbreviations = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L322">        String filename = personalFile.getText();</span>
+<span class="nc bnc" id="L323" title="All 4 branches missed.">        if ((!filename.isEmpty()) &amp;&amp; new File(filename).exists()) {</span>
+            try {
+<span class="nc" id="L325">                userAbbreviations = JournalAbbreviationLoader.readJournalListFromFile(new File(filename),</span>
+<span class="nc" id="L326">                        Globals.prefs.getDefaultEncoding());</span>
+<span class="nc" id="L327">            } catch (FileNotFoundException e) {</span>
+<span class="nc" id="L328">                LOGGER.warn(&quot;Problem reading abbreviation file&quot;, e);</span>
+            }
+        }
+
+<span class="nc" id="L332">        tableModel.setJournals(userAbbreviations);</span>
+<span class="nc" id="L333">        userTable = new JTable(tableModel);</span>
+<span class="nc" id="L334">        userTable.addMouseListener(tableModel.getMouseListener());</span>
+<span class="nc" id="L335">        userPanel.add(new JScrollPane(userTable), BorderLayout.CENTER);</span>
+<span class="nc" id="L336">    }</span>
+
+    private boolean readyToClose() {
+        File f;
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        if (newFile.isSelected()) {</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">            if (newNameTf.getText().isEmpty()) {</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">                if (tableModel.getRowCount() &gt; 0) {</span>
+<span class="nc" id="L343">                    JOptionPane.showMessageDialog(this,</span>
+<span class="nc" id="L344">                            Localization.lang(&quot;You must choose a filename to store journal abbreviations&quot;),</span>
+<span class="nc" id="L345">                            Localization.lang(&quot;Store journal abbreviations&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L346">                    return false;</span>
+                } else {
+<span class="nc" id="L348">                    return true;</span>
+                }
+            } else {
+<span class="nc" id="L351">                f = new File(newNameTf.getText());</span>
+<span class="nc bnc" id="L352" title="All 4 branches missed.">                return !f.exists() || (JOptionPane.showConfirmDialog(this,</span>
+<span class="nc" id="L353">                        Localization.lang(&quot;'%0' exists. Overwrite file?&quot;, f.getName()),</span>
+<span class="nc" id="L354">                        Localization.lang(&quot;Store journal abbreviations&quot;),</span>
+<span class="nc" id="L355">                        JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION);</span>
+            }
+        }
+<span class="nc" id="L358">        return true;</span>
+    }
+
+    private void storeSettings() throws FileNotFoundException {
+<span class="nc" id="L362">        File f = null;</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">        if (newFile.isSelected()) {</span>
+<span class="nc bnc" id="L364" title="All 2 branches missed.">            if (!newNameTf.getText().isEmpty()) {</span>
+<span class="nc" id="L365">                f = new File(newNameTf.getText());</span>
+            }
+<span class="nc" id="L367">        } else {</span>
+<span class="nc" id="L368">            f = new File(personalFile.getText());</span>
+        }
+
+<span class="nc bnc" id="L371" title="All 2 branches missed.">        if (f != null) {</span>
+<span class="nc bnc" id="L372" title="All 2 branches missed.">            if (!f.exists()) {</span>
+<span class="nc" id="L373">                throw new FileNotFoundException(f.getAbsolutePath());</span>
+            }
+<span class="nc" id="L375">            try (FileOutputStream stream = new FileOutputStream(f, false);</span>
+<span class="nc" id="L376">                    OutputStreamWriter writer = new OutputStreamWriter(stream, Globals.prefs.getDefaultEncoding())) {</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">                for (JournalEntry entry : tableModel.getJournals()) {</span>
+<span class="nc" id="L378">                    writer.write(entry.getName());</span>
+<span class="nc" id="L379">                    writer.write(&quot; = &quot;);</span>
+<span class="nc" id="L380">                    writer.write(entry.getAbbreviation());</span>
+<span class="nc" id="L381">                    writer.write(Globals.NEWLINE);</span>
+                }
+<span class="nc" id="L383">            } catch (IOException e) {</span>
+<span class="nc" id="L384">                LOGGER.warn(&quot;Problem writing abbreviation file&quot;, e);</span>
+            }
+<span class="nc" id="L386">            String filename = f.getPath();</span>
+<span class="nc bnc" id="L387" title="All 2 branches missed.">            if (&quot;&quot;.equals(filename)) {</span>
+<span class="nc" id="L388">                filename = null;</span>
+            }
+<span class="nc" id="L390">            Globals.prefs.put(JabRefPreferences.PERSONAL_JOURNAL_LIST, filename);</span>
+        }
+
+        // Store the list of external files set up:
+<span class="nc" id="L394">        List&lt;String&gt; extFiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L395" title="All 2 branches missed.">        for (ExternalFileEntry efe : externals) {</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">            if (!&quot;&quot;.equals(efe.getValue())) {</span>
+<span class="nc" id="L397">                extFiles.add(efe.getValue());</span>
+            }
+        }
+<span class="nc" id="L400">        Globals.prefs.putStringList(JabRefPreferences.EXTERNAL_JOURNAL_LISTS, extFiles);</span>
+
+        // Update the autocompleter for the &quot;journal&quot; field in all base panels,
+        // so added journal names are available:
+<span class="nc bnc" id="L404" title="All 2 branches missed.">        for (BasePanel basePanel : frame.getBasePanelList()) {</span>
+<span class="nc" id="L405">            basePanel.getAutoCompleters().addJournalListToAutoCompleter();</span>
+        }
+
+<span class="nc" id="L408">    }</span>
+
+
+    class DownloadAction extends AbstractAction {
+
+        private final JTextField comp;
+
+
+<span class="nc" id="L416">        public DownloadAction(JTextField tc) {</span>
+<span class="nc" id="L417">            super(Localization.lang(&quot;Download&quot;));</span>
+<span class="nc" id="L418">            comp = tc;</span>
+<span class="nc" id="L419">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String chosen;
+<span class="nc" id="L424">            chosen = JOptionPane.showInputDialog(Localization.lang(&quot;Choose the URL to download.&quot;), &quot;&quot;);</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">            if (chosen == null) {</span>
+<span class="nc" id="L426">                return;</span>
+            }
+            File toFile;
+            try {
+<span class="nc" id="L430">                String toName = FileDialogs.getNewFile(frame, new File(System.getProperty(&quot;user.home&quot;)), null,</span>
+<span class="nc" id="L431">                        JFileChooser.SAVE_DIALOG, false);</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">                if (toName == null) {</span>
+<span class="nc" id="L433">                    return;</span>
+                } else {
+<span class="nc" id="L435">                    toFile = new File(toName);</span>
+                }
+<span class="nc" id="L437">                URL url = new URL(chosen);</span>
+<span class="nc" id="L438">                MonitoredURLDownload.buildMonitoredDownload(comp, url).downloadToFile(toFile);</span>
+<span class="nc" id="L439">                comp.setText(toFile.getPath());</span>
+<span class="nc" id="L440">            } catch (IOException ex) {</span>
+<span class="nc" id="L441">                JOptionPane.showMessageDialog(null, Localization.lang(&quot;Error downloading file '%0'&quot;, chosen),</span>
+<span class="nc" id="L442">                        Localization.lang(&quot;Download failed&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L443">                LOGGER.debug(&quot;Error downloading file&quot;, ex);</span>
+            }
+<span class="nc" id="L445">        }</span>
+    }
+
+    class BrowseAction extends AbstractAction {
+
+        private final JTextField comp;
+        private final boolean dir;
+
+
+<span class="nc" id="L454">        public BrowseAction(JTextField tc, boolean dir) {</span>
+<span class="nc" id="L455">            super(Localization.lang(&quot;Browse&quot;));</span>
+<span class="nc" id="L456">            this.dir = dir;</span>
+<span class="nc" id="L457">            comp = tc;</span>
+<span class="nc" id="L458">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String chosen;
+<span class="nc bnc" id="L463" title="All 2 branches missed.">            if (dir) {</span>
+<span class="nc" id="L464">                chosen = FileDialogs.getNewDir(frame, new File(comp.getText()), &quot;&quot;, JFileChooser.OPEN_DIALOG,</span>
+<span class="nc" id="L465">                        false);</span>
+<span class="nc" id="L466">            } else {</span>
+<span class="nc" id="L467">                chosen = FileDialogs.getNewFile(frame, new File(comp.getText()), &quot;&quot;, JFileChooser.OPEN_DIALOG,</span>
+<span class="nc" id="L468">                        false);</span>
+            }
+<span class="nc bnc" id="L470" title="All 2 branches missed.">            if (chosen != null) {</span>
+<span class="nc" id="L471">                File nFile = new File(chosen);</span>
+<span class="nc" id="L472">                comp.setText(nFile.getPath());</span>
+            }
+<span class="nc" id="L474">        }</span>
+    }
+
+<span class="nc" id="L477">    class AbbreviationsTableModel extends AbstractTableModel implements ActionListener {</span>
+
+<span class="nc" id="L479">        private final String[] names = new String[] {Localization.lang(&quot;Journal name&quot;),</span>
+<span class="nc" id="L480">                Localization.lang(&quot;Abbreviation&quot;)};</span>
+        private List&lt;JournalEntry&gt; journals;
+
+        public void setJournals(List&lt;Abbreviation&gt; abbreviations) {
+<span class="nc" id="L484">            this.journals = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L485" title="All 2 branches missed.">            for (Abbreviation abbreviation : abbreviations) {</span>
+<span class="nc" id="L486">                this.journals.add(new JournalEntry(abbreviation.getName(), abbreviation.getIsoAbbreviation()));</span>
+            }
+<span class="nc" id="L488">            fireTableDataChanged();</span>
+<span class="nc" id="L489">        }</span>
+
+        public List&lt;JournalEntry&gt; getJournals() {
+<span class="nc" id="L492">            return journals;</span>
+        }
+
+        @Override
+        public int getColumnCount() {
+<span class="nc" id="L497">            return 2;</span>
+        }
+
+        @Override
+        public int getRowCount() {
+<span class="nc" id="L502">            return journals.size();</span>
+        }
+
+        @Override
+        public Object getValueAt(int row, int col) {
+<span class="nc bnc" id="L507" title="All 2 branches missed.">            if (col == 0) {</span>
+<span class="nc" id="L508">                return journals.get(row).getName();</span>
+            } else {
+<span class="nc" id="L510">                return journals.get(row).getAbbreviation();</span>
+            }
+        }
+
+        @Override
+        public void setValueAt(Object object, int row, int col) {
+<span class="nc" id="L516">            JournalEntry entry = journals.get(row);</span>
+<span class="nc bnc" id="L517" title="All 2 branches missed.">            if (col == 0) {</span>
+<span class="nc" id="L518">                entry.setName((String) object);</span>
+<span class="nc" id="L519">            } else {</span>
+<span class="nc" id="L520">                entry.setAbbreviation((String) object);</span>
+            }
+
+<span class="nc" id="L523">        }</span>
+
+        @Override
+        public String getColumnName(int i) {
+<span class="nc" id="L527">            return names[i];</span>
+        }
+
+        @Override
+        public boolean isCellEditable(int i, int i1) {
+<span class="nc" id="L532">            return false;</span>
+        }
+
+        public MouseListener getMouseListener() {
+<span class="nc" id="L536">            return new MouseAdapter() {</span>
+
+                @Override
+                public void mouseClicked(MouseEvent e) {
+<span class="nc bnc" id="L540" title="All 2 branches missed.">                    if (e.getClickCount() == 2) {</span>
+<span class="nc" id="L541">                        JTable table = (JTable) e.getSource();</span>
+<span class="nc" id="L542">                        int row = table.rowAtPoint(e.getPoint());</span>
+<span class="nc" id="L543">                        nameTf.setText((String) getValueAt(row, 0));</span>
+<span class="nc" id="L544">                        abbrTf.setText((String) getValueAt(row, 1));</span>
+<span class="nc bnc" id="L545" title="All 2 branches missed.">                        if (JOptionPane.showConfirmDialog(dialog, journalEditPanel, Localization.lang(&quot;Edit journal&quot;),</span>
+<span class="nc" id="L546">                                JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {</span>
+<span class="nc" id="L547">                            setValueAt(nameTf.getText(), row, 0);</span>
+<span class="nc" id="L548">                            setValueAt(abbrTf.getText(), row, 1);</span>
+<span class="nc" id="L549">                            Collections.sort(journals);</span>
+<span class="nc" id="L550">                            fireTableDataChanged();</span>
+                        }
+
+                    }
+<span class="nc" id="L554">                }</span>
+            };
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc bnc" id="L560" title="All 2 branches missed.">            if (e.getSource() == add) {</span>
+<span class="nc" id="L561">                nameTf.setText(&quot;&quot;);</span>
+<span class="nc" id="L562">                abbrTf.setText(&quot;&quot;);</span>
+<span class="nc bnc" id="L563" title="All 2 branches missed.">                if (JOptionPane.showConfirmDialog(dialog, journalEditPanel, Localization.lang(&quot;Edit journal&quot;),</span>
+<span class="nc" id="L564">                        JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {</span>
+<span class="nc" id="L565">                    journals.add(new JournalEntry(nameTf.getText(), abbrTf.getText()));</span>
+<span class="nc" id="L566">                    Collections.sort(journals);</span>
+<span class="nc" id="L567">                    fireTableDataChanged();</span>
+                }
+<span class="nc bnc" id="L569" title="All 2 branches missed.">            } else if (e.getSource() == remove) {</span>
+<span class="nc" id="L570">                int[] rows = userTable.getSelectedRows();</span>
+<span class="nc bnc" id="L571" title="All 2 branches missed.">                if (rows.length &gt; 0) {</span>
+<span class="nc bnc" id="L572" title="All 2 branches missed.">                    for (int i = rows.length - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L573">                        journals.remove(rows[i]);</span>
+                    }
+<span class="nc" id="L575">                    fireTableDataChanged();</span>
+                }
+            }
+<span class="nc" id="L578">        }</span>
+    }
+
+    class ExternalFileEntry {
+
+        private JPanel pan;
+        private final JTextField tf;
+<span class="nc" id="L585">        private final JButton browse = new JButton(Localization.lang(&quot;Browse&quot;));</span>
+<span class="nc" id="L586">        private final JButton view = new JButton(Localization.lang(&quot;Preview&quot;));</span>
+<span class="nc" id="L587">        private final JButton clear = new JButton(IconTheme.JabRefIcon.DELETE_ENTRY.getIcon());</span>
+<span class="nc" id="L588">        private final JButton download = new JButton(Localization.lang(&quot;Download&quot;));</span>
+
+
+<span class="nc" id="L591">        public ExternalFileEntry() {</span>
+<span class="nc" id="L592">            tf = new JTextField();</span>
+<span class="nc" id="L593">            setupPanel();</span>
+<span class="nc" id="L594">        }</span>
+
+<span class="nc" id="L596">        public ExternalFileEntry(String filename) {</span>
+<span class="nc" id="L597">            tf = new JTextField(filename);</span>
+<span class="nc" id="L598">            setupPanel();</span>
+<span class="nc" id="L599">        }</span>
+
+        private void setupPanel() {
+<span class="nc" id="L602">            tf.setEditable(false);</span>
+<span class="nc" id="L603">            BrowseAction browseA = new BrowseAction(tf, false);</span>
+<span class="nc" id="L604">            browse.addActionListener(browseA);</span>
+<span class="nc" id="L605">            DownloadAction da = new DownloadAction(tf);</span>
+<span class="nc" id="L606">            download.addActionListener(da);</span>
+<span class="nc" id="L607">            FormBuilder builder = FormBuilder.create().layout(new FormLayout(</span>
+<span class="nc" id="L608">                    &quot;fill:pref:grow, 4dlu, fill:pref, 4dlu, fill:pref, 4dlu, fill:pref, 4dlu, fill:pref&quot;, &quot;p&quot;));</span>
+<span class="nc" id="L609">            builder.add(tf).xy(1, 1);</span>
+<span class="nc" id="L610">            builder.add(browse).xy(3, 1);</span>
+<span class="nc" id="L611">            builder.add(download).xy(5, 1);</span>
+<span class="nc" id="L612">            builder.add(view).xy(7, 1);</span>
+<span class="nc" id="L613">            builder.add(clear).xy(9, 1);</span>
+
+<span class="nc" id="L615">            pan = builder.getPanel();</span>
+
+<span class="nc" id="L617">            view.addActionListener(e -&gt; {</span>
+                try {
+<span class="nc" id="L619">                    List&lt;Abbreviation&gt; abbreviations = JournalAbbreviationLoader</span>
+<span class="nc" id="L620">                            .readJournalListFromFile(new File(tf.getText()));</span>
+
+<span class="nc" id="L622">                    JTable table = new JTable(JournalAbbreviationsUtil.getTableModel(abbreviations));</span>
+<span class="nc" id="L623">                    JScrollPane pane = new JScrollPane(table);</span>
+<span class="nc" id="L624">                    JOptionPane.showMessageDialog(null, pane, Localization.lang(&quot;Journal list preview&quot;),</span>
+<span class="nc" id="L625">                            JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L626">                } catch (FileNotFoundException ex) {</span>
+<span class="nc" id="L627">                    JOptionPane.showMessageDialog(null, Localization.lang(&quot;File '%0' not found&quot;, tf.getText()),</span>
+<span class="nc" id="L628">                            Localization.lang(&quot;Error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L629">                    LOGGER.debug(&quot;File not found&quot;, ex);</span>
+                }
+<span class="nc" id="L631">            });</span>
+<span class="nc" id="L632">            clear.addActionListener(e -&gt; {</span>
+<span class="nc" id="L633">                externals.remove(ExternalFileEntry.this);</span>
+<span class="nc" id="L634">                buildExternalsPanel();</span>
+<span class="nc" id="L635">            });</span>
+<span class="nc" id="L636">            clear.setToolTipText(Localization.lang(&quot;Remove&quot;));</span>
+<span class="nc" id="L637">        }</span>
+
+        public JPanel getPanel() {
+<span class="nc" id="L640">            return pan;</span>
+        }
+
+        public String getValue() {
+<span class="nc" id="L644">            return tf.getText();</span>
+        }
+    }
+
+    static class JournalEntry implements Comparable&lt;JournalEntry&gt; {
+
+        private String name;
+        private String abbreviation;
+
+
+<span class="nc" id="L654">        public JournalEntry(String name, String abbreviation) {</span>
+<span class="nc" id="L655">            this.name = name;</span>
+<span class="nc" id="L656">            this.abbreviation = abbreviation;</span>
+<span class="nc" id="L657">        }</span>
+
+        @Override
+        public int compareTo(JournalEntry other) {
+<span class="nc" id="L661">            return this.name.compareTo(other.name);</span>
+        }
+
+        @Override
+        public boolean equals(Object o) {
+<span class="nc bnc" id="L666" title="All 2 branches missed.">            if (this == o) {</span>
+<span class="nc" id="L667">                return true;</span>
+            }
+<span class="nc bnc" id="L669" title="All 2 branches missed.">            if (o instanceof JournalEntry) {</span>
+<span class="nc" id="L670">                return this.name.equals(((JournalEntry) o).name);</span>
+            }
+<span class="nc" id="L672">            return false;</span>
+        }
+
+        @Override
+        public int hashCode() {
+<span class="nc" id="L677">            return this.name.hashCode();</span>
+        }
+        public String getName() {
+<span class="nc" id="L680">            return name;</span>
+        }
+
+        public void setName(String name) {
+<span class="nc" id="L684">            this.name = name;</span>
+<span class="nc" id="L685">        }</span>
+
+        public String getAbbreviation() {
+<span class="nc" id="L688">            return abbreviation;</span>
+        }
+
+        public void setAbbreviation(String abbreviation) {
+<span class="nc" id="L692">            this.abbreviation = abbreviation;</span>
+<span class="nc" id="L693">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

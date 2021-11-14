@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DOAJFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">DOAJFetcher.java</span></div><h1>DOAJFetcher.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2015 Oscar Gustafsson.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer.fetcher;
+
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.importer.fileformat.JSONEntryParser;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+<span class="fc" id="L37">public class DOAJFetcher implements EntryFetcher {</span>
+
+    private static final String SEARCH_URL = &quot;https://doaj.org/api/v1/search/articles/&quot;;
+<span class="fc" id="L40">    private static final Log LOGGER = LogFactory.getLog(DOAJFetcher.class);</span>
+<span class="fc" id="L41">    private static final int MAX_PER_PAGE = 100;</span>
+    private boolean shouldContinue;
+
+
+<span class="fc" id="L45">    private final JSONEntryParser jsonConverter = new JSONEntryParser();</span>
+
+    @Override
+    public void stopFetching() {
+<span class="nc" id="L49">        shouldContinue = false;</span>
+<span class="nc" id="L50">    }</span>
+
+    @Override
+    public boolean processQuery(String query, ImportInspector inspector, OutputPrinter status) {
+<span class="nc" id="L54">        shouldContinue = true;</span>
+        try {
+<span class="nc" id="L56">            status.setStatus(Localization.lang(&quot;Searching...&quot;));</span>
+            HttpResponse&lt;JsonNode&gt; jsonResponse;
+<span class="nc" id="L58">            jsonResponse = Unirest.get(SEARCH_URL + query + &quot;?pageSize=1&quot;).header(&quot;accept&quot;, &quot;application/json&quot;).asJson();</span>
+<span class="nc" id="L59">            JSONObject jo = jsonResponse.getBody().getObject();</span>
+<span class="nc" id="L60">            int hits = jo.getInt(&quot;total&quot;);</span>
+<span class="nc" id="L61">            int numberToFetch = 0;</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            if (hits &gt; 0) {</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">                if (hits &gt; MAX_PER_PAGE) {</span>
+<span class="nc" id="L64">                    while (true) {</span>
+<span class="nc" id="L65">                        String strCount = JOptionPane</span>
+<span class="nc" id="L66">                                .showInputDialog(</span>
+<span class="nc" id="L67">                                        Localization.lang(&quot;References found&quot;) + &quot;: &quot; + hits + &quot;  &quot;</span>
+<span class="nc" id="L68">                                                + Localization.lang(&quot;Number of references to fetch?&quot;),</span>
+<span class="nc" id="L69">                                        Integer.toString(hits));</span>
+
+<span class="nc bnc" id="L71" title="All 2 branches missed.">                        if (strCount == null) {</span>
+<span class="nc" id="L72">                            status.setStatus(Localization.lang(&quot;%0 import canceled&quot;, &quot;DOAJ&quot;));</span>
+<span class="nc" id="L73">                            return false;</span>
+                        }
+
+                        try {
+<span class="nc" id="L77">                            numberToFetch = Integer.parseInt(strCount.trim());</span>
+<span class="nc" id="L78">                            break;</span>
+<span class="nc" id="L79">                        } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L80">                            status.showMessage(Localization.lang(&quot;Please enter a valid number&quot;));</span>
+                        }
+                    }
+                } else {
+<span class="nc" id="L84">                    numberToFetch = hits;</span>
+                }
+
+<span class="nc" id="L87">                int fetched = 0; // Keep track of number of items fetched for the progress bar</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">                for (int page = 1; ((page - 1) * MAX_PER_PAGE) &lt;= numberToFetch; page++) {</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                    if (!shouldContinue) {</span>
+<span class="nc" id="L90">                        break;</span>
+                    }
+
+<span class="nc" id="L93">                    int noToFetch = Math.min(MAX_PER_PAGE, numberToFetch - ((page - 1) * MAX_PER_PAGE));</span>
+<span class="nc" id="L94">                    jsonResponse = Unirest.get(SEARCH_URL + query + &quot;?page=&quot; + page + &quot;&amp;pageSize=&quot; + noToFetch)</span>
+<span class="nc" id="L95">                            .header(&quot;accept&quot;, &quot;application/json&quot;).asJson();</span>
+<span class="nc" id="L96">                    jo = jsonResponse.getBody().getObject();</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">                    if (jo.has(&quot;results&quot;)) {</span>
+<span class="nc" id="L98">                        JSONArray results = jo.getJSONArray(&quot;results&quot;);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">                        for (int i = 0; i &lt; results.length(); i++) {</span>
+<span class="nc" id="L100">                            JSONObject bibJsonEntry = results.getJSONObject(i).getJSONObject(&quot;bibjson&quot;);</span>
+<span class="nc" id="L101">                            BibEntry entry = jsonConverter.parseBibJSONtoBibtex(bibJsonEntry);</span>
+<span class="nc" id="L102">                            inspector.addEntry(entry);</span>
+<span class="nc" id="L103">                            fetched++;</span>
+<span class="nc" id="L104">                            inspector.setProgress(fetched, numberToFetch);</span>
+                        }
+                    }
+                }
+<span class="nc" id="L108">                return true;</span>
+            } else {
+<span class="nc" id="L110">                status.showMessage(Localization.lang(&quot;No entries found for the search string '%0'&quot;, query),</span>
+<span class="nc" id="L111">                        Localization.lang(&quot;Search %0&quot;, &quot;DOAJ&quot;), JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L112">                return false;</span>
+            }
+<span class="nc" id="L114">        } catch (UnirestException e) {</span>
+<span class="nc" id="L115">            LOGGER.warn(&quot;Problem searching DOAJ&quot;, e);</span>
+<span class="nc" id="L116">            status.setStatus(Localization.lang(&quot;%0 import canceled&quot;, &quot;DOAJ&quot;));</span>
+<span class="nc" id="L117">            return false;</span>
+        }
+
+    }
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L124">        return &quot;DOAJ&quot;;</span>
+    }
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L129">        return HelpFiles.FETCHER_DOAJ;</span>
+    }
+
+    @Override
+    public JPanel getOptionsPanel() {
+        // No additional options available
+<span class="nc" id="L135">        return null;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

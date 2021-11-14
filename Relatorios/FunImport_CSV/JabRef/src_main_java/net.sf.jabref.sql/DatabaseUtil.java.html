@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DatabaseUtil.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.sql</a> &gt; <span class="el_source">DatabaseUtil.java</span></div><h1>DatabaseUtil.java</h1><pre class="source lang-java linenums">package net.sf.jabref.sql;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.swing.JOptionPane;
+
+import net.sf.jabref.BibDatabaseContext;
+
+<span class="nc" id="L12">public class DatabaseUtil {</span>
+
+    public static void removeDB(DBImportExportDialog dialogo, String dbName, Connection conn, BibDatabaseContext databaseContext)
+            throws SQLException {
+<span class="nc bnc" id="L16" title="All 2 branches missed.">        if (dialogo.removeAction) {</span>
+<span class="nc bnc" id="L17" title="All 4 branches missed.">            if ((dialogo.selectedInt &lt;= 0) &amp;&amp; dialogo.isExporter()) {</span>
+<span class="nc" id="L18">                JOptionPane.showMessageDialog(dialogo.getDiag(), &quot;Please select a DB to be removed&quot;, &quot;SQL Export&quot;,</span>
+<span class="nc" id="L19">                        JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L20">            } else {</span>
+<span class="nc" id="L21">                removeDB(dbName, conn, databaseContext);</span>
+            }
+        }
+<span class="nc" id="L24">    }</span>
+
+    public static void removeDB(String dbName, Connection conn, BibDatabaseContext databaseContext)
+            throws SQLException {
+<span class="nc" id="L28">        removeAGivenDB(conn, getDatabaseIDByName(databaseContext, conn, dbName));</span>
+<span class="nc" id="L29">    }</span>
+
+    /**
+     * Returns a Jabref Database ID from the database in case the DB is already exported. In case the bib was already
+     * exported before, the method returns the id, otherwise it calls the method that inserts a new row and returns the
+     * ID for this new database
+     *
+     * @param databaseContext the database
+     * @param out             The output (PrintStream or Connection) object to which the DML should be written.
+     * @return The ID of database row of the jabref database being exported
+     * @throws SQLException
+     */
+    public static int getDatabaseIDByName(BibDatabaseContext databaseContext, Connection out, String dbName)
+            throws SQLException {
+<span class="nc" id="L43">        String query = &quot;SELECT database_id FROM jabref_database WHERE database_name='&quot; + dbName + &quot;';&quot;;</span>
+<span class="nc" id="L44">        try (Statement statement = (Statement) ((Connection) out).createStatement();</span>
+<span class="nc" id="L45">                ResultSet rs = statement.executeQuery(query)) {</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            if (rs.next()) {</span>
+<span class="nc" id="L47">                return rs.getInt(&quot;database_id&quot;);</span>
+            } else {
+<span class="nc" id="L49">                insertJabRefDatabase(databaseContext, out, dbName);</span>
+<span class="nc" id="L50">                return getDatabaseIDByName(databaseContext, out, dbName);</span>
+            }
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        }</span>
+    }
+
+    private static void removeAGivenDB(Connection out, final int database_id) throws SQLException {
+<span class="nc" id="L56">        removeAllRecordsForAGivenDB(out, database_id);</span>
+<span class="nc" id="L57">        SQLUtil.processQuery(out, &quot;DELETE FROM jabref_database WHERE database_id='&quot; + database_id + &quot;';&quot;);</span>
+<span class="nc" id="L58">    }</span>
+
+    /**
+     * Removes all records for the database being exported in case it was exported before.
+     *
+     * @param out         The output (PrintStream or Connection) object to which the DML should be written.
+     * @param database_id Id of the database being exported.
+     * @throws SQLException
+     */
+    public static void removeAllRecordsForAGivenDB(Connection out, final int database_id) throws SQLException {
+<span class="nc" id="L68">        SQLUtil.processQuery(out, &quot;DELETE FROM entries WHERE database_id='&quot; + database_id + &quot;';&quot;);</span>
+<span class="nc" id="L69">        SQLUtil.processQuery(out, &quot;DELETE FROM groups WHERE database_id='&quot; + database_id + &quot;';&quot;);</span>
+<span class="nc" id="L70">        SQLUtil.processQuery(out, &quot;DELETE FROM strings WHERE database_id='&quot; + database_id + &quot;';&quot;);</span>
+<span class="nc" id="L71">    }</span>
+
+    /**
+     * This method creates a new row into jabref_database table enabling to export more than one .bib
+     *
+     * @param databaseContext the database
+     * @param out             The output (PrintStream or Connection) object to which the DML should be written.
+     * @throws SQLException
+     */
+    private static void insertJabRefDatabase(final BibDatabaseContext databaseContext, Connection out, String dbName)
+            throws SQLException {
+        String path;
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (databaseContext.getDatabaseFile() == null) {</span>
+<span class="nc" id="L84">            path = dbName;</span>
+<span class="nc" id="L85">        } else {</span>
+<span class="nc" id="L86">            path = databaseContext.getDatabaseFile().getAbsolutePath();</span>
+        }
+<span class="nc" id="L88">        SQLUtil.processQuery(out,</span>
+<span class="nc" id="L89">                &quot;INSERT INTO jabref_database(database_name, md5_path) VALUES ('&quot; + dbName + &quot;', md5('&quot; + path + &quot;'));&quot;);</span>
+<span class="nc" id="L90">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>RTFChars.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.layout.format</a> &gt; <span class="el_source">RTFChars.java</span></div><h1>RTFChars.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.layout.format;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.logic.layout.LayoutFormatter;
+import net.sf.jabref.logic.layout.StringInt;
+import net.sf.jabref.logic.util.strings.RtfCharMap;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Transform a LaTeX-String to RTF.
+ *
+ * This method will:
+ *
+ *   1.) Remove LaTeX-Command sequences.
+ *
+ *   2.) Replace LaTeX-Special chars with RTF aquivalents.
+ *
+ *   3.) Replace emph and textit and textbf with their RTF replacements.
+ *
+ *   4.) Take special care to save all unicode characters correctly.
+ *
+ *   5.) Replace --- by \emdash and -- by \endash.
+ */
+<span class="nc bnc" id="L41" title="All 2 branches missed.">public class RTFChars implements LayoutFormatter {</span>
+
+    // Instantiate logger:
+<span class="nc" id="L44">    private static final Log LOGGER = LogFactory.getLog(LayoutFormatter.class);</span>
+
+<span class="nc" id="L46">    private static final RtfCharMap RTF_CHARS = new RtfCharMap();</span>
+
+
+    @Override
+    public String format(String field) {
+
+<span class="nc" id="L52">        StringBuilder sb = new StringBuilder(&quot;&quot;);</span>
+<span class="nc" id="L53">        StringBuilder currentCommand = null;</span>
+<span class="nc" id="L54">        boolean escaped = false;</span>
+<span class="nc" id="L55">        boolean incommand = false;</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        for (int i = 0; i &lt; field.length(); i++) {</span>
+
+<span class="nc" id="L58">            char c = field.charAt(i);</span>
+
+<span class="nc bnc" id="L60" title="All 4 branches missed.">            if (escaped &amp;&amp; (c == '\\')) {</span>
+<span class="nc" id="L61">                sb.append('\\');</span>
+<span class="nc" id="L62">                escaped = false;</span>
+<span class="nc" id="L63">            }</span>
+
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            else if (c == '\\') {</span>
+<span class="nc" id="L66">                escaped = true;</span>
+<span class="nc" id="L67">                incommand = true;</span>
+<span class="nc" id="L68">                currentCommand = new StringBuilder();</span>
+<span class="nc bnc" id="L69" title="All 6 branches missed.">            } else if (!incommand &amp;&amp; ((c == '{') || (c == '}'))) {</span>
+                // Swallow the brace.
+<span class="nc bnc" id="L71" title="All 2 branches missed.">            } else if (Character.isLetter(c)</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">                    || Globals.SPECIAL_COMMAND_CHARS.contains(String.valueOf(c))) {</span>
+<span class="nc" id="L73">                escaped = false;</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">                if (incommand) {</span>
+                    // Else we are in a command, and should not keep the letter.
+<span class="nc" id="L76">                    currentCommand.append(c);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                    testCharCom: if ((currentCommand.length() == 1)</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">                            &amp;&amp; Globals.SPECIAL_COMMAND_CHARS.contains(currentCommand.toString())) {</span>
+                        // This indicates that we are in a command of the type
+                        // \^o or \~{n}
+<span class="nc bnc" id="L81" title="All 2 branches missed.">                        if (i &gt;= (field.length() - 1)) {</span>
+<span class="nc" id="L82">                            break testCharCom;</span>
+                        }
+
+<span class="nc" id="L85">                        String command = currentCommand.toString();</span>
+<span class="nc" id="L86">                        i++;</span>
+<span class="nc" id="L87">                        c = field.charAt(i);</span>
+                        String combody;
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                        if (c == '{') {</span>
+<span class="nc" id="L90">                            StringInt part = getPart(field, i, true);</span>
+<span class="nc" id="L91">                            i += part.i;</span>
+<span class="nc" id="L92">                            combody = part.s;</span>
+<span class="nc" id="L93">                        } else {</span>
+<span class="nc" id="L94">                            combody = field.substring(i, i + 1);</span>
+                        }
+
+<span class="nc" id="L97">                        String result = RTF_CHARS.get(command + combody);</span>
+
+<span class="nc bnc" id="L99" title="All 2 branches missed.">                        if (result != null) {</span>
+<span class="nc" id="L100">                            sb.append(result);</span>
+                        }
+
+<span class="nc" id="L103">                        incommand = false;</span>
+<span class="nc" id="L104">                        escaped = false;</span>
+
+                    }
+<span class="nc" id="L107">                } else {</span>
+<span class="nc" id="L108">                    sb.append(c);</span>
+                }
+
+<span class="nc" id="L111">            } else {</span>
+<span class="nc bnc" id="L112" title="All 8 branches missed.">                testContent: if (!incommand || (!Character.isWhitespace(c) &amp;&amp; (c != '{') &amp;&amp; (c != '}'))) {</span>
+<span class="nc" id="L113">                    sb.append(c);</span>
+<span class="nc" id="L114">                } else {</span>
+<span class="nc bnc" id="L115" title="All 4 branches missed.">                    assert incommand;</span>
+
+                    // First test for braces that may be part of a LaTeX command:
+<span class="nc bnc" id="L118" title="All 4 branches missed.">                    if ((c == '{') &amp;&amp; (currentCommand.length() == 0)) {</span>
+                        // We have seen something like \{, which is probably the start
+                        // of a command like \{aa}. Swallow the brace.
+<span class="nc" id="L121">                        continue;</span>
+<span class="nc bnc" id="L122" title="All 4 branches missed.">                    } else if ((c == '}') &amp;&amp; (currentCommand.length() &gt; 0)) {</span>
+                        // Seems to be the end of a command like \{aa}. Look it up:
+<span class="nc" id="L124">                        String command = currentCommand.toString();</span>
+<span class="nc" id="L125">                        String result = RTF_CHARS.get(command);</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                        if (result != null) {</span>
+<span class="nc" id="L127">                            sb.append(result);</span>
+                        }
+<span class="nc" id="L129">                        incommand = false;</span>
+<span class="nc" id="L130">                        escaped = false;</span>
+<span class="nc" id="L131">                        continue;</span>
+                    }
+
+                    // Then look for italics etc.,
+                    // but first check if we are already at the end of the string.
+<span class="nc bnc" id="L136" title="All 2 branches missed.">                    if (i &gt;= (field.length() - 1)) {</span>
+<span class="nc" id="L137">                        break testContent;</span>
+                    }
+
+<span class="nc bnc" id="L140" title="All 6 branches missed.">                    if (((c == '{') || (c == ' ')) &amp;&amp; (currentCommand.length() &gt; 0)) {</span>
+<span class="nc" id="L141">                        String command = currentCommand.toString();</span>
+                        // Then test if we are dealing with a italics or bold
+                        // command. If so, handle.
+<span class="nc bnc" id="L144" title="All 6 branches missed.">                        if (&quot;em&quot;.equals(command) || &quot;emph&quot;.equals(command) || &quot;textit&quot;.equals(command)</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">                                || &quot;it&quot;.equals(command)) {</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">                            StringInt part = getPart(field, i, c == '{');</span>
+<span class="nc" id="L147">                            i += part.i;</span>
+<span class="nc" id="L148">                            sb.append(&quot;{\\i &quot;).append(part.s).append('}');</span>
+<span class="nc bnc" id="L149" title="All 4 branches missed.">                        } else if (&quot;textbf&quot;.equals(command) || &quot;bf&quot;.equals(command)) {</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">                            StringInt part = getPart(field, i, c == '{');</span>
+<span class="nc" id="L151">                            i += part.i;</span>
+<span class="nc" id="L152">                            sb.append(&quot;{\\b &quot;).append(part.s).append('}');</span>
+<span class="nc" id="L153">                        } else {</span>
+<span class="nc" id="L154">                            LOGGER.info(&quot;Unknown command &quot; + command);</span>
+                        }
+                        if (c == ' ') {
+                            // command was separated with the content by ' '
+                            // We have to add the space a
+                        }
+<span class="nc" id="L160">                    } else {</span>
+<span class="nc" id="L161">                        sb.append(c);</span>
+                    }
+
+                }
+<span class="nc" id="L165">                incommand = false;</span>
+<span class="nc" id="L166">                escaped = false;</span>
+            }
+        }
+
+<span class="nc" id="L170">        char[] chars = sb.toString().toCharArray();</span>
+<span class="nc" id="L171">        sb = new StringBuilder();</span>
+
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        for (char c : chars) {</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">            if (c &lt; 128) {</span>
+<span class="nc" id="L175">                sb.append(c);</span>
+<span class="nc" id="L176">            } else {</span>
+<span class="nc" id="L177">                sb.append(&quot;\\u&quot;).append((long) c).append('?');</span>
+            }
+        }
+
+<span class="nc" id="L181">        return sb.toString().replace(&quot;---&quot;, &quot;{\\emdash}&quot;).replace(&quot;--&quot;, &quot;{\\endash}&quot;).replace(&quot;``&quot;, &quot;{\\ldblquote}&quot;)</span>
+<span class="nc" id="L182">                .replace(&quot;''&quot;, &quot;{\\rdblquote}&quot;);</span>
+    }
+
+    /**
+     * @param text the text to extract the part from
+     * @param i the position to start
+     * @param commandNestedInBraces true if the command is nested in braces (\emph{xy}), false if spaces are sued (\emph xy)
+     * @return a tuple of number of added characters and the extracted part
+     */
+    private StringInt getPart(String text, int i, boolean commandNestedInBraces) {
+        char c;
+<span class="nc" id="L193">        int count = 0;</span>
+<span class="nc" id="L194">        int icount = i;</span>
+<span class="nc" id="L195">        StringBuilder part = new StringBuilder();</span>
+<span class="nc bnc" id="L196" title="All 4 branches missed.">        loop: while ((count &gt;= 0) &amp;&amp; (icount &lt; text.length())) {</span>
+<span class="nc" id="L197">            icount++;</span>
+<span class="nc" id="L198">            c = text.charAt(icount);</span>
+<span class="nc bnc" id="L199" title="All 4 branches missed.">            switch (c) {</span>
+            case '}':
+<span class="nc" id="L201">                count--;</span>
+<span class="nc" id="L202">                break;</span>
+            case '{':
+<span class="nc" id="L204">                count++;</span>
+<span class="nc" id="L205">                break;</span>
+            case ' ':
+<span class="nc bnc" id="L207" title="All 2 branches missed.">                if (commandNestedInBraces) {</span>
+                    // in any case, a space terminates the loop
+<span class="nc" id="L209">                    break loop;</span>
+                }
+                break;
+            default:
+                break;
+            }
+<span class="nc" id="L215">            part.append(c);</span>
+        }
+<span class="nc" id="L217">        String res = part.toString();</span>
+        // the wrong &quot;}&quot; at the end is removed by &quot;format(res)&quot;
+<span class="nc" id="L219">        return new StringInt(format(res), part.length());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ImportFormats.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer</a> &gt; <span class="el_source">ImportFormats.java</span></div><h1>ImportFormats.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer;
+
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileFilter;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.actions.MnemonicAwareAction;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.importer.fileformat.ImportFormat;
+import net.sf.jabref.logic.l10n.Localization;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+<span class="nc" id="L42">public class ImportFormats {</span>
+<span class="fc" id="L43">    private static final Log LOGGER = LogFactory.getLog(ImportFormats.class);</span>
+
+    private static JFileChooser createImportFileChooser(String currentDir) {
+
+<span class="nc" id="L47">        SortedSet&lt;ImportFormat&gt; importers = Globals.IMPORT_FORMAT_READER.getImportFormats();</span>
+
+<span class="nc" id="L49">        String lastUsedFormat = Globals.prefs.get(JabRefPreferences.LAST_USED_IMPORT);</span>
+<span class="nc" id="L50">        FileFilter defaultFilter = null;</span>
+<span class="nc" id="L51">        JFileChooser fc = new JFileChooser(currentDir);</span>
+<span class="nc" id="L52">        Set&lt;ImportFileFilter&gt; filters = new TreeSet&lt;&gt;();</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        for (ImportFormat format : importers) {</span>
+<span class="nc" id="L54">            ImportFileFilter filter = new ImportFileFilter(format);</span>
+<span class="nc" id="L55">            filters.add(filter);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">            if (format.getFormatName().equals(lastUsedFormat)) {</span>
+<span class="nc" id="L57">                defaultFilter = filter;</span>
+            }
+        }
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        for (ImportFileFilter filter : filters) {</span>
+<span class="nc" id="L61">            fc.addChoosableFileFilter(filter);</span>
+        }
+
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (defaultFilter == null) {</span>
+<span class="nc" id="L65">            fc.setFileFilter(fc.getAcceptAllFileFilter());</span>
+<span class="nc" id="L66">        } else {</span>
+<span class="nc" id="L67">            fc.setFileFilter(defaultFilter);</span>
+        }
+<span class="nc" id="L69">        return fc;</span>
+    }
+
+    /**
+     * Create an AbstractAction for performing an Import operation.
+     * @param frame The JabRefFrame of this JabRef instance.
+     * @param openInNew Indicate whether the action should open into a new database or
+     *  into the currently open one.
+     * @return The action.
+     */
+    public static AbstractAction getImportAction(JabRefFrame frame, boolean openInNew) {
+
+        class ImportAction extends MnemonicAwareAction {
+
+            private final JabRefFrame frame;
+            private final boolean openInNew;
+
+
+<span class="fc" id="L87">            public ImportAction(JabRefFrame frame, boolean openInNew) {</span>
+<span class="fc" id="L88">                this.frame = frame;</span>
+<span class="fc" id="L89">                this.openInNew = openInNew;</span>
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">                putValue(Action.NAME, openInNew ? Localization.menuTitle(&quot;Import into new database&quot;) : Localization</span>
+<span class="fc" id="L92">                        .menuTitle(&quot;Import into current database&quot;));</span>
+<span class="fc" id="L93">                putValue(Action.ACCELERATOR_KEY,</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">                        openInNew ? Globals.getKeyPrefs().getKey(KeyBinding.IMPORT_INTO_NEW_DATABASE) : Globals.getKeyPrefs().getKey(KeyBinding.IMPORT_INTO_CURRENT_DATABASE));</span>
+<span class="fc" id="L95">            }</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L99">                JFileChooser fileChooser = createImportFileChooser(Globals.prefs.get(JabRefPreferences.IMPORT_WORKING_DIRECTORY));</span>
+<span class="nc" id="L100">                int result = fileChooser.showOpenDialog(frame);</span>
+
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                if (result != JFileChooser.APPROVE_OPTION) {</span>
+<span class="nc" id="L103">                    return;</span>
+                }
+
+<span class="nc" id="L106">                File file = fileChooser.getSelectedFile();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">                if (file == null) {</span>
+<span class="nc" id="L108">                    return;</span>
+                }
+
+<span class="nc" id="L111">                FileFilter ff = fileChooser.getFileFilter();</span>
+<span class="nc" id="L112">                ImportFormat format = null;</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">                if (ff instanceof ImportFileFilter) {</span>
+<span class="nc" id="L114">                    format = ((ImportFileFilter) ff).getImportFormat();</span>
+                }
+
+                try {
+<span class="nc bnc" id="L118" title="All 2 branches missed.">                    if (!file.exists()) {</span>
+                        // Warn that the file doesn't exists:
+<span class="nc" id="L120">                        JOptionPane.showMessageDialog(frame,</span>
+<span class="nc" id="L121">                                Localization.lang(&quot;File not found&quot;) +</span>
+<span class="nc" id="L122">                                        &quot;: '&quot; + file.getName() + &quot;'.&quot;,</span>
+<span class="nc" id="L123">                                Localization.lang(&quot;Import&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L124">                        return;</span>
+                    }
+<span class="nc" id="L126">                    ImportMenuItem imi = new ImportMenuItem(frame, openInNew, format);</span>
+<span class="nc" id="L127">                    imi.automatedImport(Arrays.asList(file.getAbsolutePath()));</span>
+
+                    // Make sure we remember which filter was used, to set the default
+                    // for next time:
+<span class="nc bnc" id="L131" title="All 2 branches missed.">                    if (format == null) {</span>
+<span class="nc" id="L132">                        Globals.prefs.put(JabRefPreferences.LAST_USED_IMPORT, &quot;__all&quot;);</span>
+<span class="nc" id="L133">                    } else {</span>
+<span class="nc" id="L134">                        Globals.prefs.put(JabRefPreferences.LAST_USED_IMPORT, format.getFormatName());</span>
+                    }
+<span class="nc" id="L136">                    Globals.prefs.put(JabRefPreferences.IMPORT_WORKING_DIRECTORY, file.getParent());</span>
+<span class="nc" id="L137">                } catch (Exception ex) {</span>
+<span class="nc" id="L138">                    LOGGER.warn(&quot;Problem with import format&quot;, ex);</span>
+                }
+
+<span class="nc" id="L141">            }</span>
+        }
+
+<span class="fc" id="L144">        return new ImportAction(frame, openInNew);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

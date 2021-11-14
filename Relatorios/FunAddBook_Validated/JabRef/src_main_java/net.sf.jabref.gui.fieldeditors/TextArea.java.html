@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>TextArea.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.fieldeditors</a> &gt; <span class="el_source">TextArea.java</span></div><h1>TextArea.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.fieldeditors;
+
+import java.awt.Color;
+import java.awt.Dimension;
+
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.GUIGlobals;
+import net.sf.jabref.gui.autocompleter.AutoCompleteListener;
+import net.sf.jabref.gui.fieldeditors.contextmenu.FieldTextMenu;
+import net.sf.jabref.model.entry.EntryUtil;
+
+/**
+ * An implementation of the FieldEditor backed by a JTextArea.
+ * Used for multi-line input, currently all BibTexFields except Bibtex key!
+ */
+public class TextArea extends JTextAreaWithHighlighting implements FieldEditor {
+
+    private final JScrollPane scrollPane;
+
+    private final FieldNameLabel label;
+
+    private String fieldName;
+
+    private AutoCompleteListener autoCompleteListener;
+
+
+    public TextArea(String fieldName, String content) {
+<span class="fc" id="L48">        super(content);</span>
+
+
+<span class="fc" id="L51">        updateFont();</span>
+
+        // Add the global focus listener, so a menu item can see if this field
+        // was focused when an action was called.
+<span class="fc" id="L55">        addFocusListener(Globals.focusListener);</span>
+<span class="fc" id="L56">        addFocusListener(new FieldEditorFocusListener());</span>
+<span class="fc" id="L57">        scrollPane = new JScrollPane(this, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="fc" id="L58">                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+<span class="fc" id="L59">        scrollPane.setMinimumSize(new Dimension(200, 1));</span>
+
+<span class="fc" id="L61">        setLineWrap(true);</span>
+<span class="fc" id="L62">        setWrapStyleWord(true);</span>
+<span class="fc" id="L63">        this.fieldName = fieldName;</span>
+
+<span class="fc" id="L65">        label = new FieldNameLabel(' ' + EntryUtil.capitalizeFirst(this.fieldName) + ' ');</span>
+<span class="fc" id="L66">        setBackground(GUIGlobals.validFieldBackgroundColor);</span>
+<span class="fc" id="L67">        setForeground(GUIGlobals.editorTextColor);</span>
+
+
+<span class="fc" id="L70">        FieldTextMenu popMenu = new FieldTextMenu(this);</span>
+<span class="fc" id="L71">        this.addMouseListener(popMenu);</span>
+<span class="fc" id="L72">        label.addMouseListener(popMenu);</span>
+<span class="fc" id="L73">    }</span>
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+<span class="fc" id="L77">        return getPreferredSize();</span>
+    }
+
+    @Override
+    public String getFieldName() {
+<span class="fc" id="L82">        return fieldName;</span>
+    }
+
+    public void setFieldName(String newName) {
+<span class="nc" id="L86">        fieldName = newName;</span>
+<span class="nc" id="L87">    }</span>
+
+    @Override
+    public JLabel getLabel() {
+<span class="fc" id="L91">        return label;</span>
+    }
+
+    @Override
+    public void setLabelColor(Color color) {
+<span class="nc" id="L96">        label.setForeground(color);</span>
+<span class="nc" id="L97">    }</span>
+
+    @Override
+    public JComponent getPane() {
+<span class="fc" id="L101">        return scrollPane;</span>
+    }
+
+    @Override
+    public JComponent getTextComponent() {
+<span class="fc" id="L106">        return this;</span>
+    }
+
+    @Override
+    public void setActiveBackgroundColor() {
+<span class="fc" id="L111">        setBackground(GUIGlobals.activeBackground);</span>
+<span class="fc" id="L112">    }</span>
+
+    @Override
+    public void setValidBackgroundColor() {
+<span class="fc" id="L116">        setBackground(GUIGlobals.validFieldBackgroundColor);</span>
+<span class="fc" id="L117">    }</span>
+
+    @Override
+    public void setInvalidBackgroundColor() {
+<span class="fc" id="L121">        setBackground(GUIGlobals.invalidFieldBackgroundColor);</span>
+<span class="fc" id="L122">    }</span>
+
+    @Override
+    public void updateFontColor() {
+<span class="fc" id="L126">        setForeground(GUIGlobals.editorTextColor);</span>
+<span class="fc" id="L127">    }</span>
+
+    @Override
+    public void updateFont() {
+<span class="fc" id="L131">        setFont(GUIGlobals.currentFont);</span>
+<span class="fc" id="L132">    }</span>
+
+    @Override
+    public void paste(String textToInsert) {
+<span class="nc" id="L136">        replaceSelection(textToInsert);</span>
+<span class="nc" id="L137">    }</span>
+
+    @Override
+    public void undo() {
+        // Nothing
+<span class="nc" id="L142">    }</span>
+
+    @Override
+    public void redo() {
+        // Nothing
+<span class="nc" id="L147">    }</span>
+
+    @Override
+    public void setAutoCompleteListener(AutoCompleteListener listener) {
+<span class="fc" id="L151">        autoCompleteListener = listener;</span>
+<span class="fc" id="L152">    }</span>
+
+    @Override
+    public void clearAutoCompleteSuggestion() {
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (autoCompleteListener != null) {</span>
+<span class="nc" id="L157">            autoCompleteListener.clearCurrentSuggestion(this);</span>
+        }
+<span class="nc" id="L159">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

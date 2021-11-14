@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ExportFileFilter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">ExportFileFilter.java</span></div><h1>ExportFileFilter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.exporter;
+
+import java.io.File;
+
+import javax.swing.filechooser.FileFilter;
+
+/**
+ * File filter that lets the user choose export format while choosing file to
+ * export to. Contains a reference to the ExportFormat in question.
+ */
+class ExportFileFilter extends FileFilter implements Comparable&lt;ExportFileFilter&gt; {
+
+    private final IExportFormat format;
+    private final String extension;
+    private final String name;
+
+
+<span class="nc" id="L33">    public ExportFileFilter(IExportFormat format, String extension) {</span>
+<span class="nc" id="L34">        this.format = format;</span>
+<span class="nc" id="L35">        this.extension = extension;</span>
+<span class="nc" id="L36">        this.name = format.getDisplayName() + &quot; (*&quot; + extension</span>
+<span class="nc" id="L37">                + ')';</span>
+<span class="nc" id="L38">    }</span>
+
+    public IExportFormat getExportFormat() {
+<span class="nc" id="L41">        return format;</span>
+    }
+
+    public String getExtension() {
+<span class="nc" id="L45">        return extension;</span>
+    }
+
+    @Override
+    public boolean accept(File file) {
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (file.isDirectory()) {</span>
+<span class="nc" id="L51">            return true;</span>
+        } else {
+<span class="nc" id="L53">            return file.getPath().toLowerCase().endsWith(extension);</span>
+        }
+    }
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L59">        return name;</span>
+    }
+
+    @Override
+    public int compareTo(ExportFileFilter o) {
+<span class="nc" id="L64">        return name.compareTo(o.name);</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (this == o) {</span>
+<span class="nc" id="L70">            return true;</span>
+        }
+
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (o instanceof ExportFileFilter) {</span>
+<span class="nc" id="L74">            return name.equals(((ExportFileFilter) o).name);</span>
+        }
+<span class="nc" id="L76">        return false;</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L81">        return name.hashCode();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

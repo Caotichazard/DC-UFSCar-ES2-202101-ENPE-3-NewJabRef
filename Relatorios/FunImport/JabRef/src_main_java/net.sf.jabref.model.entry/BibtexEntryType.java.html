@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BibtexEntryType.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.model.entry</a> &gt; <span class="el_source">BibtexEntryType.java</span></div><h1>BibtexEntryType.java</h1><pre class="source lang-java linenums">/*
+Copyright (C) 2003 David Weitzman, Morten O. Alver
+
+All programs in this directory and
+subdirectories are published under the GNU General Public License as
+described below.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+
+Further information about the GNU GPL is available at:
+http://www.gnu.org/copyleft/gpl.ja.html
+
+Note:
+Modified for use in JabRef.
+
+*/
+package net.sf.jabref.model.entry;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Abstract base class for all BibTex entry types.
+ */
+public abstract class BibtexEntryType implements EntryType {
+
+    private final List&lt;String&gt; requiredFields;
+    private final List&lt;String&gt; optionalFields;
+
+
+<span class="fc" id="L47">    public BibtexEntryType() {</span>
+<span class="fc" id="L48">        requiredFields = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L49">        optionalFields = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L50">    }</span>
+
+    void addAllOptional(String... fieldNames) {
+<span class="fc" id="L53">        optionalFields.addAll(Arrays.asList(fieldNames));</span>
+<span class="fc" id="L54">    }</span>
+
+    void addAllRequired(String... fieldNames) {
+<span class="fc" id="L57">        requiredFields.addAll(Arrays.asList(fieldNames));</span>
+<span class="fc" id="L58">    }</span>
+
+    @Override
+    public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L62">        return Collections.unmodifiableList(optionalFields);</span>
+    }
+
+    @Override
+    public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L67">        return Collections.unmodifiableList(requiredFields);</span>
+    }
+
+    @Override
+    public int compareTo(EntryType o) {
+<span class="nc" id="L72">        return getName().compareTo(o.getName());</span>
+    }
+
+    @Override
+    public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L77">        return getOptionalFields();</span>
+    }
+
+    @Override
+    public List&lt;String&gt; getSecondaryOptionalFields() {
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        return getOptionalFields().stream().filter(field -&gt; !isPrimary(field)).collect(Collectors.toList());</span>
+    }
+
+    private boolean isPrimary(String field) {
+<span class="nc" id="L86">        return getPrimaryOptionalFields().contains(field);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

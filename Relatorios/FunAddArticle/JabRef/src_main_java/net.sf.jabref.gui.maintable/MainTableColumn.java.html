@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MainTableColumn.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.maintable</a> &gt; <span class="el_source">MainTableColumn.java</span></div><h1>MainTableColumn.java</h1><pre class="source lang-java linenums">package net.sf.jabref.gui.maintable;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.StringJoiner;
+
+import javax.swing.JLabel;
+
+import net.sf.jabref.bibtex.FieldProperties;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.logic.layout.LayoutFormatter;
+import net.sf.jabref.logic.layout.format.LatexToUnicodeFormatter;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.EntryUtil;
+
+public class MainTableColumn {
+
+    private final String columnName;
+
+    private final List&lt;String&gt; bibtexFields;
+
+    private final boolean isIconColumn;
+
+    private final Optional&lt;JLabel&gt; iconLabel;
+
+    private final Optional&lt;BibDatabase&gt; database;
+
+<span class="fc" id="L30">    private final LayoutFormatter toUnicode = new LatexToUnicodeFormatter();</span>
+
+<span class="fc" id="L32">    public MainTableColumn(String columnName) {</span>
+<span class="fc" id="L33">        this.columnName = columnName;</span>
+<span class="fc" id="L34">        this.bibtexFields = Collections.emptyList();</span>
+<span class="fc" id="L35">        this.isIconColumn = false;</span>
+<span class="fc" id="L36">        this.iconLabel = Optional.empty();</span>
+<span class="fc" id="L37">        this.database = Optional.empty();</span>
+<span class="fc" id="L38">    }</span>
+
+<span class="fc" id="L40">    public MainTableColumn(String columnName, List&lt;String&gt; bibtexFields, BibDatabase database) {</span>
+<span class="fc" id="L41">        this.columnName = columnName;</span>
+<span class="fc" id="L42">        this.bibtexFields = Collections.unmodifiableList(bibtexFields);</span>
+<span class="fc" id="L43">        this.isIconColumn = false;</span>
+<span class="fc" id="L44">        this.iconLabel = Optional.empty();</span>
+<span class="fc" id="L45">        this.database = Optional.of(database);</span>
+<span class="fc" id="L46">    }</span>
+
+<span class="fc" id="L48">    public MainTableColumn(String columnName, List&lt;String&gt; bibtexFields, JLabel iconLabel) {</span>
+<span class="fc" id="L49">        this.columnName = columnName;</span>
+<span class="fc" id="L50">        this.bibtexFields = Collections.unmodifiableList(bibtexFields);</span>
+<span class="fc" id="L51">        this.isIconColumn = true;</span>
+<span class="fc" id="L52">        this.iconLabel = Optional.of(iconLabel);</span>
+<span class="fc" id="L53">        this.database = Optional.empty();</span>
+<span class="fc" id="L54">    }</span>
+
+    /**
+     * Get the table column name to be displayed in the UI
+     *
+     * @return name to be displayed. null if field is empty.
+     */
+    public String getDisplayName() {
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        if (bibtexFields.isEmpty()) {</span>
+<span class="nc" id="L63">            return null;</span>
+        }
+
+<span class="fc" id="L66">        StringJoiner joiner = new StringJoiner(MainTableFormat.COL_DEFINITION_FIELD_SEPARATOR);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        for (String field : bibtexFields) {</span>
+<span class="fc" id="L68">            joiner.add(field);</span>
+        }
+<span class="fc" id="L70">        return joiner.toString();</span>
+    }
+
+    /**
+     * Checks whether the column should display names
+     * Relevant as name value format can be formatted.
+     *
+     * @return true if the bibtex fields contains author or editor
+     */
+    public boolean isNameColumn() {
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        for (String field : bibtexFields) {</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">            if (InternalBibtexFields.getFieldExtras(field).contains(FieldProperties.PERSON_NAMES)) {</span>
+<span class="fc" id="L82">                return true;</span>
+            }
+        }
+<span class="fc" id="L85">        return false;</span>
+    }
+
+    public String getColumnName() {
+<span class="fc" id="L89">        return columnName;</span>
+    }
+
+    public List&lt;String&gt; getBibtexFields() {
+<span class="fc" id="L93">        return bibtexFields;</span>
+    }
+
+    public boolean isIconColumn() {
+<span class="fc" id="L97">        return isIconColumn;</span>
+    }
+
+    public boolean isFileFilter() {
+<span class="nc" id="L101">        return false; // Overridden in SpecialMainTableColumns for file filter columns</span>
+    }
+
+    public Object getColumnValue(BibEntry entry) {
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (bibtexFields.isEmpty()) {</span>
+<span class="nc" id="L106">            return null;</span>
+        }
+
+<span class="fc" id="L109">        String content = null;</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        for (String field : bibtexFields) {</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">            if (field.equals(BibEntry.TYPE_HEADER)) {</span>
+<span class="fc" id="L112">                content = EntryUtil.capitalizeFirst(entry.getType());</span>
+<span class="fc" id="L113">            } else {</span>
+<span class="fc" id="L114">                content = entry.getFieldOrAlias(field);</span>
+<span class="pc bpc" id="L115" title="4 of 6 branches missed.">                if (database.isPresent() &amp;&amp; &quot;Author&quot;.equalsIgnoreCase(columnName) &amp;&amp; (content != null)) {</span>
+<span class="nc" id="L116">                    content = database.get().resolveForStrings(content);</span>
+                }
+            }
+<span class="fc bfc" id="L119" title="All 2 branches covered.">            if (content != null) {</span>
+<span class="fc" id="L120">                break;</span>
+            }
+        }
+
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        if (content != null) {</span>
+<span class="fc" id="L125">            content = toUnicode.format(content);</span>
+        }
+
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        if (isNameColumn()) {</span>
+<span class="fc" id="L129">            return MainTableNameFormatter.formatName(content);</span>
+        }
+<span class="fc" id="L131">        return content;</span>
+
+    }
+
+    public JLabel getHeaderLabel() {
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (isIconColumn) {</span>
+<span class="fc" id="L137">            return iconLabel.get();</span>
+        } else {
+<span class="fc" id="L139">            return new JLabel(getDisplayName());</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

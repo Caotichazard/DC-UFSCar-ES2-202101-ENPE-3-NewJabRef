@@ -1,0 +1,1432 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>LabelPatternUtil.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.labelpattern</a> &gt; <span class="el_source">LabelPatternUtil.java</span></div><h1>LabelPatternUtil.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+                  2003-2015 Ulrik Stervbo (ulriks AT ruc.dk)
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.labelpattern;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.MetaData;
+import net.sf.jabref.logic.formatter.casechanger.Word;
+import net.sf.jabref.logic.layout.format.RemoveLatexCommands;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.AuthorList;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+
+/**
+ * This is the utility class of the LabelPattern package.
+ */
+<span class="nc" id="L44">public class LabelPatternUtil {</span>
+
+    private static final String STARTING_CAPITAL_PATTERN = &quot;[^A-Z]&quot;;
+
+    // All single characters that we can use for extending a key to make it unique:
+    private static final String CHARS = &quot;abcdefghijklmnopqrstuvwxyz&quot;;
+
+<span class="fc" id="L51">    private static final Log LOGGER = LogFactory.getLog(LabelPatternUtil.class);</span>
+
+<span class="fc" id="L53">    private static final Pattern REGEX_PATTERN = Pattern.compile(&quot;.*\\(\\{([A-Z]+)\\}\\).*&quot;);</span>
+
+    private static List&lt;String&gt; defaultLabelPattern;
+
+    private static final int CHARS_OF_FIRST = 5;
+
+
+    static {
+<span class="fc" id="L61">        updateDefaultPattern();</span>
+    }
+
+<span class="fc" id="L64">    private static BibDatabase database;</span>
+
+    public static void updateDefaultPattern() {
+<span class="fc" id="L67">        defaultLabelPattern = LabelPatternUtil</span>
+<span class="fc" id="L68">                .split(JabRefPreferences.getInstance().get(JabRefPreferences.DEFAULT_LABEL_PATTERN));</span>
+<span class="fc" id="L69">    }</span>
+
+    /**
+     * Required for LabelPatternUtilTest
+     *
+     * @param db the DB to use as global database
+     */
+    public static void setDataBase(BibDatabase db) {
+<span class="nc" id="L77">        database = db;</span>
+<span class="nc" id="L78">    }</span>
+
+    private static String normalize(String content) {
+<span class="nc" id="L81">        List&lt;String&gt; tokens = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L82">        int b = 0;</span>
+<span class="nc" id="L83">        StringBuilder and = new StringBuilder();</span>
+<span class="nc" id="L84">        StringBuilder token = new StringBuilder();</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        for (int p = 0; p &lt; content.length(); p++) {</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">            if (b == 0) {</span>
+<span class="nc" id="L87">                String andString = and.toString(); // Avoid lots of calls</span>
+<span class="nc bnc" id="L88" title="All 4 branches missed.">                if (((andString.isEmpty()) &amp;&amp; (content.charAt(p) == ' '))</span>
+<span class="nc bnc" id="L89" title="All 4 branches missed.">                        || (&quot; &quot;.equals(andString) &amp;&amp; (content.charAt(p) == 'a'))</span>
+<span class="nc bnc" id="L90" title="All 4 branches missed.">                        || (&quot; a&quot;.equals(andString) &amp;&amp; (content.charAt(p) == 'n'))</span>
+<span class="nc bnc" id="L91" title="All 4 branches missed.">                        || (&quot; an&quot;.equals(andString) &amp;&amp; (content.charAt(p) == 'd'))) {</span>
+<span class="nc" id="L92">                    and.append(content.charAt(p));</span>
+<span class="nc bnc" id="L93" title="All 4 branches missed.">                } else if (&quot; and&quot;.equals(and.toString()) &amp;&amp; (content.charAt(p) == ' ')) {</span>
+<span class="nc" id="L94">                    and = new StringBuilder();</span>
+<span class="nc" id="L95">                    tokens.add(token.toString().trim());</span>
+<span class="nc" id="L96">                    token = new StringBuilder();</span>
+<span class="nc" id="L97">                } else {</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                    if (content.charAt(p) == '{') {</span>
+<span class="nc" id="L99">                        b++;</span>
+                    }
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                    if (content.charAt(p) == '}') {</span>
+<span class="nc" id="L102">                        b--;</span>
+                    }
+<span class="nc" id="L104">                    token.append(and);</span>
+<span class="nc" id="L105">                    and = new StringBuilder();</span>
+<span class="nc" id="L106">                    token.append(content.charAt(p));</span>
+                }
+<span class="nc" id="L108">            } else {</span>
+<span class="nc" id="L109">                token.append(content.charAt(p));</span>
+            }
+        }
+<span class="nc" id="L112">        tokens.add(token.toString());</span>
+<span class="nc" id="L113">        StringBuilder normalized = new StringBuilder(&quot;&quot;);</span>
+
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        for (int i = 0; i &lt; tokens.size(); i++) {</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">            if (i &gt; 0) {</span>
+<span class="nc" id="L117">                normalized.append(&quot; and &quot;);</span>
+            }
+
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            normalized.append(isInstitution(tokens.get(i)) ? generateInstitutionKey(tokens.get(i)) : removeDiacritics(</span>
+<span class="nc" id="L121">                    tokens.get(i)));</span>
+        }
+<span class="nc" id="L123">        return normalized.toString();</span>
+    }
+
+    /**
+     * Will remove diacritics from the content.
+     *
+     * Replaces umlaut: \&quot;x with xe, e.g. \&quot;o -&gt; oe, \&quot;u -&gt; ue, etc.
+     * Removes all other diacritics: \?x -&gt; x, e.g. \'a -&gt; a, etc.
+     *
+     * @param content The content.
+     * @return The content without diacritics.
+     */
+    private static String removeDiacritics(String content) {
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (content.isEmpty()) {</span>
+<span class="nc" id="L137">            return content;</span>
+        }
+
+<span class="nc" id="L140">        String result = content;</span>
+        // Replace umlaut with '?e'
+<span class="nc" id="L142">        result = result.replaceAll(&quot;\\{\\\\\&quot;([a-zA-Z])\\}&quot;, &quot;$1e&quot;);</span>
+<span class="nc" id="L143">        result = result.replaceAll(&quot;\\\\\&quot;\\{([a-zA-Z])\\}&quot;, &quot;$1e&quot;);</span>
+<span class="nc" id="L144">        result = result.replaceAll(&quot;\\\\\&quot;([a-zA-Z])&quot;, &quot;$1e&quot;);</span>
+        // Remove diacritics
+<span class="nc" id="L146">        result = result.replaceAll(&quot;\\{\\\\.([a-zA-Z])\\}&quot;, &quot;$1&quot;);</span>
+<span class="nc" id="L147">        result = result.replaceAll(&quot;\\\\.\\{([a-zA-Z])\\}&quot;, &quot;$1&quot;);</span>
+<span class="nc" id="L148">        result = result.replaceAll(&quot;\\\\.([a-zA-Z])&quot;, &quot;$1&quot;);</span>
+<span class="nc" id="L149">        return result;</span>
+    }
+
+    /**
+     * Unifies umlauts.
+     *
+     * Replaces: $\ddot{\mathrm{X}}$ (an alternative umlaut) with: {\&quot;X}
+     * Replaces: \?{X} and \?X with {\?X}, where ? is a diacritic symbol
+     *
+     * @param content The content.
+     * @return The content with unified diacritics.
+     */
+    private static String unifyDiacritics(String content) {
+<span class="nc" id="L162">        return content.replaceAll(</span>
+<span class="nc" id="L163">                &quot;\\$\\\\ddot\\{\\\\mathrm\\{([^\\}])\\}\\}\\$&quot;,</span>
+<span class="nc" id="L164">                &quot;{\\\&quot;$1}&quot;).replaceAll(</span>
+<span class="nc" id="L165">                &quot;(\\\\[^\\-a-zA-Z])\\{?([a-zA-Z])\\}?&quot;,</span>
+<span class="nc" id="L166">                &quot;{$1$2}&quot;);</span>
+    }
+
+    /**
+     * Check if a value is institution.
+     *
+     * This is usable for distinguishing between persons and institutions in
+     * the author or editor fields.
+     *
+     * A person:
+     *   - &quot;John Doe&quot;
+     *   - &quot;Doe, John&quot;
+     *
+     * An institution:
+     *   - &quot;{The Big Company or Institution Inc.}&quot;
+     *   - &quot;{The Big Company or Institution Inc. (BCI)}&quot;
+     *
+     * @param author Author or editor.
+     * @return True if the author or editor is an institution.
+     */
+    private static boolean isInstitution(String author) {
+<span class="nc" id="L187">        return StringUtil.isInCurlyBrackets(author);</span>
+    }
+
+    /**
+     * &lt;p&gt;
+     * An author or editor may be and institution not a person. In that case the
+     * key generator builds very long keys, e.g.: for &amp;ldquo;The Attributed
+     * Graph Grammar System (AGG)&amp;rdquo; -&gt;
+     * &amp;ldquo;TheAttributedGraphGrammarSystemAGG&amp;rdquo;.
+     * &lt;/p&gt;
+     *
+     * &lt;p&gt;
+     * An institution name should be inside &lt;code&gt;{}&lt;/code&gt; brackets. If the
+     * institution name also includes its abbreviation this abbreviation should
+     * be also in &lt;code&gt;{}&lt;/code&gt; brackets. For the previous example the value
+     * should look like:
+     * &lt;code&gt;{The Attributed Graph Grammar System ({AGG})}&lt;/code&gt;.
+     * &lt;/p&gt;
+     *
+     * &lt;p&gt;
+     * If an institution includes its abbreviation, i.e. &quot;...({XYZ})&quot;, first
+     * such abbreviation should be used as the key value part of such author.
+     * &lt;/p&gt;
+     *
+     * &lt;p&gt;
+     * If an institution does not include its abbreviation the key should be
+     * generated form its name in the following way:
+     * &lt;/p&gt;
+     *
+     * &lt;p&gt;
+     * The institution value can contain: institution name, part of the
+     * institution, address, etc. Those information should be separated by
+     * comma. Name of the institution and possible part of the institution
+     * should be on the beginning, while address and secondary information
+     * should be on the end.
+     * &lt;/p&gt;
+     *
+     * Each part is examined separately:
+     * &lt;ol&gt;
+     * &lt;li&gt;We remove all tokens of a part which are one of the defined ignore
+     * words (the, press), which end with a dot (ltd., co., ...) and which first
+     * character is lowercase (of, on, di, ...).&lt;/li&gt;
+     * &lt;li&gt;We detect a type of the part: university, technology institute,
+     * department, school, rest
+     * &lt;ul&gt;
+     * &lt;li&gt;University: &lt;code&gt;&quot;Uni[NameOfTheUniversity]&quot;&lt;/code&gt;&lt;/li&gt;
+     * &lt;li&gt;Department: will be an abbreviation of all words beginning with the
+     * uppercase letter except of words: &lt;code&gt;d[ei]p.*&lt;/code&gt;, school,
+     * faculty&lt;/li&gt;
+     * &lt;li&gt;School: same as department&lt;/li&gt;
+     * &lt;li&gt;Rest: If there are less than 3 tokens in such part than the result
+     * will be by concatenating those tokens, otherwise the result will be build
+     * from the first letters of words starting with and uppercase letter.&lt;/li&gt;
+     * &lt;/ul&gt;
+     * &lt;/ol&gt;
+     *
+     * Parts are concatenated together in the following way:
+     * &lt;ul&gt;
+     * &lt;li&gt;If there is a university part use it otherwise use the rest part.&lt;/li&gt;
+     * &lt;li&gt;If there is a school part append it.&lt;/li&gt;
+     * &lt;li&gt;If there is a department part and it is not same as school part
+     * append it.&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * Rest part is only the first part which do not match any other type. All
+     * other parts (address, ...) are ignored.
+     *
+     * @param content the institution to generate a Bibtex key for
+     * @return &lt;ul&gt;
+     *         &lt;li&gt;the institution key&lt;/li&gt;
+     *         &lt;li&gt;&quot;&quot; in the case of a failure&lt;/li&gt;
+     *         &lt;li&gt;null if content is null&lt;/li&gt;
+     *         &lt;/ul&gt;
+     */
+    private static String generateInstitutionKey(String content) {
+<span class="nc bnc" id="L262" title="All 2 branches missed.">        if (content.isEmpty()) {</span>
+<span class="nc" id="L263">            return content;</span>
+        }
+
+<span class="nc" id="L266">        String result = content;</span>
+<span class="nc" id="L267">        result = unifyDiacritics(result);</span>
+<span class="nc" id="L268">        result = result.replaceAll(&quot;^\\{&quot;, &quot;&quot;).replaceAll(&quot;\\}$&quot;, &quot;&quot;);</span>
+<span class="nc" id="L269">        Matcher matcher = REGEX_PATTERN.matcher(result);</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (matcher.matches()) {</span>
+<span class="nc" id="L271">            return matcher.group(1);</span>
+        }
+
+<span class="nc" id="L274">        result = removeDiacritics(result);</span>
+<span class="nc" id="L275">        String[] parts = result.split(&quot;,&quot;);</span>
+
+        // Key parts
+<span class="nc" id="L278">        String university = null;</span>
+<span class="nc" id="L279">        String department = null;</span>
+<span class="nc" id="L280">        String school = null;</span>
+<span class="nc" id="L281">        String rest = null;</span>
+
+<span class="nc" id="L283">        List&lt;String&gt; ignore = Arrays.asList(&quot;press&quot;, &quot;the&quot;);</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        for (int index = 0; index &lt; parts.length; index++) {</span>
+<span class="nc" id="L285">            List&lt;String&gt; part = new ArrayList&lt;&gt;();</span>
+
+            // Cleanup: remove unnecessary words.
+<span class="nc bnc" id="L288" title="All 2 branches missed.">            for (String k : parts[index].replaceAll(&quot;\\{[A-Z]+\\}&quot;, &quot;&quot;).split(&quot;[ \\-_]&quot;)) {</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">                if ((!(k.isEmpty()) // remove empty</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">                        &amp;&amp; !ignore.contains(k.toLowerCase()) // remove ignored words</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">                        &amp;&amp; (k.charAt(k.length() - 1) != '.')</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">                        &amp;&amp; (String.valueOf(k.charAt(0))).matches(&quot;[A-Z]&quot;))</span>
+<span class="nc bnc" id="L293" title="All 4 branches missed.">                        || ((k.length() &gt;= 3) &amp;&amp; &quot;uni&quot;.equalsIgnoreCase(k.substring(0, 2)))) {</span>
+<span class="nc" id="L294">                    part.add(k);</span>
+                }
+            }
+
+<span class="nc" id="L298">            boolean isUniversity = false; // university</span>
+<span class="nc" id="L299">            boolean isTechnology = false; // technology institute</span>
+<span class="nc" id="L300">            boolean isDepartment = false; // departments</span>
+<span class="nc" id="L301">            boolean isSchool = false; // schools</span>
+
+            // Deciding about a part type...
+<span class="nc bnc" id="L304" title="All 2 branches missed.">            for (String k : part) {</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">                if (k.matches(&quot;^[Uu][Nn][Ii].*&quot;)) { // Starts with &quot;uni&quot; case and locale independent</span>
+<span class="nc" id="L306">                    isUniversity = true;</span>
+                }
+<span class="nc bnc" id="L308" title="All 2 branches missed.">                if (k.matches(&quot;^[Tt][Ee][Cc][Hh].*&quot;)) { // Starts with &quot;tech&quot; case and locale independent</span>
+<span class="nc" id="L309">                    isTechnology = true;</span>
+                }
+<span class="nc bnc" id="L311" title="All 2 branches missed.">                if (&quot;school&quot;.equalsIgnoreCase(k)) {</span>
+<span class="nc" id="L312">                    isSchool = true;</span>
+                }
+<span class="nc bnc" id="L314" title="All 4 branches missed.">                if (k.matches(&quot;^[Dd][EeIi][Pp].*&quot;) || k.matches(&quot;^[Ll][Aa][Bb].*&quot;)) { // Starts with &quot;dep&quot;/&quot;dip&quot;/&quot;lab&quot;, case and locale independent</span>
+<span class="nc" id="L315">                    isDepartment = true;</span>
+                }
+            }
+<span class="nc bnc" id="L318" title="All 2 branches missed.">            if (isTechnology) {</span>
+<span class="nc" id="L319">                isUniversity = false; // technology institute isn't university :-)</span>
+            }
+
+            // University part looks like: Uni[NameOfTheUniversity]
+            //
+            // If university is detected than the previous part is suggested
+            // as department
+<span class="nc bnc" id="L326" title="All 2 branches missed.">            if (isUniversity) {</span>
+<span class="nc" id="L327">                StringBuilder universitySB = new StringBuilder();</span>
+<span class="nc" id="L328">                universitySB.append(&quot;Uni&quot;);</span>
+<span class="nc bnc" id="L329" title="All 2 branches missed.">                for (String k : part) {</span>
+<span class="nc bnc" id="L330" title="All 2 branches missed.">                    if (!k.matches(&quot;^[Uu][Nn][Ii].*&quot;)) {</span>
+<span class="nc" id="L331">                        universitySB.append(k);</span>
+                    }
+                }
+<span class="nc" id="L334">                university = universitySB.toString();</span>
+<span class="nc bnc" id="L335" title="All 4 branches missed.">                if ((index &gt; 0) &amp;&amp; (department == null)) {</span>
+<span class="nc" id="L336">                    department = parts[index - 1];</span>
+                }
+
+                // School is an abbreviation of all the words beginning with a
+                // capital letter excluding: department, school and faculty words.
+                //
+                // Explicitly defined department part is build the same way as
+                // school
+<span class="nc bnc" id="L344" title="All 4 branches missed.">            } else if (isSchool || isDepartment) {</span>
+<span class="nc" id="L345">                StringBuilder schoolSB = new StringBuilder();</span>
+<span class="nc" id="L346">                StringBuilder departmentSB = new StringBuilder();</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">                for (String k : part) {</span>
+<span class="nc bnc" id="L348" title="All 4 branches missed.">                    if (!k.matches(&quot;^[Dd][EeIi][Pp].*&quot;) &amp;&amp; !&quot;school&quot;.equalsIgnoreCase(k)</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">                            &amp;&amp; !&quot;faculty&quot;.equalsIgnoreCase(k)</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">                            &amp;&amp; !(k.replaceAll(STARTING_CAPITAL_PATTERN, &quot;&quot;).isEmpty())) {</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">                        if (isSchool) {</span>
+<span class="nc" id="L352">                            schoolSB.append(k.replaceAll(STARTING_CAPITAL_PATTERN, &quot;&quot;));</span>
+                        }
+<span class="nc bnc" id="L354" title="All 2 branches missed.">                        if (isDepartment) {</span>
+<span class="nc" id="L355">                            departmentSB.append(k.replaceAll(STARTING_CAPITAL_PATTERN, &quot;&quot;));</span>
+                        }
+                    }
+                }
+<span class="nc bnc" id="L359" title="All 2 branches missed.">                if (isSchool) {</span>
+<span class="nc" id="L360">                    school = schoolSB.toString();</span>
+                }
+<span class="nc bnc" id="L362" title="All 2 branches missed.">                if (isDepartment) {</span>
+<span class="nc" id="L363">                    department = departmentSB.toString();</span>
+                }
+                // A part not matching university, department nor school.
+<span class="nc bnc" id="L366" title="All 2 branches missed.">            } else if (rest == null) {</span>
+<span class="nc" id="L367">                StringBuilder restSB = new StringBuilder();</span>
+                // Less than 3 parts -&gt; concatenate those
+<span class="nc bnc" id="L369" title="All 2 branches missed.">                if (part.size() &lt; 3) {</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">                    for (String k : part) {</span>
+<span class="nc" id="L371">                        restSB.append(k);</span>
+                    // More than 3 parts -&gt; use 1st letter abbreviation
+                    }
+<span class="nc" id="L374">                } else {</span>
+<span class="nc bnc" id="L375" title="All 2 branches missed.">                    for (String k : part) {</span>
+<span class="nc" id="L376">                        k = k.replaceAll(STARTING_CAPITAL_PATTERN, &quot;&quot;);</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">                        if (!(k.isEmpty())) {</span>
+<span class="nc" id="L378">                            restSB.append(k);</span>
+                        }
+                    }
+                }
+<span class="nc" id="L382">                rest = restSB.toString();</span>
+            }
+        }
+
+        // Putting parts together.
+<span class="nc bnc" id="L387" title="All 2 branches missed.">        return (university == null ? rest : university)</span>
+<span class="nc bnc" id="L388" title="All 2 branches missed.">                + (school == null ? &quot;&quot; : school)</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">                + ((department == null)</span>
+<span class="nc bnc" id="L390" title="All 4 branches missed.">                || ((school != null) &amp;&amp; department.equals(school)) ?</span>
+<span class="nc" id="L391">                        &quot;&quot; : department);</span>
+    }
+
+    /**
+     * This method takes a string of the form [field1]spacer[field2]spacer[field3]...,
+     * where the fields are the (required) fields of a BibTex entry. The string is split
+     * into fields and spacers by recognizing the [ and ].
+     *
+     * @param labelPattern a &lt;code&gt;String&lt;/code&gt;
+     * @return an &lt;code&gt;ArrayList&lt;/code&gt; The first item of the list
+     * is a string representation of the key pattern (the parameter),
+     * the remaining items are the fields
+     */
+    public static List&lt;String&gt; split(String labelPattern) {
+        // A holder for fields of the entry to be used for the key
+<span class="fc" id="L406">        List&lt;String&gt; fieldList = new ArrayList&lt;&gt;();</span>
+
+        // Before we do anything, we add the parameter to the ArrayLIst
+<span class="fc" id="L409">        fieldList.add(labelPattern);</span>
+
+<span class="fc" id="L411">        StringTokenizer tok = new StringTokenizer(labelPattern, &quot;[]&quot;, true);</span>
+<span class="fc bfc" id="L412" title="All 2 branches covered.">        while (tok.hasMoreTokens()) {</span>
+<span class="fc" id="L413">            fieldList.add(tok.nextToken());</span>
+        }
+<span class="fc" id="L415">        return fieldList;</span>
+    }
+
+    /**
+     * Generates a BibTeX label according to the pattern for a given entry type, and saves the unique label in the
+     * &lt;code&gt;Bibtexentry&lt;/code&gt;.
+     *
+     * The given database is used to avoid duplicate keys.
+     *
+     * @param dBase a &lt;code&gt;BibDatabase&lt;/code&gt;
+     * @param entry a &lt;code&gt;BibEntry&lt;/code&gt;
+     * @return modified BibEntry
+     */
+    public static void makeLabel(MetaData metaData, BibDatabase dBase, BibEntry entry) {
+<span class="nc" id="L429">        database = dBase;</span>
+        String key;
+<span class="nc" id="L431">        StringBuilder stringBuilder = new StringBuilder();</span>
+<span class="nc" id="L432">        boolean forceUpper = false;</span>
+<span class="nc" id="L433">        boolean forceLower = false;</span>
+
+        try {
+            // get the type of entry
+<span class="nc" id="L437">            String entryType = entry.getType();</span>
+            // Get the arrayList corresponding to the type
+<span class="nc" id="L439">            List&lt;String&gt; typeList = new ArrayList&lt;&gt;(metaData.getLabelPattern().getValue(entryType));</span>
+<span class="nc bnc" id="L440" title="All 2 branches missed.">            if (!typeList.isEmpty()) {</span>
+<span class="nc" id="L441">                typeList.remove(0);</span>
+            }
+<span class="nc" id="L443">            boolean field = false;</span>
+<span class="nc bnc" id="L444" title="All 2 branches missed.">            for (String typeListEntry : typeList) {</span>
+<span class="nc bnc" id="L445" title="All 2 branches missed.">                if (&quot;[&quot;.equals(typeListEntry)) {</span>
+<span class="nc" id="L446">                    field = true;</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">                } else if (&quot;]&quot;.equals(typeListEntry)) {</span>
+<span class="nc" id="L448">                    field = false;</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">                } else if (field) {</span>
+                    // check whether there is a modifier on the end such as
+                    // &quot;:lower&quot;
+<span class="nc" id="L452">                    String[] parts = parseFieldMarker(typeListEntry);</span>
+
+<span class="nc" id="L454">                    String label = makeLabel(entry, parts[0]);</span>
+
+                    // apply modifier if present
+<span class="nc bnc" id="L457" title="All 2 branches missed.">                    if (parts.length &gt; 1) {</span>
+<span class="nc" id="L458">                        label = applyModifiers(label, parts, 1);</span>
+                    }
+
+<span class="nc" id="L461">                    stringBuilder.append(label);</span>
+
+<span class="nc" id="L463">                } else {</span>
+<span class="nc" id="L464">                    stringBuilder.append(typeListEntry);</span>
+                }
+            }
+<span class="nc" id="L467">        } catch (Exception e) {</span>
+<span class="nc" id="L468">            LOGGER.warn(&quot;Cannot make label&quot;, e);</span>
+        }
+
+        // Remove all illegal characters from the key.
+<span class="nc" id="L472">        key = checkLegalKey(stringBuilder.toString());</span>
+
+        // Remove Regular Expressions while generating Keys
+<span class="nc" id="L475">        String regex = Globals.prefs.get(JabRefPreferences.KEY_PATTERN_REGEX);</span>
+<span class="nc bnc" id="L476" title="All 4 branches missed.">        if ((regex != null) &amp;&amp; !regex.trim().isEmpty()) {</span>
+<span class="nc" id="L477">            String replacement = Globals.prefs.get(JabRefPreferences.KEY_PATTERN_REPLACEMENT);</span>
+<span class="nc" id="L478">            key = key.replaceAll(regex, replacement);</span>
+        }
+
+<span class="nc bnc" id="L481" title="All 2 branches missed.">        if (forceUpper) {</span>
+<span class="nc" id="L482">            key = key.toUpperCase();</span>
+        }
+<span class="nc bnc" id="L484" title="All 2 branches missed.">        if (forceLower) {</span>
+<span class="nc" id="L485">            key = key.toLowerCase();</span>
+        }
+
+<span class="nc" id="L488">        String oldKey = entry.getCiteKey();</span>
+<span class="nc" id="L489">        int occurrences = database.getNumberOfKeyOccurrences(key);</span>
+
+<span class="nc bnc" id="L491" title="All 4 branches missed.">        if ((oldKey != null) &amp;&amp; oldKey.equals(key)) {</span>
+<span class="nc" id="L492">            occurrences--; // No change, so we can accept one dupe.</span>
+        }
+
+<span class="nc" id="L495">        boolean alwaysAddLetter = Globals.prefs.getBoolean(JabRefPreferences.KEY_GEN_ALWAYS_ADD_LETTER);</span>
+<span class="nc" id="L496">        boolean firstLetterA = Globals.prefs.getBoolean(JabRefPreferences.KEY_GEN_FIRST_LETTER_A);</span>
+
+<span class="nc bnc" id="L498" title="All 4 branches missed.">        if (!alwaysAddLetter &amp;&amp; (occurrences == 0)) {</span>
+            // No dupes found, so we can just go ahead.
+<span class="nc bnc" id="L500" title="All 2 branches missed.">            if (!key.equals(oldKey)) {</span>
+<span class="nc bnc" id="L501" title="All 2 branches missed.">                if (!database.containsEntryWithId(entry.getId())) {</span>
+                    // entry does not (yet) exist in the database, just update the entry
+<span class="nc" id="L503">                    entry.setCiteKey(key);</span>
+<span class="nc" id="L504">                } else {</span>
+<span class="nc" id="L505">                    database.setCiteKeyForEntry(entry, key);</span>
+                }
+            }
+
+<span class="nc" id="L509">        } else {</span>
+            // The key is already in use, so we must modify it.
+<span class="nc" id="L511">            int number = 0;</span>
+<span class="nc bnc" id="L512" title="All 4 branches missed.">            if (!alwaysAddLetter &amp;&amp; !firstLetterA) {</span>
+<span class="nc" id="L513">                number = 1;</span>
+            }
+
+<span class="nc" id="L516">            String moddedKey = key + getAddition(number);</span>
+<span class="nc" id="L517">            occurrences = database.getNumberOfKeyOccurrences(moddedKey);</span>
+
+<span class="nc bnc" id="L519" title="All 4 branches missed.">            if ((oldKey != null) &amp;&amp; oldKey.equals(moddedKey)) {</span>
+<span class="nc" id="L520">                occurrences--;</span>
+            }
+
+<span class="nc bnc" id="L523" title="All 2 branches missed.">            while (occurrences &gt; 0) {</span>
+<span class="nc" id="L524">                number++;</span>
+<span class="nc" id="L525">                moddedKey = key + getAddition(number);</span>
+
+<span class="nc" id="L527">                occurrences = database.getNumberOfKeyOccurrences(moddedKey);</span>
+<span class="nc bnc" id="L528" title="All 4 branches missed.">                if ((oldKey != null) &amp;&amp; oldKey.equals(moddedKey)) {</span>
+<span class="nc" id="L529">                    occurrences--;</span>
+                }
+            }
+
+<span class="nc bnc" id="L533" title="All 2 branches missed.">            if (!moddedKey.equals(oldKey)) {</span>
+<span class="nc bnc" id="L534" title="All 2 branches missed.">                if (!database.containsEntryWithId(entry.getId())) {</span>
+                    // entry does not (yet) exist in the database, just update the entry
+<span class="nc" id="L536">                    entry.setCiteKey(moddedKey);</span>
+<span class="nc" id="L537">                } else {</span>
+<span class="nc" id="L538">                    database.setCiteKeyForEntry(entry, moddedKey);</span>
+                }
+            }
+        }
+<span class="nc" id="L542">    }</span>
+
+    /**
+     * Applies modifiers to a label generated based on a field marker.
+     * @param label The generated label.
+     * @param parts String array containing the modifiers.
+     * @param offset The number of initial items in the modifiers array to skip.
+     * @return The modified label.
+     */
+    public static String applyModifiers(String label, String[] parts, int offset) {
+<span class="nc" id="L552">        String resultingLabel = label;</span>
+<span class="nc bnc" id="L553" title="All 2 branches missed.">        if (parts.length &gt; offset) {</span>
+<span class="nc bnc" id="L554" title="All 2 branches missed.">            for (int j = offset; j &lt; parts.length; j++) {</span>
+<span class="nc" id="L555">                String modifier = parts[j];</span>
+
+<span class="nc bnc" id="L557" title="All 2 branches missed.">                if (&quot;lower&quot;.equals(modifier)) {</span>
+<span class="nc" id="L558">                    resultingLabel = resultingLabel.toLowerCase();</span>
+<span class="nc bnc" id="L559" title="All 2 branches missed.">                } else if (&quot;upper&quot;.equals(modifier)) {</span>
+<span class="nc" id="L560">                    resultingLabel = resultingLabel.toUpperCase();</span>
+<span class="nc bnc" id="L561" title="All 2 branches missed.">                } else if (&quot;abbr&quot;.equals(modifier)) {</span>
+                    // Abbreviate - that is,
+<span class="nc" id="L563">                    StringBuilder abbreviateSB = new StringBuilder();</span>
+<span class="nc" id="L564">                    String[] words = resultingLabel.replaceAll(&quot;[\\{\\}']&quot;, &quot;&quot;)</span>
+<span class="nc" id="L565">                            .split(&quot;[\\(\\) \r\n\&quot;]&quot;);</span>
+<span class="nc bnc" id="L566" title="All 2 branches missed.">                    for (String word1 : words) {</span>
+<span class="nc bnc" id="L567" title="All 2 branches missed.">                        if (!word1.isEmpty()) {</span>
+<span class="nc" id="L568">                            abbreviateSB.append(word1.charAt(0));</span>
+                        }
+                    }
+<span class="nc" id="L571">                    resultingLabel = abbreviateSB.toString();</span>
+
+<span class="nc bnc" id="L573" title="All 6 branches missed.">                } else if (!modifier.isEmpty() &amp;&amp; (modifier.charAt(0) == '(') &amp;&amp; modifier.endsWith(&quot;)&quot;)) {</span>
+                    // Alternate text modifier in parentheses. Should be inserted if
+                    // the label is empty:
+<span class="nc bnc" id="L576" title="All 4 branches missed.">                    if (resultingLabel.isEmpty() &amp;&amp; (modifier.length() &gt; 2)) {</span>
+<span class="nc" id="L577">                        return modifier.substring(1, modifier.length() - 1);</span>
+                    }
+
+                } else {
+<span class="nc" id="L581">                    LOGGER.info(&quot;Key generator warning: unknown modifier '&quot;</span>
+<span class="nc" id="L582">                            + modifier + &quot;'.&quot;);</span>
+                }
+            }
+        }
+<span class="nc" id="L586">        return resultingLabel;</span>
+    }
+
+    public static String makeLabel(BibEntry entry, String value) {
+<span class="nc" id="L590">        String val = value;</span>
+        try {
+<span class="nc bnc" id="L592" title="All 4 branches missed.">            if (val.startsWith(&quot;auth&quot;) || val.startsWith(&quot;pureauth&quot;)) {</span>
+
+                /*
+                 * For label code &quot;auth...&quot;: if there is no author, but there
+                 * are editor(s) (e.g. for an Edited Book), use the editor(s)
+                 * instead. (saw27@mrao.cam.ac.uk). This is what most people
+                 * want, but in case somebody really needs a field which expands
+                 * to nothing if there is no author (e.g. someone who uses both
+                 * &quot;auth&quot; and &quot;ed&quot; in the same label), we provide an alternative
+                 * form &quot;pureauth...&quot; which does not do this fallback
+                 * substitution of editor.
+                 */
+<span class="nc" id="L604">                String authString = entry.getField(&quot;author&quot;);</span>
+<span class="nc bnc" id="L605" title="All 2 branches missed.">                if (authString != null) {</span>
+<span class="nc" id="L606">                    authString = normalize(database.resolveForStrings(authString));</span>
+                }
+
+<span class="nc bnc" id="L609" title="All 2 branches missed.">                if (val.startsWith(&quot;pure&quot;)) {</span>
+                    // remove the &quot;pure&quot; prefix so the remaining
+                    // code in this section functions correctly
+<span class="nc" id="L612">                    val = val.substring(4);</span>
+                }
+
+<span class="nc bnc" id="L615" title="All 4 branches missed.">                if ((authString == null) || authString.isEmpty()) {</span>
+<span class="nc" id="L616">                    authString = entry.getField(&quot;editor&quot;);</span>
+<span class="nc bnc" id="L617" title="All 2 branches missed.">                    if (authString == null) {</span>
+<span class="nc" id="L618">                        authString = &quot;&quot;;</span>
+<span class="nc" id="L619">                    } else {</span>
+<span class="nc" id="L620">                        authString = normalize(database.resolveForStrings(authString));</span>
+                    }
+                }
+
+                // Gather all author-related checks, so we don't
+                // have to check all the time.
+<span class="nc bnc" id="L626" title="All 2 branches missed.">                if (&quot;auth&quot;.equals(val)) {</span>
+<span class="nc" id="L627">                    return firstAuthor(authString);</span>
+<span class="nc bnc" id="L628" title="All 2 branches missed.">                } else if (&quot;authForeIni&quot;.equals(val)) {</span>
+<span class="nc" id="L629">                    return firstAuthorForenameInitials(authString);</span>
+<span class="nc bnc" id="L630" title="All 2 branches missed.">                } else if (&quot;authFirstFull&quot;.equals(val)) {</span>
+<span class="nc" id="L631">                    return firstAuthorVonAndLast(authString);</span>
+<span class="nc bnc" id="L632" title="All 2 branches missed.">                } else if (&quot;authors&quot;.equals(val)) {</span>
+<span class="nc" id="L633">                    return allAuthors(authString);</span>
+<span class="nc bnc" id="L634" title="All 2 branches missed.">                } else if (&quot;authorsAlpha&quot;.equals(val)) {</span>
+<span class="nc" id="L635">                    return authorsAlpha(authString);</span>
+                }
+                // Last author's last name
+<span class="nc bnc" id="L638" title="All 2 branches missed.">                else if (&quot;authorLast&quot;.equals(val)) {</span>
+<span class="nc" id="L639">                    return lastAuthor(authString);</span>
+<span class="nc bnc" id="L640" title="All 2 branches missed.">                } else if (&quot;authorLastForeIni&quot;.equals(val)) {</span>
+<span class="nc" id="L641">                    return lastAuthorForenameInitials(authString);</span>
+<span class="nc bnc" id="L642" title="All 2 branches missed.">                } else if (&quot;authorIni&quot;.equals(val)) {</span>
+<span class="nc" id="L643">                    return oneAuthorPlusIni(authString);</span>
+<span class="nc bnc" id="L644" title="All 2 branches missed.">                } else if (val.matches(&quot;authIni[\\d]+&quot;)) {</span>
+<span class="nc" id="L645">                    int num = Integer.parseInt(val.substring(7));</span>
+<span class="nc" id="L646">                    String s = authIniN(authString, num);</span>
+<span class="nc bnc" id="L647" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L648" title="All 2 branches missed.">                } else if (&quot;auth.auth.ea&quot;.equals(val)) {</span>
+<span class="nc" id="L649">                    String s = authAuthEa(authString);</span>
+<span class="nc bnc" id="L650" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L651" title="All 2 branches missed.">                } else if (&quot;auth.etal&quot;.equals(val)) {</span>
+<span class="nc" id="L652">                    String s = authEtal(authString, &quot;.&quot;, &quot;.etal&quot;);</span>
+<span class="nc bnc" id="L653" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L654" title="All 2 branches missed.">                } else if (&quot;authEtAl&quot;.equals(val)) {</span>
+<span class="nc" id="L655">                    String s = authEtal(authString, &quot;&quot;, &quot;EtAl&quot;);</span>
+<span class="nc bnc" id="L656" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L657" title="All 2 branches missed.">                } else if (&quot;authshort&quot;.equals(val)) {</span>
+<span class="nc" id="L658">                    String s = authshort(authString);</span>
+<span class="nc bnc" id="L659" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L660" title="All 2 branches missed.">                } else if (val.matches(&quot;auth[\\d]+_[\\d]+&quot;)) {</span>
+<span class="nc" id="L661">                    String[] nums = val.substring(4).split(&quot;_&quot;);</span>
+<span class="nc" id="L662">                    String s = authNofMth(authString, Integer.parseInt(nums[0]),</span>
+<span class="nc" id="L663">                            Integer.parseInt(nums[1]));</span>
+<span class="nc bnc" id="L664" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L665" title="All 2 branches missed.">                } else if (val.matches(&quot;auth\\d+&quot;)) {</span>
+                    // authN. First N chars of the first author's last
+                    // name.
+
+<span class="nc" id="L669">                    String fa = firstAuthor(authString);</span>
+<span class="nc bnc" id="L670" title="All 2 branches missed.">                    if (fa == null) {</span>
+<span class="nc" id="L671">                        return &quot;&quot;;</span>
+                    }
+<span class="nc" id="L673">                    int num = Integer.parseInt(val.substring(4));</span>
+<span class="nc bnc" id="L674" title="All 2 branches missed.">                    if (num &gt; fa.length()) {</span>
+<span class="nc" id="L675">                        num = fa.length();</span>
+                    }
+<span class="nc" id="L677">                    return fa.substring(0, num);</span>
+<span class="nc bnc" id="L678" title="All 2 branches missed.">                } else if (val.matches(&quot;authors\\d+&quot;)) {</span>
+<span class="nc" id="L679">                    String s = nAuthors(authString, Integer.parseInt(val.substring(7)));</span>
+<span class="nc bnc" id="L680" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+                } else {
+                    // This &quot;auth&quot; business was a dead end, so just
+                    // use it literally:
+<span class="nc" id="L684">                    return getField(entry, val);</span>
+                }
+<span class="nc bnc" id="L686" title="All 2 branches missed.">            } else if (val.startsWith(&quot;ed&quot;)) {</span>
+                // Gather all markers starting with &quot;ed&quot; here, so we
+                // don't have to check all the time.
+<span class="nc bnc" id="L689" title="All 2 branches missed.">                if (&quot;edtr&quot;.equals(val)) {</span>
+<span class="nc" id="L690">                    return firstAuthor(entry.getField(&quot;editor&quot;));</span>
+<span class="nc bnc" id="L691" title="All 2 branches missed.">                } else if (&quot;edtrForeIni&quot;.equals(val)) {</span>
+<span class="nc" id="L692">                    return firstAuthorForenameInitials(entry.getField(&quot;editor&quot;));</span>
+<span class="nc bnc" id="L693" title="All 2 branches missed.">                } else if (&quot;editors&quot;.equals(val)) {</span>
+<span class="nc" id="L694">                    return allAuthors(entry.getField(&quot;editor&quot;));</span>
+                    // Last author's last name
+<span class="nc bnc" id="L696" title="All 2 branches missed.">                } else if (&quot;editorLast&quot;.equals(val)) {</span>
+<span class="nc" id="L697">                    return lastAuthor(entry.getField(&quot;editor&quot;));</span>
+<span class="nc bnc" id="L698" title="All 2 branches missed.">                } else if (&quot;editorLastForeIni&quot;.equals(val)) {</span>
+<span class="nc" id="L699">                    return lastAuthorForenameInitials(entry.getField(&quot;editor&quot;));</span>
+<span class="nc bnc" id="L700" title="All 2 branches missed.">                } else if (&quot;editorIni&quot;.equals(val)) {</span>
+<span class="nc" id="L701">                    return oneAuthorPlusIni(entry.getField(&quot;editor&quot;));</span>
+<span class="nc bnc" id="L702" title="All 2 branches missed.">                } else if (val.matches(&quot;edtrIni[\\d]+&quot;)) {</span>
+<span class="nc" id="L703">                    int num = Integer.parseInt(val.substring(7));</span>
+<span class="nc" id="L704">                    String s = authIniN(entry.getField(&quot;editor&quot;), num);</span>
+<span class="nc bnc" id="L705" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L706" title="All 2 branches missed.">                } else if (val.matches(&quot;edtr[\\d]+_[\\d]+&quot;)) {</span>
+<span class="nc" id="L707">                    String[] nums = val.substring(4).split(&quot;_&quot;);</span>
+<span class="nc" id="L708">                    String s = authNofMth(entry.getField(&quot;editor&quot;),</span>
+<span class="nc" id="L709">                            Integer.parseInt(nums[0]),</span>
+<span class="nc" id="L710">                            Integer.parseInt(nums[1]) - 1);</span>
+<span class="nc bnc" id="L711" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L712" title="All 2 branches missed.">                } else if (&quot;edtr.edtr.ea&quot;.equals(val)) {</span>
+<span class="nc" id="L713">                    String s = authAuthEa(entry.getField(&quot;editor&quot;));</span>
+<span class="nc bnc" id="L714" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+<span class="nc bnc" id="L715" title="All 2 branches missed.">                } else if (&quot;edtrshort&quot;.equals(val)) {</span>
+<span class="nc" id="L716">                    String s = authshort(entry.getField(&quot;editor&quot;));</span>
+<span class="nc bnc" id="L717" title="All 2 branches missed.">                    return s == null ? &quot;&quot; : s;</span>
+                }
+                // authN. First N chars of the first author's last
+                // name.
+<span class="nc bnc" id="L721" title="All 2 branches missed.">                else if (val.matches(&quot;edtr\\d+&quot;)) {</span>
+<span class="nc" id="L722">                    String fa = firstAuthor(entry.getField(&quot;editor&quot;));</span>
+<span class="nc bnc" id="L723" title="All 2 branches missed.">                    if (fa == null) {</span>
+<span class="nc" id="L724">                        return &quot;&quot;;</span>
+                    }
+<span class="nc" id="L726">                    int num = Integer.parseInt(val.substring(4));</span>
+<span class="nc bnc" id="L727" title="All 2 branches missed.">                    if (num &gt; fa.length()) {</span>
+<span class="nc" id="L728">                        num = fa.length();</span>
+                    }
+<span class="nc" id="L730">                    return fa.substring(0, num);</span>
+                } else {
+                    // This &quot;ed&quot; business was a dead end, so just
+                    // use it literally:
+<span class="nc" id="L734">                    return getField(entry, val);</span>
+                }
+<span class="nc bnc" id="L736" title="All 2 branches missed.">            } else if (&quot;firstpage&quot;.equals(val)) {</span>
+<span class="nc" id="L737">                return firstPage(entry.getField(&quot;pages&quot;));</span>
+<span class="nc bnc" id="L738" title="All 2 branches missed.">            } else if (&quot;lastpage&quot;.equals(val)) {</span>
+<span class="nc" id="L739">                return lastPage(entry.getField(&quot;pages&quot;));</span>
+<span class="nc bnc" id="L740" title="All 2 branches missed.">            } else if (&quot;shorttitle&quot;.equals(val)) {</span>
+<span class="nc" id="L741">                return getTitleWords(3, entry.getField(&quot;title&quot;));</span>
+<span class="nc bnc" id="L742" title="All 2 branches missed.">            } else if (&quot;veryshorttitle&quot;.equals(val)) {</span>
+<span class="nc" id="L743">                return getTitleWords(1, entry.getField(&quot;title&quot;));</span>
+<span class="nc bnc" id="L744" title="All 2 branches missed.">            } else if (&quot;shortyear&quot;.equals(val)) {</span>
+<span class="nc" id="L745">                String ss = entry.getFieldOrAlias(&quot;year&quot;);</span>
+<span class="nc bnc" id="L746" title="All 2 branches missed.">                if (ss == null) {</span>
+<span class="nc" id="L747">                    return &quot;&quot;;</span>
+<span class="nc bnc" id="L748" title="All 4 branches missed.">                } else if (ss.startsWith(&quot;in&quot;) || ss.startsWith(&quot;sub&quot;)) {</span>
+<span class="nc" id="L749">                    return &quot;IP&quot;;</span>
+<span class="nc bnc" id="L750" title="All 2 branches missed.">                } else if (ss.length() &gt; 2) {</span>
+<span class="nc" id="L751">                    return ss.substring(ss.length() - 2);</span>
+                } else {
+<span class="nc" id="L753">                    return ss;</span>
+                }
+<span class="nc bnc" id="L755" title="All 2 branches missed.">            } else if (val.matches(&quot;keyword\\d+&quot;)) {</span>
+                // according to LabelPattern.php, it returns keyword number n
+<span class="nc" id="L757">                int num = Integer.parseInt(val.substring(7));</span>
+<span class="nc" id="L758">                List&lt;String&gt; separatedKeywords = entry.getSeparatedKeywords();</span>
+<span class="nc bnc" id="L759" title="All 2 branches missed.">                if (separatedKeywords.size() &lt; num) {</span>
+                    // not enough keywords
+<span class="nc" id="L761">                    return &quot;&quot;;</span>
+                } else {
+                    // num counts from 1 to n, but index in arrayList count from 0 to n-1
+<span class="nc" id="L764">                    return separatedKeywords.get(num-1);</span>
+                }
+<span class="nc bnc" id="L766" title="All 2 branches missed.">            } else if (val.matches(&quot;keywords\\d*&quot;)) {</span>
+                // return all keywords, not separated
+                int num;
+<span class="nc bnc" id="L769" title="All 2 branches missed.">                if (val.length() &gt; 8) {</span>
+<span class="nc" id="L770">                    num = Integer.parseInt(val.substring(8));</span>
+<span class="nc" id="L771">                } else {</span>
+<span class="nc" id="L772">                    num = Integer.MAX_VALUE;</span>
+                }
+<span class="nc" id="L774">                List&lt;String&gt; separatedKeywords = entry.getSeparatedKeywords();</span>
+<span class="nc" id="L775">                StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L776" title="All 2 branches missed.">                for (int i = 0; i &lt; Math.min(separatedKeywords.size(), num); i++) {</span>
+<span class="nc" id="L777">                    String keyword = separatedKeywords.get(i);</span>
+                    // remove all spaces
+<span class="nc" id="L779">                    keyword = keyword.replaceAll(&quot;\\s+&quot;, &quot;&quot;);</span>
+<span class="nc" id="L780">                    sb.append(keyword);</span>
+                }
+<span class="nc" id="L782">                return sb.toString();</span>
+            } else {
+                // we haven't seen any special demands
+<span class="nc" id="L785">                return getField(entry, val);</span>
+            }
+<span class="nc" id="L787">        } catch (NullPointerException ex) {</span>
+<span class="nc" id="L788">            LOGGER.debug(&quot;Problem making label&quot;, ex);</span>
+<span class="nc" id="L789">            return &quot;&quot;;</span>
+        }
+
+    }
+
+    /**
+     * Look up a field of a BibEntry, returning its String value, or an
+     * empty string if it isn't set.
+     * @param entry The entry.
+     * @param field The field to look up.
+     * @return The field value.
+     */
+    private static String getField(BibEntry entry, String field) {
+<span class="nc" id="L802">        String s = entry.getFieldOrAlias(field);</span>
+<span class="nc bnc" id="L803" title="All 2 branches missed.">        return s == null ? &quot;&quot; : s;</span>
+    }
+
+    /**
+     * Computes an appendix to a BibTeX key that could make it unique. We use
+     * a-z for numbers 0-25, and then aa-az, ba-bz, etc.
+     *
+     * @param number
+     *            The appendix number.
+     * @return The String to append.
+     */
+    private static String getAddition(int number) {
+<span class="nc bnc" id="L815" title="All 2 branches missed.">        if (number &gt;= CHARS.length()) {</span>
+<span class="nc" id="L816">            int lastChar = number % CHARS.length();</span>
+<span class="nc" id="L817">            return getAddition((number / CHARS.length()) - 1) + CHARS.substring(lastChar, lastChar + 1);</span>
+        } else {
+<span class="nc" id="L819">            return CHARS.substring(number, number + 1);</span>
+        }
+    }
+
+    /**
+     * Determines &quot;number&quot; words out of the &quot;title&quot; field in the given BibTeX entry
+     */
+    public static String getTitleWords(int number, String title) {
+<span class="nc" id="L827">        String ss = new RemoveLatexCommands().format(title);</span>
+<span class="nc" id="L828">        StringBuilder stringBuilder = new StringBuilder();</span>
+        StringBuilder current;
+<span class="nc" id="L830">        int piv = 0;</span>
+<span class="nc" id="L831">        int words = 0;</span>
+
+        // sorry for being English-centric. I guess these
+        // words should really be an editable preference.
+<span class="nc bnc" id="L835" title="All 4 branches missed.">        mainl: while ((piv &lt; ss.length()) &amp;&amp; (words &lt; number)) {</span>
+<span class="nc" id="L836">            current = new StringBuilder();</span>
+            // Get the next word:
+<span class="nc bnc" id="L838" title="All 4 branches missed.">            while ((piv &lt; ss.length()) &amp;&amp; !Character.isWhitespace(ss.charAt(piv))</span>
+<span class="nc bnc" id="L839" title="All 2 branches missed.">                    &amp;&amp; (ss.charAt(piv) != '-')) {</span>
+<span class="nc" id="L840">                current.append(ss.charAt(piv));</span>
+<span class="nc" id="L841">                piv++;</span>
+            }
+<span class="nc" id="L843">            piv++;</span>
+            // Check if it is ok:
+<span class="nc" id="L845">            String word = current.toString().trim();</span>
+<span class="nc bnc" id="L846" title="All 2 branches missed.">            if (word.isEmpty()) {</span>
+<span class="nc" id="L847">                continue;</span>
+            }
+<span class="nc bnc" id="L849" title="All 2 branches missed.">            for (String smallWord: Word.SMALLER_WORDS) {</span>
+<span class="nc bnc" id="L850" title="All 2 branches missed.">                if (word.equalsIgnoreCase(smallWord)) {</span>
+<span class="nc" id="L851">                    continue mainl;</span>
+                }
+            }
+
+            // If we get here, the word was accepted.
+<span class="nc bnc" id="L856" title="All 2 branches missed.">            if (stringBuilder.length() &gt; 0) {</span>
+<span class="nc" id="L857">                stringBuilder.append(' ');</span>
+            }
+<span class="nc" id="L859">            stringBuilder.append(word);</span>
+<span class="nc" id="L860">            words++;</span>
+        }
+
+<span class="nc" id="L863">        return keepLettersAndDigitsOnly(stringBuilder.toString());</span>
+    }
+
+    private static String keepLettersAndDigitsOnly(String in) {
+<span class="nc" id="L867">        StringBuilder stringBuilder = new StringBuilder();</span>
+<span class="nc bnc" id="L868" title="All 2 branches missed.">        for (int i = 0; i &lt; in.length(); i++) {</span>
+<span class="nc bnc" id="L869" title="All 2 branches missed.">            if (Character.isLetterOrDigit(in.charAt(i))) {</span>
+<span class="nc" id="L870">                stringBuilder.append(in.charAt(i));</span>
+            }
+        }
+<span class="nc" id="L873">        return stringBuilder.toString();</span>
+    }
+
+
+    /**
+     * Gets the last name of the first author/editor
+     *
+     * @param authorField
+     *            a &lt;code&gt;String&lt;/code&gt;
+     * @return the surname of an author/editor or &quot;&quot; if no author was found
+     *    This method is guaranteed to never return null.
+     *
+     * @throws NullPointerException
+     *             if authorField == null
+     */
+    public static String firstAuthor(String authorField) {
+<span class="nc" id="L889">        AuthorList authorList = AuthorList.parse(authorField);</span>
+<span class="nc bnc" id="L890" title="All 2 branches missed.">        if (authorList.isEmpty()) {</span>
+<span class="nc" id="L891">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L893">        String s = authorList.getAuthor(0).getLast();</span>
+<span class="nc bnc" id="L894" title="All 2 branches missed.">        return s == null ? &quot;&quot; : s;</span>
+
+    }
+
+    /**
+     * Gets the first name initials of the first author/editor
+     *
+     * @param authorField
+     *            a &lt;code&gt;String&lt;/code&gt;
+     * @return the first name initial of an author/editor or &quot;&quot; if no author was found
+     *    This method is guaranteed to never return null.
+     *
+     * @throws NullPointerException
+     *             if authorField == null
+     */
+    public static String firstAuthorForenameInitials(String authorField) {
+<span class="nc" id="L910">        AuthorList authorList = AuthorList.parse(authorField);</span>
+<span class="nc bnc" id="L911" title="All 2 branches missed.">        if (authorList.isEmpty()) {</span>
+<span class="nc" id="L912">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L914">        String s = authorList.getAuthor(0).getFirstAbbr();</span>
+<span class="nc bnc" id="L915" title="All 2 branches missed.">        return s == null ? &quot;&quot; : s.substring(0, 1);</span>
+    }
+
+    /**
+     * Gets the von part and the last name of the first author/editor
+     * No spaces are returned
+     *
+     * @param authorField
+     *            a &lt;code&gt;String&lt;/code&gt;
+     * @return the von part and surname of an author/editor or &quot;&quot; if no author was found.
+     *  This method is guaranteed to never return null.
+     *
+     * @throws NullPointerException
+     *             if authorField == null
+     */
+    public static String firstAuthorVonAndLast(String authorField) {
+<span class="nc" id="L931">        AuthorList authorList = AuthorList.parse(authorField);</span>
+<span class="nc bnc" id="L932" title="All 2 branches missed.">        if (authorList.isEmpty()) {</span>
+<span class="nc" id="L933">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L935">        String vonAuthor = authorList.getAuthor(0).getVon().replaceAll(&quot; &quot;, &quot;&quot;);</span>
+<span class="nc" id="L936">        StringBuilder stringBuilder = new StringBuilder();</span>
+<span class="nc bnc" id="L937" title="All 2 branches missed.">        if (vonAuthor != null) {</span>
+<span class="nc" id="L938">            stringBuilder.append(vonAuthor);</span>
+        }
+<span class="nc" id="L940">        vonAuthor = authorList.getAuthor(0).getLast();</span>
+<span class="nc bnc" id="L941" title="All 2 branches missed.">        if (vonAuthor != null) {</span>
+<span class="nc" id="L942">            stringBuilder.append(vonAuthor);</span>
+        }
+<span class="nc" id="L944">        return stringBuilder.toString();</span>
+    }
+
+    /**
+     * Gets the last name of the last author/editor
+     * @param authorField a &lt;code&gt;String&lt;/code&gt;
+     * @return the surname of an author/editor
+     */
+    public static String lastAuthor(String authorField) {
+<span class="nc" id="L953">        String[] tokens = AuthorList.fixAuthorForAlphabetization(authorField).split(&quot;\\s+\\band\\b\\s+&quot;);</span>
+<span class="nc bnc" id="L954" title="All 2 branches missed.">        if (tokens.length &gt; 0) {</span>
+<span class="nc" id="L955">            String[] lastAuthor = tokens[tokens.length - 1].split(&quot;,&quot;);</span>
+<span class="nc" id="L956">            return lastAuthor[0];</span>
+        } else {
+            // if author is empty
+<span class="nc" id="L959">            return &quot;&quot;;</span>
+        }
+    }
+
+    /**
+     * Gets the forename initials of the last author/editor
+     *
+     * @param authorField
+     *            a &lt;code&gt;String&lt;/code&gt;
+     * @return the forename initial of an author/editor or &quot;&quot; if no author was found
+     *    This method is guaranteed to never return null.
+     *
+     * @throws NullPointerException
+     *             if authorField == null
+     */
+    public static String lastAuthorForenameInitials(String authorField) {
+<span class="nc" id="L975">        AuthorList authorList = AuthorList.parse(authorField);</span>
+<span class="nc bnc" id="L976" title="All 2 branches missed.">        if (authorList.isEmpty()) {</span>
+<span class="nc" id="L977">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L979">        String s = authorList.getAuthor(authorList.getNumberOfAuthors() - 1).getFirstAbbr();</span>
+<span class="nc bnc" id="L980" title="All 2 branches missed.">        return s == null ? &quot;&quot; : s.substring(0, 1);</span>
+    }
+
+    /**
+     * Gets the last name of all authors/editors
+     * @param authorField a &lt;code&gt;String&lt;/code&gt;
+     * @return the sur name of all authors/editors
+     */
+    public static String allAuthors(String authorField) {
+        // Quick hack to use NAuthors to avoid code duplication
+<span class="nc" id="L990">        return nAuthors(authorField, Integer.MAX_VALUE);</span>
+    }
+
+    /**
+     * Returns the authors according to the BibTeX-alpha-Style
+     * @param authorField string containing the value of the author field
+     * @return the initials of all authornames
+     */
+    public static String authorsAlpha(String authorField) {
+<span class="nc" id="L999">        String authors = &quot;&quot;;</span>
+
+<span class="nc" id="L1001">        String fixedAuthors = AuthorList.fixAuthorLastNameOnlyCommas(authorField, false);</span>
+
+        // drop the &quot;and&quot; before the last author
+        // -&gt; makes processing easier
+<span class="nc" id="L1005">        fixedAuthors = fixedAuthors.replace(&quot; and &quot;, &quot;, &quot;);</span>
+
+<span class="nc" id="L1007">        String[] tokens = fixedAuthors.split(&quot;,&quot;);</span>
+<span class="nc bnc" id="L1008" title="All 2 branches missed.">        int max = tokens.length &gt; 4 ? 3 : tokens.length;</span>
+<span class="nc bnc" id="L1009" title="All 2 branches missed.">        if (max == 1) {</span>
+<span class="nc" id="L1010">            String[] firstAuthor = tokens[0].replaceAll(&quot;\\s+&quot;, &quot; &quot;).trim().split(&quot; &quot;);</span>
+            // take first letter of any &quot;prefixes&quot; (e.g. van der Aalst -&gt; vd)
+<span class="nc bnc" id="L1012" title="All 2 branches missed.">            for (int j = 0; j &lt; (firstAuthor.length - 1); j++) {</span>
+<span class="nc" id="L1013">                authors = authors.concat(firstAuthor[j].substring(0, 1));</span>
+            }
+            // append last part of last name completely
+<span class="nc" id="L1016">            authors = authors.concat(firstAuthor[firstAuthor.length - 1].substring(0,</span>
+<span class="nc" id="L1017">                    Math.min(3, firstAuthor[firstAuthor.length - 1].length())));</span>
+<span class="nc" id="L1018">        } else {</span>
+<span class="nc bnc" id="L1019" title="All 2 branches missed.">            for (int i = 0; i &lt; max; i++) {</span>
+                // replace all whitespaces by &quot; &quot;
+                // split the lastname at &quot; &quot;
+<span class="nc" id="L1022">                String[] curAuthor = tokens[i].replaceAll(&quot;\\s+&quot;, &quot; &quot;).trim().split(&quot; &quot;);</span>
+<span class="nc bnc" id="L1023" title="All 2 branches missed.">                for (String aCurAuthor : curAuthor) {</span>
+                    // use first character of each part of lastname
+<span class="nc" id="L1025">                    authors = authors.concat(aCurAuthor.substring(0, 1));</span>
+                }
+            }
+<span class="nc bnc" id="L1028" title="All 2 branches missed.">            if (tokens.length &gt; 4) {</span>
+<span class="nc" id="L1029">                authors = authors.concat(&quot;+&quot;);</span>
+            }
+        }
+<span class="nc" id="L1032">        return authors;</span>
+    }
+
+    /**
+     * Gets the surnames of the first N authors and appends EtAl if there are more than N authors
+     * @param authorField a &lt;code&gt;String&lt;/code&gt;
+     * @param n the number of desired authors
+     * @return Gets the surnames of the first N authors and appends EtAl if there are more than N authors
+     */
+    public static String nAuthors(String authorField, int n) {
+<span class="nc" id="L1042">        String[] tokens = AuthorList.fixAuthorForAlphabetization(authorField).split(&quot;\\s+\\band\\b\\s+&quot;);</span>
+<span class="nc" id="L1043">        int i = 0;</span>
+<span class="nc" id="L1044">        StringBuilder authorSB = new StringBuilder();</span>
+<span class="nc bnc" id="L1045" title="All 4 branches missed.">        while ((tokens.length &gt; i) &amp;&amp; (i &lt; n)) {</span>
+<span class="nc" id="L1046">            String lastName = tokens[i].replaceAll(&quot;,\\s+.*&quot;, &quot;&quot;);</span>
+<span class="nc" id="L1047">            authorSB.append(lastName);</span>
+<span class="nc" id="L1048">            i++;</span>
+        }
+<span class="nc bnc" id="L1050" title="All 2 branches missed.">        if (tokens.length &gt; n) {</span>
+<span class="nc" id="L1051">            authorSB.append(&quot;EtAl&quot;);</span>
+        }
+<span class="nc" id="L1053">        return authorSB.toString();</span>
+    }
+
+    /**
+     * Gets the first part of the last name of the first
+     * author/editor, and appends the last name initial of the
+     * remaining authors/editors.
+     * Maximum 5 characters
+     * @param authorField a &lt;code&gt;String&lt;/code&gt;
+     * @return the surname of all authors/editors
+     */
+    public static String oneAuthorPlusIni(String authorField) {
+<span class="nc" id="L1065">        String fixedAuthorField = AuthorList.fixAuthorForAlphabetization(authorField);</span>
+<span class="nc" id="L1066">        String[] tokens = fixedAuthorField.split(&quot;\\s+\\band\\b\\s+&quot;);</span>
+<span class="nc bnc" id="L1067" title="All 2 branches missed.">        if (tokens.length == 0) {</span>
+<span class="nc" id="L1068">            return &quot;&quot;;</span>
+        }
+
+<span class="nc" id="L1071">        String firstAuthor = tokens[0].split(&quot;,&quot;)[0];</span>
+<span class="nc" id="L1072">        StringBuilder authorSB = new StringBuilder();</span>
+<span class="nc" id="L1073">        authorSB.append(firstAuthor.substring(0, Math.min(CHARS_OF_FIRST, firstAuthor.length())));</span>
+<span class="nc" id="L1074">        int i = 1;</span>
+<span class="nc bnc" id="L1075" title="All 2 branches missed.">        while (tokens.length &gt; i) {</span>
+            // convert lastname, firstname to firstname lastname
+<span class="nc" id="L1077">            authorSB.append(tokens[i].charAt(0));</span>
+<span class="nc" id="L1078">            i++;</span>
+        }
+<span class="nc" id="L1080">        return authorSB.toString();</span>
+    }
+
+    /**
+     * auth.auth.ea format:
+     * Isaac Newton and James Maxwell and Albert Einstein (1960)
+     * Isaac Newton and James Maxwell (1960)
+     *  give:
+     * Newton.Maxwell.ea
+     * Newton.Maxwell
+     */
+    public static String authAuthEa(String authorField) {
+<span class="nc" id="L1092">        String fixedAuthorField = AuthorList.fixAuthorForAlphabetization(authorField);</span>
+
+<span class="nc" id="L1094">        String[] tokens = fixedAuthorField.split(&quot;\\s+\\band\\b\\s+&quot;);</span>
+<span class="nc bnc" id="L1095" title="All 2 branches missed.">        if (tokens.length == 0) {</span>
+<span class="nc" id="L1096">            return &quot;&quot;;</span>
+        }
+
+<span class="nc" id="L1099">        StringBuilder author = new StringBuilder();</span>
+        // append first author
+<span class="nc" id="L1101">        author.append((tokens[0].split(&quot;,&quot;))[0]);</span>
+<span class="nc bnc" id="L1102" title="All 2 branches missed.">        if (tokens.length &gt;= 2) {</span>
+            // append second author
+<span class="nc" id="L1104">            author.append('.').append((tokens[1].split(&quot;,&quot;))[0]);</span>
+        }
+<span class="nc bnc" id="L1106" title="All 2 branches missed.">        if (tokens.length &gt; 2) {</span>
+            // append &quot;.ea&quot; if more than 2 authors
+<span class="nc" id="L1108">            author.append(&quot;.ea&quot;);</span>
+        }
+
+<span class="nc" id="L1111">        return author.toString();</span>
+    }
+
+    /**
+     * auth.etal, authEtAl, ... format:
+     * Isaac Newton and James Maxwell and Albert Einstein (1960)
+     * Isaac Newton and James Maxwell (1960)
+     *
+     *  auth.etal give (delim=&quot;.&quot;, append=&quot;.etal&quot;):
+     * Newton.etal
+     * Newton.Maxwell
+     *
+     *  authEtAl give (delim=&quot;&quot;, append=&quot;EtAl&quot;):
+     * NewtonEtAl
+     * NewtonMaxwell
+     *
+     * Note that [authEtAl] equals [authors2]
+     */
+    public static String authEtal(String authorField, String delim,
+            String append) {
+<span class="nc" id="L1131">        String fixedAuthorField = AuthorList.fixAuthorForAlphabetization(authorField);</span>
+
+<span class="nc" id="L1133">        String[] tokens = fixedAuthorField.split(&quot;\\s*\\band\\b\\s*&quot;);</span>
+<span class="nc bnc" id="L1134" title="All 2 branches missed.">        if (tokens.length == 0) {</span>
+<span class="nc" id="L1135">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L1137">        StringBuilder author = new StringBuilder();</span>
+<span class="nc" id="L1138">        author.append((tokens[0].split(&quot;,&quot;))[0]);</span>
+<span class="nc bnc" id="L1139" title="All 2 branches missed.">        if (tokens.length == 2) {</span>
+<span class="nc" id="L1140">            author.append(delim).append((tokens[1].split(&quot;,&quot;))[0]);</span>
+<span class="nc bnc" id="L1141" title="All 2 branches missed.">        } else if (tokens.length &gt; 2) {</span>
+<span class="nc" id="L1142">            author.append(append);</span>
+        }
+
+<span class="nc" id="L1145">        return author.toString();</span>
+    }
+
+    /**
+     * The first N characters of the Mth author/editor.
+     * M starts counting from 1
+     */
+    public static String authNofMth(String authorField, int n, int m) {
+        // have m counting from 0
+<span class="nc" id="L1154">        int mminusone = m - 1;</span>
+
+<span class="nc" id="L1156">        String fixedAuthorField = AuthorList.fixAuthorForAlphabetization(authorField);</span>
+
+<span class="nc" id="L1158">        String[] tokens = fixedAuthorField.split(&quot;\\s+\\band\\b\\s+&quot;);</span>
+<span class="nc bnc" id="L1159" title="All 6 branches missed.">        if ((tokens.length &lt;= mminusone) || (n &lt; 0) || (mminusone &lt; 0)) {</span>
+<span class="nc" id="L1160">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L1162">        String lastName = (tokens[mminusone].split(&quot;,&quot;))[0];</span>
+<span class="nc bnc" id="L1163" title="All 2 branches missed.">        if (lastName.length() &lt;= n) {</span>
+<span class="nc" id="L1164">            return lastName;</span>
+        } else {
+<span class="nc" id="L1166">            return lastName.substring(0, n);</span>
+        }
+    }
+
+    /**
+     * authshort format:
+     * added by Kolja Brix, kbx@users.sourceforge.net
+     *
+     * given author names
+     *
+     *   Isaac Newton and James Maxwell and Albert Einstein and N. Bohr
+     *
+     *   Isaac Newton and James Maxwell and Albert Einstein
+     *
+     *   Isaac Newton and James Maxwell
+     *
+     *   Isaac Newton
+     *
+     * yield
+     *
+     *   NME+
+     *
+     *   NME
+     *
+     *   NM
+     *
+     *   Newton
+     */
+    public static String authshort(String authorField) {
+<span class="nc" id="L1195">        String fixedAuthorField = AuthorList.fixAuthorForAlphabetization(authorField);</span>
+<span class="nc" id="L1196">        StringBuilder author = new StringBuilder();</span>
+<span class="nc" id="L1197">        String[] tokens = fixedAuthorField.split(&quot;\\band\\b&quot;);</span>
+<span class="nc" id="L1198">        int i = 0;</span>
+
+<span class="nc bnc" id="L1200" title="All 2 branches missed.">        if (tokens.length == 1) {</span>
+<span class="nc" id="L1201">            author.append(authNofMth(fixedAuthorField, fixedAuthorField.length(), 1));</span>
+<span class="nc bnc" id="L1202" title="All 2 branches missed.">        } else if (tokens.length &gt;= 2) {</span>
+<span class="nc bnc" id="L1203" title="All 4 branches missed.">            while ((tokens.length &gt; i) &amp;&amp; (i &lt; 3)) {</span>
+<span class="nc" id="L1204">                author.append(authNofMth(fixedAuthorField, 1, i + 1));</span>
+<span class="nc" id="L1205">                i++;</span>
+            }
+<span class="nc bnc" id="L1207" title="All 2 branches missed.">            if (tokens.length &gt; 3) {</span>
+<span class="nc" id="L1208">                author.append('+');</span>
+            }
+        }
+
+<span class="nc" id="L1212">        return author.toString();</span>
+    }
+
+    /**
+     * authIniN format:
+     *
+     * Each author gets (N div #authors) chars, the remaining (N mod #authors)
+     * chars are equally distributed to the authors first in the row.
+     *
+     * If (N &lt; #authors), only the first N authors get mentioned.
+     *
+     * For example if
+     *
+     * a) I. Newton and J. Maxwell and A. Einstein and N. Bohr (..)
+     *
+     * b) I. Newton and J. Maxwell and A. Einstein
+     *
+     * c) I. Newton and J. Maxwell
+     *
+     * d) I. Newton
+     *
+     * authIni4 gives: a) NMEB, b) NeME, c) NeMa, d) Newt
+     *
+     * @param authorField
+     *            The authors to format.
+     *
+     * @param n
+     *            The maximum number of characters this string will be long. A
+     *            negative number or zero will lead to &quot;&quot; be returned.
+     *
+     * @throws NullPointerException
+     *             if authorField is null and n &gt; 0
+     */
+    public static String authIniN(String authorField, int n) {
+
+<span class="nc bnc" id="L1247" title="All 2 branches missed.">        if (n &lt;= 0) {</span>
+<span class="nc" id="L1248">            return &quot;&quot;;</span>
+        }
+
+<span class="nc" id="L1251">        String fixedAuthorField = AuthorList.fixAuthorForAlphabetization(authorField);</span>
+<span class="nc" id="L1252">        StringBuilder author = new StringBuilder();</span>
+<span class="nc" id="L1253">        String[] tokens = fixedAuthorField.split(&quot;\\band\\b&quot;);</span>
+
+<span class="nc bnc" id="L1255" title="All 2 branches missed.">        if (tokens.length == 0) {</span>
+<span class="nc" id="L1256">            return author.toString();</span>
+        }
+
+<span class="nc" id="L1259">        int i = 0;</span>
+<span class="nc" id="L1260">        int charsAll = n / tokens.length;</span>
+<span class="nc bnc" id="L1261" title="All 2 branches missed.">        while (tokens.length &gt; i) {</span>
+<span class="nc bnc" id="L1262" title="All 2 branches missed.">            if (i &lt; (n % tokens.length)) {</span>
+<span class="nc" id="L1263">                author.append(authNofMth(fixedAuthorField, charsAll + 1, i + 1));</span>
+<span class="nc" id="L1264">            } else {</span>
+<span class="nc" id="L1265">                author.append(authNofMth(fixedAuthorField, charsAll, i + 1));</span>
+            }
+<span class="nc" id="L1267">            i++;</span>
+        }
+
+<span class="nc bnc" id="L1270" title="All 2 branches missed.">        if (author.length() &lt;= n) {</span>
+<span class="nc" id="L1271">            return author.toString();</span>
+        } else {
+<span class="nc" id="L1273">            return author.toString().substring(0, n);</span>
+        }
+    }
+
+    /**
+     * Split the pages field into separate numbers and return the lowest
+     *
+     * @param pages
+     *            (may not be null) a pages string such as 42--111 or
+     *            7,41,73--97 or 43+
+     *
+     * @return the first page number or &quot;&quot; if no number is found in the string
+     *
+     * @throws NullPointerException
+     *             if pages is null
+     */
+    public static String firstPage(String pages) {
+<span class="nc" id="L1290">        final String[] splitPages = pages.split(&quot;\\D+&quot;);</span>
+<span class="nc" id="L1291">        int result = Integer.MAX_VALUE;</span>
+<span class="nc bnc" id="L1292" title="All 2 branches missed.">        for (String n : splitPages) {</span>
+<span class="nc bnc" id="L1293" title="All 2 branches missed.">            if (n.matches(&quot;\\d+&quot;)) {</span>
+<span class="nc" id="L1294">                result = Math.min(Integer.parseInt(n), result);</span>
+            }
+        }
+
+<span class="nc bnc" id="L1298" title="All 2 branches missed.">        if (result == Integer.MAX_VALUE) {</span>
+<span class="nc" id="L1299">            return &quot;&quot;;</span>
+        } else {
+<span class="nc" id="L1301">            return String.valueOf(result);</span>
+        }
+    }
+
+    /**
+     * Split the pages field into separate numbers and return the highest
+     *
+     * @param pages
+     *            a pages string such as 42--111 or 7,41,73--97 or 43+
+     *
+     * @return the first page number or &quot;&quot; if no number is found in the string
+     *
+     * @throws NullPointerException
+     *             if pages is null.
+     */
+    public static String lastPage(String pages) {
+<span class="nc" id="L1317">        final String[] splitPages = pages.split(&quot;\\D+&quot;);</span>
+<span class="nc" id="L1318">        int result = Integer.MIN_VALUE;</span>
+<span class="nc bnc" id="L1319" title="All 2 branches missed.">        for (String n : splitPages) {</span>
+<span class="nc bnc" id="L1320" title="All 2 branches missed.">            if (n.matches(&quot;\\d+&quot;)) {</span>
+<span class="nc" id="L1321">                result = Math.max(Integer.parseInt(n), result);</span>
+            }
+        }
+
+<span class="nc bnc" id="L1325" title="All 2 branches missed.">        if (result == Integer.MIN_VALUE) {</span>
+<span class="nc" id="L1326">            return &quot;&quot;;</span>
+        } else {
+<span class="nc" id="L1328">            return String.valueOf(result);</span>
+        }
+    }
+
+    /**
+     * Parse a field marker with modifiers, possibly containing a parenthesised modifier,
+     * as well as escaped colons and parentheses.
+     * @param arg The argument string.
+     * @return An array of strings representing the parts of the marker
+     */
+    private static String[] parseFieldMarker(String arg) {
+<span class="nc" id="L1339">        List&lt;String&gt; parts = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1340">        StringBuilder current = new StringBuilder();</span>
+<span class="nc" id="L1341">        boolean escaped = false;</span>
+<span class="nc" id="L1342">        int inParenthesis = 0;</span>
+<span class="nc bnc" id="L1343" title="All 2 branches missed.">        for (int i = 0; i &lt; arg.length(); i++) {</span>
+<span class="nc bnc" id="L1344" title="All 6 branches missed.">            if ((arg.charAt(i) == ':') &amp;&amp; !escaped &amp;&amp; (inParenthesis == 0)) {</span>
+<span class="nc" id="L1345">                parts.add(current.toString());</span>
+<span class="nc" id="L1346">                current = new StringBuilder();</span>
+<span class="nc bnc" id="L1347" title="All 4 branches missed.">            } else if ((arg.charAt(i) == '(') &amp;&amp; !escaped) {</span>
+<span class="nc" id="L1348">                inParenthesis++;</span>
+<span class="nc" id="L1349">                current.append(arg.charAt(i));</span>
+<span class="nc bnc" id="L1350" title="All 6 branches missed.">            } else if ((arg.charAt(i) == ')') &amp;&amp; !escaped &amp;&amp; (inParenthesis &gt; 0)) {</span>
+<span class="nc" id="L1351">                inParenthesis--;</span>
+<span class="nc" id="L1352">                current.append(arg.charAt(i));</span>
+<span class="nc bnc" id="L1353" title="All 2 branches missed.">            } else if (arg.charAt(i) == '\\') {</span>
+<span class="nc bnc" id="L1354" title="All 2 branches missed.">                if (escaped) {</span>
+<span class="nc" id="L1355">                    escaped = false;</span>
+<span class="nc" id="L1356">                    current.append(arg.charAt(i));</span>
+<span class="nc" id="L1357">                } else {</span>
+<span class="nc" id="L1358">                    escaped = true;</span>
+                }
+<span class="nc bnc" id="L1360" title="All 2 branches missed.">            } else if (escaped) {</span>
+<span class="nc" id="L1361">                current.append(arg.charAt(i));</span>
+<span class="nc" id="L1362">                escaped = false;</span>
+<span class="nc" id="L1363">            } else {</span>
+<span class="nc" id="L1364">                current.append(arg.charAt(i));</span>
+            }
+        }
+<span class="nc" id="L1367">        parts.add(current.toString());</span>
+<span class="nc" id="L1368">        return parts.toArray(new String[parts.size()]);</span>
+    }
+
+    /**
+     * This method returns a String similar to the one passed in, except that it is molded into a form that is
+     * acceptable for bibtex.
+     * &lt;p&gt;
+     * Watch-out that the returned string might be of length 0 afterwards.
+     *
+     * @param key mayBeNull
+     */
+    public static String checkLegalKey(String key) {
+<span class="pc bpc" id="L1380" title="1 of 2 branches missed.">        if (key == null) {</span>
+<span class="nc" id="L1381">            return null;</span>
+        }
+<span class="fc" id="L1383">        return checkLegalKey(key,</span>
+<span class="fc" id="L1384">                JabRefPreferences.getInstance().getBoolean(JabRefPreferences.ENFORCE_LEGAL_BIBTEX_KEY));</span>
+    }
+
+    /**
+     * This method returns a String similar to the one passed in, except that it is molded into a form that is
+     * acceptable for bibtex.
+     * &lt;p&gt;
+     * Watch-out that the returned string might be of length 0 afterwards.
+     *
+     * @param key             mayBeNull
+     * @param enforceLegalKey make sure that the key is legal in all respects
+     */
+    public static String checkLegalKey(String key, boolean enforceLegalKey) {
+<span class="pc bpc" id="L1397" title="1 of 2 branches missed.">        if (key == null) {</span>
+<span class="nc" id="L1398">            return null;</span>
+        }
+<span class="pc bpc" id="L1400" title="1 of 2 branches missed.">        if (!enforceLegalKey) {</span>
+            // User doesn't want us to enforce legal characters. We must still look
+            // for whitespace and some characters such as commas, since these would
+            // interfere with parsing:
+<span class="nc" id="L1404">            StringBuilder newKey = new StringBuilder();</span>
+<span class="nc bnc" id="L1405" title="All 2 branches missed.">            for (int i = 0; i &lt; key.length(); i++) {</span>
+<span class="nc" id="L1406">                char c = key.charAt(i);</span>
+<span class="nc bnc" id="L1407" title="All 4 branches missed.">                if (!Character.isWhitespace(c) &amp;&amp; (&quot;{}(),\\\&quot;&quot;.indexOf(c) == -1)) {</span>
+<span class="nc" id="L1408">                    newKey.append(c);</span>
+                }
+            }
+<span class="nc" id="L1411">            return newKey.toString();</span>
+        }
+
+<span class="fc" id="L1414">        StringBuilder newKey = new StringBuilder();</span>
+<span class="fc bfc" id="L1415" title="All 2 branches covered.">        for (int i = 0; i &lt; key.length(); i++) {</span>
+<span class="fc" id="L1416">            char c = key.charAt(i);</span>
+<span class="pc bpc" id="L1417" title="1 of 4 branches missed.">            if (!Character.isWhitespace(c) &amp;&amp; (&quot;{}(),\\\&quot;#~^'&quot;.indexOf(c) == -1)) {</span>
+<span class="fc" id="L1418">                newKey.append(c);</span>
+            }
+        }
+
+        // Replace non-English characters like umlauts etc. with a sensible
+        // letter or letter combination that bibtex can accept.
+
+<span class="fc" id="L1425">        return StringUtil.replaceSpecialCharacters(newKey.toString());</span>
+    }
+
+    public static List&lt;String&gt; getDefaultLabelPattern() {
+<span class="nc" id="L1429">        return defaultLabelPattern;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

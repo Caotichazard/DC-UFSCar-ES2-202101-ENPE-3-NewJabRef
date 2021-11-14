@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DBLPFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">DBLPFetcher.java</span></div><h1>DBLPFetcher.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2015-2016 JabRef contributors.
+    Copyright (C) 2011 Sascha Hunold.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer.fetcher;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.swing.JPanel;
+
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.importer.fileformat.BibtexParser;
+import net.sf.jabref.logic.net.URLDownload;
+import net.sf.jabref.model.DuplicateCheck;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+<span class="fc" id="L39">public class DBLPFetcher implements EntryFetcher {</span>
+
+<span class="fc" id="L41">    private static final Log LOGGER = LogFactory.getLog(DBLPFetcher.class);</span>
+
+    private static final String URL_START = &quot;http://www.dblp.org/search/api/&quot;;
+    private static final String URL_PART1 = &quot;?q=&quot;;
+<span class="fc" id="L45">    private static final String URL_END = &quot;&amp;h=1000&amp;c=4&amp;f=0&amp;format=json&quot;;</span>
+
+    private volatile boolean shouldContinue;
+    private String query;
+<span class="fc" id="L49">    private final DBLPHelper helper = new DBLPHelper();</span>
+
+
+    @Override
+    public void stopFetching() {
+<span class="nc" id="L54">        shouldContinue = false;</span>
+<span class="nc" id="L55">    }</span>
+
+    @Override
+    public boolean processQuery(String newQuery, ImportInspector inspector,
+            OutputPrinter status) {
+
+<span class="nc" id="L61">        final HashMap&lt;String, Boolean&gt; bibentryKnown = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L63">        boolean res = false;</span>
+<span class="nc" id="L64">        this.query = newQuery;</span>
+
+<span class="nc" id="L66">        shouldContinue = true;</span>
+
+        // we save the duplicate check threshold
+        // we need to overcome the &quot;smart&quot; approach of this heuristic
+        // and we will set it back afterwards, so maybe someone is happy again
+<span class="nc" id="L71">        double saveThreshold = DuplicateCheck.duplicateThreshold;</span>
+
+        try {
+
+<span class="nc" id="L75">            String address = makeSearchURL();</span>
+<span class="nc" id="L76">            URL url = new URL(address);</span>
+<span class="nc" id="L77">            URLDownload dl = new URLDownload(url);</span>
+
+<span class="nc" id="L79">            String page = dl.downloadToString();</span>
+
+<span class="nc" id="L81">            String[] lines = page.split(&quot;\n&quot;);</span>
+<span class="nc" id="L82">            List&lt;String&gt; bibtexUrlList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">            for (final String line : lines) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">                if (line.startsWith(&quot;\&quot;url\&quot;&quot;)) {</span>
+<span class="nc" id="L85">                    String addr = line.replace(&quot;\&quot;url\&quot;:\&quot;&quot;, &quot;&quot;);</span>
+<span class="nc" id="L86">                    addr = addr.substring(0, addr.length() - 2);</span>
+<span class="nc" id="L87">                    bibtexUrlList.add(addr);</span>
+                }
+            }
+
+<span class="nc" id="L91">            DuplicateCheck.duplicateThreshold = Double.MAX_VALUE;</span>
+
+            // 2014-11-08
+            // DBLP now shows the BibTeX entry using ugly HTML entities
+            // but they also offer the download of a bib file
+            // we find this in the page which we get from &quot;url&quot;
+            // and this bib file is then in &quot;biburl&quot;
+
+<span class="nc" id="L99">            int count = 1;</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">            for (String urlStr : bibtexUrlList) {</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                if (!shouldContinue) {</span>
+<span class="nc" id="L102">                    break;</span>
+                }
+
+<span class="nc" id="L105">                final URL bibUrl = new URL(urlStr);</span>
+
+<span class="nc" id="L107">                final String bibtexHTMLPage = new URLDownload(bibUrl).downloadToString();</span>
+
+<span class="nc" id="L109">                final String[] htmlLines = bibtexHTMLPage.split(&quot;\n&quot;);</span>
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                for (final String line : htmlLines) {</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">                    if (line.contains(&quot;biburl&quot;)) {</span>
+<span class="nc" id="L113">                        int sidx = line.indexOf('{');</span>
+<span class="nc" id="L114">                        int eidx = line.indexOf('}');</span>
+                        // now we take everything within the curly braces
+<span class="nc" id="L116">                        String bibtexUrl = line.substring(sidx + 1, eidx);</span>
+
+                        // we do not access dblp.uni-trier.de as they will complain
+<span class="nc" id="L119">                        bibtexUrl = bibtexUrl.replace(&quot;dblp.uni-trier.de&quot;, &quot;www.dblp.org&quot;);</span>
+
+<span class="nc" id="L121">                        final URL bibFileURL = new URL(bibtexUrl);</span>
+<span class="nc" id="L122">                        final String bibtexPage = new URLDownload(bibFileURL).downloadToString();</span>
+
+<span class="nc" id="L124">                        Collection&lt;BibEntry&gt; bibtexEntries = BibtexParser.fromString(bibtexPage);</span>
+
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                        for (BibEntry be : bibtexEntries) {</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">                            if (!bibentryKnown.containsKey(be.getCiteKey())) {</span>
+
+<span class="nc" id="L130">                                inspector.addEntry(be);</span>
+<span class="nc" id="L131">                                bibentryKnown.put(be.getCiteKey(), true);</span>
+                            }
+
+                        }
+                    }
+                }
+
+<span class="nc" id="L138">                inspector.setProgress(count, bibtexUrlList.size());</span>
+<span class="nc" id="L139">                count++;</span>
+            }
+
+
+            // everything went smooth
+<span class="nc" id="L144">            res = true;</span>
+
+<span class="nc" id="L146">        } catch (IOException e) {</span>
+<span class="nc" id="L147">            LOGGER.warn(&quot;Communcation problems&quot;, e);</span>
+<span class="nc" id="L148">            status.showMessage(e.getMessage());</span>
+        } finally {
+            // Restore the threshold
+<span class="nc" id="L151">            DuplicateCheck.duplicateThreshold = saveThreshold;</span>
+        }
+
+<span class="nc" id="L154">        return res;</span>
+    }
+
+    private String makeSearchURL() {
+<span class="nc" id="L158">        StringBuilder sb = new StringBuilder(DBLPFetcher.URL_START).append(DBLPFetcher.URL_PART1);</span>
+<span class="nc" id="L159">        String cleanedQuery = helper.cleanDBLPQuery(query);</span>
+<span class="nc" id="L160">        sb.append(cleanedQuery).append(DBLPFetcher.URL_END);</span>
+<span class="nc" id="L161">        return sb.toString();</span>
+    }
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L166">        return &quot;DBLP&quot;;</span>
+    }
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L171">        return HelpFiles.FETCHER_DBLP;</span>
+    }
+
+    @Override
+    public JPanel getOptionsPanel() {
+<span class="nc" id="L176">        return null;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

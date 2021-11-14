@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>OpenOfficeFileSearch.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.openoffice</a> &gt; <span class="el_source">OpenOfficeFileSearch.java</span></div><h1>OpenOfficeFileSearch.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.logic.openoffice;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+<span class="nc" id="L23">public class OpenOfficeFileSearch {</span>
+
+    private boolean fileSearchCanceled;
+
+
+    /**
+     * Search for Program files directory.
+     * @return the File pointing to the Program files directory, or null if not found.
+     *   Since we are not including a library for Windows integration, this method can't
+     *   find the Program files dir in localized Windows installations.
+     */
+    public List&lt;File&gt; findWindowsProgramFilesDir() {
+<span class="nc" id="L35">        List&lt;String&gt; sourceList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L36">        List&lt;File&gt; dirList = new ArrayList&lt;&gt;();</span>
+
+        // Check default 64-bits program directory
+<span class="nc" id="L39">        String progFiles = System.getenv(&quot;ProgramFiles&quot;);</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (progFiles != null) {</span>
+<span class="nc" id="L41">            sourceList.add(progFiles);</span>
+        }
+
+        // Check default 64-bits program directory
+<span class="nc" id="L45">        progFiles = System.getenv(&quot;ProgramFiles(x86)&quot;);</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (progFiles != null) {</span>
+<span class="nc" id="L47">            sourceList.add(progFiles);</span>
+        }
+
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        for (String rootPath : sourceList) {</span>
+<span class="nc" id="L51">            File root = new File(rootPath);</span>
+<span class="nc" id="L52">            File[] dirs = root.listFiles(File::isDirectory);</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">            if (dirs != null) {</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">                for (File dir : dirs) {</span>
+<span class="nc bnc" id="L55" title="All 4 branches missed.">                    if (dir.getPath().contains(&quot;OpenOffice&quot;) || dir.getPath().contains(&quot;LibreOffice&quot;)) {</span>
+<span class="nc" id="L56">                        dirList.add(dir);</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L61">        return dirList;</span>
+    }
+
+    /**
+     * Search for Program files directory.
+     * @return the File pointing to the Program files directory, or null if not found.
+     *   Since we are not including a library for Windows integration, this method can't
+     *   find the Program files dir in localized Windows installations.
+     */
+    public List&lt;File&gt; findOSXProgramFilesDir() {
+<span class="nc" id="L71">        List&lt;File&gt; dirList = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L73">        File rootDir = new File(&quot;/Applications&quot;);</span>
+<span class="nc" id="L74">        File[] files = rootDir.listFiles();</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (files != null) {</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">            for (File file : files) {</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">                if (file.isDirectory() &amp;&amp; (&quot;OpenOffice.org.app&quot;.equals(file.getName())</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">                        || &quot;LibreOffice.app&quot;.equals(file.getName()))) {</span>
+<span class="nc" id="L79">                    dirList.add(file);</span>
+                }
+            }
+        }
+
+<span class="nc" id="L84">        return dirList;</span>
+    }
+
+    public void resetFileSearch() {
+<span class="nc" id="L88">        fileSearchCanceled = false;</span>
+<span class="nc" id="L89">    }</span>
+
+    public void cancelFileSearch() {
+<span class="nc" id="L92">        fileSearchCanceled = true;</span>
+<span class="nc" id="L93">    }</span>
+
+    public List&lt;File&gt; findFileInDirs(List&lt;File&gt; dirList, String filename) {
+<span class="nc" id="L96">        List&lt;File&gt; sofficeFiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        for (File dir : dirList) {</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            if (fileSearchCanceled) {</span>
+<span class="nc" id="L99">                break;</span>
+            }
+<span class="nc" id="L101">            findFileInDir(dir, filename).ifPresent(sofficeFiles::add);</span>
+        }
+<span class="nc" id="L103">        return sofficeFiles;</span>
+    }
+    /**
+    * Search for a file, starting at the given directory.
+    * @param startDir The starting point.
+    * @param filename The name of the file to search for.
+    * @return The directory where the file was first found, or null if not found.
+    */
+    public Optional&lt;File&gt; findFileInDir(File startDir, String filename) {
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (fileSearchCanceled) {</span>
+<span class="nc" id="L113">            return Optional.empty();</span>
+        }
+<span class="nc" id="L115">        File[] files = startDir.listFiles();</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (files == null) {</span>
+<span class="nc" id="L117">            return Optional.empty();</span>
+        }
+<span class="nc" id="L119">        Optional&lt;File&gt; result = Optional.empty();</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        for (File file : files) {</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">            if (fileSearchCanceled) {</span>
+<span class="nc" id="L122">                return Optional.empty();</span>
+            }
+<span class="nc bnc" id="L124" title="All 2 branches missed.">            if (file.isDirectory()) {</span>
+<span class="nc" id="L125">                result = findFileInDir(file, filename);</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                if (result.isPresent()) {</span>
+<span class="nc" id="L127">                    return result;</span>
+                }
+<span class="nc bnc" id="L129" title="All 2 branches missed.">            } else if (file.getName().equals(filename)) {</span>
+<span class="nc" id="L130">                return Optional.of(startDir);</span>
+            }
+        }
+<span class="nc" id="L133">        return result;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

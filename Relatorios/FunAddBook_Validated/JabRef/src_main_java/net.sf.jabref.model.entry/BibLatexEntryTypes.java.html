@@ -1,0 +1,875 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BibLatexEntryTypes.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.model.entry</a> &gt; <span class="el_source">BibLatexEntryTypes.java</span></div><h1>BibLatexEntryTypes.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.model.entry;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * This class defines entry types for BibLatex support.
+ * @see http://mirrors.concertpass.com/tex-archive/macros/latex/contrib/biblatex/doc/biblatex.pdf
+ */
+<span class="nc" id="L27">public class BibLatexEntryTypes {</span>
+
+<span class="fc" id="L29">    public static final BibLatexEntryType ARTICLE = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L31">        private final List&lt;String&gt; primaryOptionalFields = Collections.unmodifiableList(</span>
+<span class="fc" id="L32">                Arrays.asList(&quot;subtitle&quot;, &quot;editor&quot;, &quot;series&quot;, &quot;volume&quot;, &quot;number&quot;, &quot;eid&quot;, &quot;issue&quot;, &quot;pages&quot;,</span>
+<span class="fc" id="L33">                        &quot;note&quot;, &quot;issn&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+        {
+<span class="fc" id="L36">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;journaltitle&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L37">            addAllOptional(&quot;translator&quot;, &quot;annotator&quot;, &quot;commentator&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;editor&quot;, &quot;editora&quot;,</span>
+<span class="fc" id="L38">                    &quot;editorb&quot;, &quot;editorc&quot;, &quot;journalsubtitle&quot;, &quot;issuetitle&quot;, &quot;issuesubtitle&quot;, &quot;language&quot;, &quot;origlanguage&quot;,</span>
+<span class="fc" id="L39">                    &quot;series&quot;, &quot;volume&quot;, &quot;number&quot;, &quot;eid&quot;, &quot;issue&quot;, &quot;month&quot;, &quot;pages&quot;, &quot;version&quot;, &quot;note&quot;, &quot;issn&quot;,</span>
+<span class="fc" id="L40">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L45">            return &quot;Article&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L50">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L54">    public static final BibLatexEntryType BOOK = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L56">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L57">                .unmodifiableList(Arrays.asList(&quot;editor&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;,</span>
+<span class="fc" id="L58">                        &quot;mainsubtitle&quot;, &quot;maintitleaddon&quot;, &quot;volume&quot;, &quot;edition&quot;, &quot;publisher&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;,</span>
+<span class="fc" id="L59">                        &quot;pagetotal&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L63">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L64">            addAllOptional(&quot;editor&quot;, &quot;editora&quot;, &quot;editorb&quot;, &quot;editorc&quot;, &quot;translator&quot;, &quot;annotator&quot;, &quot;commentator&quot;,</span>
+<span class="fc" id="L65">                    &quot;introduction&quot;, &quot;foreword&quot;, &quot;afterword&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;,</span>
+<span class="fc" id="L66">                    &quot;maintitleaddon&quot;, &quot;language&quot;, &quot;origlanguage&quot;, &quot;volume&quot;, &quot;part&quot;, &quot;edition&quot;, &quot;volumes&quot;, &quot;series&quot;,</span>
+<span class="fc" id="L67">                    &quot;number&quot;, &quot;note&quot;, &quot;publisher&quot;, &quot;location&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L68">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L73">            return &quot;Book&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L78">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L82">    public static final BibLatexEntryType MVBOOK = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L84">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L85">                .unmodifiableList(Arrays.asList(&quot;editor&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;edition&quot;, &quot;publisher&quot;, &quot;isbn&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L86">                        &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+        {
+<span class="fc" id="L89">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L90">            addAllOptional(&quot;editor&quot;, &quot;editora&quot;, &quot;editorb&quot;, &quot;editorc&quot;, &quot;translator&quot;, &quot;annotator&quot;, &quot;commentator&quot;,</span>
+<span class="fc" id="L91">                    &quot;introduction&quot;, &quot;foreword&quot;, &quot;afterword&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;origlanguage&quot;,</span>
+<span class="fc" id="L92">                    &quot;edition&quot;, &quot;volumes&quot;, &quot;series&quot;, &quot;number&quot;, &quot;note&quot;, &quot;publisher&quot;, &quot;location&quot;, &quot;isbn&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L93">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L98">            return &quot;MvBook&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L103">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L107">    public static final BibLatexEntryType INBOOK = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L109">        private final List&lt;String&gt; primaryOptionalFields = Collections.unmodifiableList(Arrays</span>
+<span class="fc" id="L110">                .asList(&quot;bookauthor&quot;, &quot;editor&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;,</span>
+<span class="fc" id="L111">                        &quot;maintitleaddon&quot;, &quot;booksubtitle&quot;, &quot;booktitleaddon&quot;, &quot;volume&quot;, &quot;edition&quot;, &quot;publisher&quot;, &quot;isbn&quot;,</span>
+<span class="fc" id="L112">                        &quot;chapter&quot;, &quot;pages&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L116">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;booktitle&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L117">            addAllOptional(&quot;bookauthor&quot;, &quot;editor&quot;, &quot;editora&quot;, &quot;editorb&quot;, &quot;editorc&quot;, &quot;translator&quot;, &quot;annotator&quot;,</span>
+<span class="fc" id="L118">                    &quot;commentator&quot;, &quot;introduction&quot;, &quot;foreword&quot;, &quot;afterword&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;,</span>
+<span class="fc" id="L119">                    &quot;mainsubtitle&quot;, &quot;maintitleaddon&quot;, &quot;booksubtitle&quot;, &quot;booktitleaddon&quot;, &quot;language&quot;, &quot;origlanguage&quot;,</span>
+<span class="fc" id="L120">                    &quot;volume&quot;, &quot;part&quot;, &quot;edition&quot;, &quot;volumes&quot;, &quot;series&quot;, &quot;number&quot;, &quot;note&quot;, &quot;publisher&quot;, &quot;location&quot;, &quot;isbn&quot;,</span>
+<span class="fc" id="L121">                    &quot;chapter&quot;, &quot;pages&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;,</span>
+<span class="fc" id="L122">                    &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L127">            return &quot;InBook&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L132">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L136">    public static final BibLatexEntryType BOOKINBOOK = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L140">            return &quot;BookInBook&quot;;</span>
+        }
+
+        // Same fields as &quot;INBOOK&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L146">            return BibLatexEntryTypes.INBOOK.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L151">            return BibLatexEntryTypes.INBOOK.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L156">            return BibLatexEntryTypes.INBOOK.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L160">    public static final BibLatexEntryType SUPPBOOK = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L164">            return &quot;SuppBook&quot;;</span>
+        }
+
+        // Same fields as &quot;INBOOK&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L170">            return BibLatexEntryTypes.INBOOK.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L175">            return BibLatexEntryTypes.INBOOK.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L180">            return BibLatexEntryTypes.INBOOK.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L184">    public static final BibLatexEntryType BOOKLET = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L186">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L187">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;howpublished&quot;, &quot;chapter&quot;,</span>
+<span class="fc" id="L188">                        &quot;pages&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+        {
+<span class="fc" id="L191">            addAllRequired(&quot;author/editor&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L192">            addAllOptional(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;howpublished&quot;, &quot;type&quot;, &quot;note&quot;, &quot;location&quot;, &quot;chapter&quot;,</span>
+<span class="fc" id="L193">                    &quot;pages&quot;, &quot;pagetotal&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;,</span>
+<span class="fc" id="L194">                    &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L199">            return &quot;Booklet&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L204">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L208">    public static final BibLatexEntryType COLLECTION = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L210">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L211">                .unmodifiableList(Arrays.asList(&quot;translator&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;,</span>
+<span class="fc" id="L212">                        &quot;mainsubtitle&quot;, &quot;maintitleaddon&quot;, &quot;volume&quot;, &quot;edition&quot;, &quot;publisher&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;,</span>
+<span class="fc" id="L213">                        &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L217">            addAllRequired(&quot;editor&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L218">            addAllOptional(&quot;editora&quot;, &quot;editorb&quot;, &quot;editorc&quot;, &quot;translator&quot;, &quot;annotator&quot;, &quot;commentator&quot;, &quot;introduction&quot;,</span>
+<span class="fc" id="L219">                    &quot;foreword&quot;, &quot;afterword&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;, &quot;maintitleaddon&quot;,</span>
+<span class="fc" id="L220">                    &quot;language&quot;, &quot;origlanguage&quot;, &quot;volume&quot;, &quot;part&quot;, &quot;edition&quot;, &quot;volumes&quot;, &quot;series&quot;, &quot;number&quot;, &quot;note&quot;,</span>
+<span class="fc" id="L221">                    &quot;publisher&quot;, &quot;location&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;,</span>
+<span class="fc" id="L222">                    &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L227">            return &quot;Collection&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L232">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L236">    public static final BibLatexEntryType MVCOLLECTION = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L238">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L239">                .unmodifiableList(Arrays.asList(&quot;translator&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;edition&quot;, &quot;publisher&quot;, &quot;isbn&quot;,</span>
+<span class="fc" id="L240">                        &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L244">            addAllRequired(&quot;editor&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L245">            addAllOptional(&quot;editora&quot;, &quot;editorb&quot;, &quot;editorc&quot;, &quot;translator&quot;, &quot;annotator&quot;, &quot;commentator&quot;, &quot;introduction&quot;,</span>
+<span class="fc" id="L246">                    &quot;foreword&quot;, &quot;afterword&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;origlanguage&quot;, &quot;edition&quot;, &quot;volumes&quot;, &quot;series&quot;, &quot;number&quot;, &quot;note&quot;,</span>
+<span class="fc" id="L247">                    &quot;publisher&quot;, &quot;location&quot;, &quot;isbn&quot;, &quot;pagetotal&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;,</span>
+<span class="fc" id="L248">                    &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L253">            return &quot;MvCollection&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L258">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L262">    public static final BibLatexEntryType INCOLLECTION = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L264">        private final List&lt;String&gt; primaryOptionalFields = Collections.unmodifiableList(</span>
+<span class="fc" id="L265">                Arrays.asList(&quot;translator&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;,</span>
+<span class="fc" id="L266">                        &quot;maintitleaddon&quot;, &quot;booksubtitle&quot;, &quot;booktitleaddon&quot;, &quot;volume&quot;, &quot;edition&quot;, &quot;publisher&quot;, &quot;isbn&quot;,</span>
+<span class="fc" id="L267">                        &quot;chapter&quot;, &quot;pages&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L271">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;booktitle&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L272">            addAllOptional(&quot;editor&quot;, &quot;editora&quot;, &quot;editorb&quot;, &quot;editorc&quot;, &quot;translator&quot;, &quot;annotator&quot;, &quot;commentator&quot;, &quot;introduction&quot;,</span>
+<span class="fc" id="L273">                    &quot;foreword&quot;, &quot;afterword&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;, &quot;maintitleaddon&quot;,</span>
+<span class="fc" id="L274">                    &quot;booksubtitle&quot;, &quot;booktitleaddon&quot;, &quot;language&quot;, &quot;origlanguage&quot;, &quot;volume&quot;, &quot;part&quot;, &quot;edition&quot;,</span>
+<span class="fc" id="L275">                    &quot;volumes&quot;, &quot;series&quot;, &quot;number&quot;, &quot;note&quot;, &quot;publisher&quot;, &quot;location&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;,</span>
+<span class="fc" id="L276">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L281">            return &quot;InCollection&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L286">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L290">    public static final BibLatexEntryType SUPPCOLLECTION = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L294">            return &quot;SuppCollection&quot;;</span>
+        }
+
+        // Treated as alias of &quot;INCOLLECTION&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L300">            return BibLatexEntryTypes.INCOLLECTION.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L305">            return BibLatexEntryTypes.INCOLLECTION.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L310">            return BibLatexEntryTypes.INCOLLECTION.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L314">    public static final BibLatexEntryType MANUAL = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L316">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L317">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;edition&quot;, &quot;publisher&quot;, &quot;isbn&quot;,</span>
+<span class="fc" id="L318">                        &quot;chapter&quot;, &quot;pages&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L322">            addAllRequired(&quot;author/editor&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L323">            addAllOptional(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;edition&quot;, &quot;type&quot;, &quot;series&quot;, &quot;number&quot;, &quot;version&quot;,</span>
+<span class="fc" id="L324">                    &quot;note&quot;, &quot;organization&quot;, &quot;publisher&quot;, &quot;location&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L325">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L330">            return &quot;Manual&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L335">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L339">    public static final BibLatexEntryType MISC = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L341">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L342">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;howpublished&quot;, &quot;location&quot;,</span>
+<span class="fc" id="L343">                        &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L347">            addAllRequired(&quot;author/editor&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L348">            addAllOptional(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;howpublished&quot;, &quot;type&quot;, &quot;version&quot;, &quot;note&quot;,</span>
+<span class="fc" id="L349">                    &quot;organization&quot;, &quot;location&quot;, &quot;month&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;,</span>
+<span class="fc" id="L350">                    &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L355">            return &quot;Misc&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L360">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L364">    public static final BibLatexEntryType ONLINE = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L366">        private final List&lt;String&gt; primaryOptionalFields = Collections.unmodifiableList(</span>
+<span class="fc" id="L367">                Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;note&quot;, &quot;organization&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L371">            addAllRequired(&quot;author/editor&quot;, &quot;title&quot;, &quot;year/date&quot;, &quot;url&quot;);</span>
+<span class="fc" id="L372">            addAllOptional(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;version&quot;, &quot;note&quot;, &quot;organization&quot;, &quot;month&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L377">            return &quot;Online&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L382">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L386">    public static final BibLatexEntryType PATENT = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L388">        private final List&lt;String&gt; primaryOptionalFields = Collections.unmodifiableList(Arrays.asList(&quot;holder&quot;,</span>
+<span class="fc" id="L389">                &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L393">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;number&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L394">            addAllOptional(&quot;holder&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;type&quot;, &quot;version&quot;, &quot;location&quot;, &quot;note&quot;, &quot;month&quot;,</span>
+<span class="fc" id="L395">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L400">            return &quot;Patent&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L405">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L409">    public static final BibLatexEntryType PERIODICAL = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L411">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L412">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;issuetitle&quot;, &quot;issuesubtitle&quot;, &quot;issn&quot;, &quot;doi&quot;,</span>
+<span class="fc" id="L413">                        &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L417">            addAllRequired(&quot;editor&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L418">            addAllOptional(&quot;editora&quot;, &quot;editorb&quot;, &quot;editorc&quot;, &quot;subtitle&quot;, &quot;issuetitle&quot;, &quot;issuesubtitle&quot;, &quot;language&quot;,</span>
+<span class="fc" id="L419">                    &quot;series&quot;, &quot;volume&quot;, &quot;number&quot;, &quot;issue&quot;, &quot;month&quot;, &quot;note&quot;, &quot;issn&quot;, &quot;addendum&quot;, &quot;pubstate&quot;,</span>
+<span class="fc" id="L420">                    &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L425">            return &quot;Periodical&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L430">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L434">    public static final BibLatexEntryType SUPPPERIODICAL = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L438">            return &quot;SuppPeriodical&quot;;</span>
+        }
+
+        // Treated as alias of &quot;ARTICLE&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L444">            return BibLatexEntryTypes.ARTICLE.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L449">            return BibLatexEntryTypes.ARTICLE.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L454">            return BibLatexEntryTypes.ARTICLE.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L458">    public static final BibLatexEntryType PROCEEDINGS = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L460">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L461">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;,</span>
+<span class="fc" id="L462">                        &quot;maintitleaddon&quot;, &quot;eventtitle&quot;, &quot;volume&quot;, &quot;publisher&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L463">                        &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L467">            addAllRequired(&quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L468">            addAllOptional(&quot;editor&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;, &quot;maintitleaddon&quot;, &quot;eventtitle&quot;,</span>
+<span class="fc" id="L469">                    &quot;eventtitleaddon&quot;, &quot;eventdate&quot;, &quot;venue&quot;, &quot;language&quot;, &quot;volume&quot;, &quot;part&quot;, &quot;volumes&quot;, &quot;series&quot;, &quot;number&quot;, &quot;note&quot;,</span>
+<span class="fc" id="L470">                    &quot;organization&quot;, &quot;publisher&quot;, &quot;location&quot;, &quot;month&quot;, &quot;year&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L471">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L476">            return &quot;Proceedings&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L481">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L485">    public static final BibLatexEntryType MVPROCEEDINGS = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L487">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L488">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;,</span>
+<span class="fc" id="L489">                        &quot;maintitleaddon&quot;, &quot;eventtitle&quot;, &quot;volume&quot;, &quot;publisher&quot;, &quot;isbn&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L490">                        &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L494">            addAllRequired(&quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L495">            addAllOptional(&quot;editor&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;eventtitle&quot;,</span>
+<span class="fc" id="L496">                    &quot;eventtitleaddon&quot;, &quot;eventdate&quot;, &quot;venue&quot;, &quot;language&quot;, &quot;volumes&quot;, &quot;series&quot;, &quot;number&quot;, &quot;note&quot;,</span>
+<span class="fc" id="L497">                    &quot;organization&quot;, &quot;publisher&quot;, &quot;location&quot;, &quot;month&quot;, &quot;isbn&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L498">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L503">            return &quot;MvProceedings&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L508">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L512">    public static final BibLatexEntryType INPROCEEDINGS = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L514">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L515">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;,</span>
+<span class="fc" id="L516">                        &quot;maintitleaddon&quot;, &quot;booksubtitle&quot;, &quot;booktitleaddon&quot;, &quot;eventtitle&quot;, &quot;volume&quot;, &quot;publisher&quot;, &quot;isbn&quot;,</span>
+<span class="fc" id="L517">                        &quot;chapter&quot;, &quot;pages&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L521">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;booktitle&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L522">            addAllOptional(&quot;editor&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;maintitle&quot;, &quot;mainsubtitle&quot;, &quot;maintitleaddon&quot;, &quot;booksubtitle&quot;,</span>
+<span class="fc" id="L523">                    &quot;booktitleaddon&quot;, &quot;eventtitle&quot;, &quot;eventtitleaddon&quot;, &quot;eventdate&quot;, &quot;venue&quot;, &quot;language&quot;, &quot;volume&quot;, &quot;part&quot;, &quot;volumes&quot;,</span>
+<span class="fc" id="L524">                    &quot;series&quot;, &quot;number&quot;, &quot;note&quot;, &quot;organization&quot;, &quot;publisher&quot;, &quot;location&quot;, &quot;month&quot;, &quot;isbn&quot;,</span>
+<span class="fc" id="L525">                    &quot;chapter&quot;, &quot;pages&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;,</span>
+<span class="fc" id="L526">                    &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L531">            return &quot;InProceedings&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L536">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L540">    public static final BibLatexEntryType REFERENCE = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L544">            return &quot;Reference&quot;;</span>
+        }
+
+        // Treated as alias of &quot;COLLECTION&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L550">            return BibLatexEntryTypes.COLLECTION.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L555">            return BibLatexEntryTypes.COLLECTION.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L560">            return BibLatexEntryTypes.COLLECTION.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L564">    public static final BibLatexEntryType MVREFERENCE = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L568">            return &quot;MvReference&quot;;</span>
+        }
+
+        // Treated as alias of &quot;MVCOLLECTION&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L574">            return BibLatexEntryTypes.MVCOLLECTION.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L579">            return BibLatexEntryTypes.MVCOLLECTION.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L584">            return BibLatexEntryTypes.MVCOLLECTION.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L588">    public static final BibLatexEntryType INREFERENCE = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L592">            return &quot;InReference&quot;;</span>
+        }
+
+        // Treated as alias of &quot;INCOLLECTION&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L598">            return BibLatexEntryTypes.INCOLLECTION.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L603">            return BibLatexEntryTypes.INCOLLECTION.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L608">            return BibLatexEntryTypes.INCOLLECTION.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L612">    public static final BibLatexEntryType REPORT = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L614">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L615">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;number&quot;, &quot;isrn&quot;, &quot;chapter&quot;,</span>
+<span class="fc" id="L616">                        &quot;pages&quot;, &quot;pagetotal&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L620">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;type&quot;, &quot;institution&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L621">            addAllOptional(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;number&quot;, &quot;version&quot;, &quot;note&quot;, &quot;location&quot;, &quot;month&quot;,</span>
+<span class="fc" id="L622">                    &quot;isrn&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;,</span>
+<span class="fc" id="L623">                    &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L628">            return &quot;Report&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L633">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L637">    public static final BibLatexEntryType SET = new BibLatexEntryType() {</span>
+        {
+<span class="fc" id="L639">            addAllRequired(&quot;entryset&quot;, &quot;crossref&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L644">            return &quot;Set&quot;;</span>
+        }
+    };
+
+<span class="fc" id="L648">    public static final BibLatexEntryType THESIS = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L650">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L651">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;,</span>
+<span class="fc" id="L652">                        &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L656">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;type&quot;, &quot;institution&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L657">            addAllOptional(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;note&quot;, &quot;location&quot;, &quot;month&quot;, &quot;isbn&quot;, &quot;chapter&quot;,</span>
+<span class="fc" id="L658">                    &quot;pages&quot;, &quot;pagetotal&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;,</span>
+<span class="fc" id="L659">                    &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L664">            return &quot;Thesis&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L669">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L673">    public static final BibLatexEntryType UNPUBLISHED = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L675">        private final List&lt;String&gt; primaryOptionalFields = Collections.unmodifiableList(</span>
+<span class="fc" id="L676">                Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;howpublished&quot;, &quot;pubstate&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+<span class="fc" id="L680">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L681">            addAllOptional(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;howpublished&quot;, &quot;note&quot;, &quot;location&quot;, &quot;month&quot;,</span>
+<span class="fc" id="L682">                    &quot;addendum&quot;, &quot;pubstate&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L687">            return &quot;Unpublished&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L692">            return primaryOptionalFields;</span>
+        }
+    };
+
+    // === Type aliases: ===
+
+<span class="fc" id="L698">    public static final BibLatexEntryType CONFERENCE = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L702">            return &quot;Conference&quot;;</span>
+        }
+
+        // Treated as alias of &quot;INPROCEEDINGS&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L708">            return BibLatexEntryTypes.INPROCEEDINGS.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L713">            return BibLatexEntryTypes.INPROCEEDINGS.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L718">            return BibLatexEntryTypes.INPROCEEDINGS.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L722">    public static final BibLatexEntryType ELECTRONIC = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L726">            return &quot;Electronic&quot;;</span>
+        }
+
+        // Treated as alias of &quot;ONLINE&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L732">            return BibLatexEntryTypes.ONLINE.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L737">            return BibLatexEntryTypes.ONLINE.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L742">            return BibLatexEntryTypes.ONLINE.getPrimaryOptionalFields();</span>
+        }
+    };
+
+<span class="fc" id="L746">    public static final BibLatexEntryType MASTERSTHESIS = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L748">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L749">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;type&quot;, &quot;chapter&quot;, &quot;pages&quot;,</span>
+<span class="fc" id="L750">                        &quot;pagetotal&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+            // Treated as alias of &quot;THESIS&quot;, except &quot;type&quot; field is optional
+<span class="fc" id="L755">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;institution&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L756">            addAllOptional(&quot;type&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;note&quot;, &quot;location&quot;, &quot;month&quot;, &quot;isbn&quot;, &quot;chapter&quot;,</span>
+<span class="fc" id="L757">                    &quot;pages&quot;, &quot;pagetotal&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;,</span>
+<span class="fc" id="L758">                    &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L763">            return &quot;MastersThesis&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L768">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L772">    public static final BibLatexEntryType PHDTHESIS = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L774">        private final List&lt;String&gt; primaryOptionalFields = Collections</span>
+<span class="fc" id="L775">                .unmodifiableList(Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;type&quot;, &quot;chapter&quot;, &quot;pages&quot;,</span>
+<span class="fc" id="L776">                        &quot;pagetotal&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+            // Treated as alias of &quot;THESIS&quot;, except &quot;type&quot; field is optional
+<span class="fc" id="L781">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;institution&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L782">            addAllOptional(&quot;type&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;note&quot;, &quot;location&quot;, &quot;month&quot;, &quot;isbn&quot;, &quot;chapter&quot;,</span>
+<span class="fc" id="L783">                    &quot;pages&quot;, &quot;pagetotal&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;,</span>
+<span class="fc" id="L784">                    &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L789">            return &quot;PhdThesis&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L794">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L798">    public static final BibLatexEntryType TECHREPORT = new BibLatexEntryType() {</span>
+
+<span class="fc" id="L800">        private final List&lt;String&gt; primaryOptionalFields = Collections.unmodifiableList(</span>
+<span class="fc" id="L801">                Arrays.asList(&quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;type&quot;, &quot;number&quot;, &quot;isrn&quot;, &quot;chapter&quot;, &quot;pages&quot;,</span>
+<span class="fc" id="L802">                        &quot;pagetotal&quot;, &quot;doi&quot;, &quot;eprint&quot;, &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;));</span>
+
+
+        {
+            // Treated as alias of &quot;REPORT&quot;, except &quot;type&quot; field is optional
+<span class="fc" id="L807">            addAllRequired(&quot;author&quot;, &quot;title&quot;, &quot;institution&quot;, &quot;year/date&quot;);</span>
+<span class="fc" id="L808">            addAllOptional(&quot;type&quot;, &quot;subtitle&quot;, &quot;titleaddon&quot;, &quot;language&quot;, &quot;number&quot;, &quot;version&quot;, &quot;note&quot;, &quot;location&quot;, &quot;month&quot;,</span>
+<span class="fc" id="L809">                    &quot;isrn&quot;, &quot;chapter&quot;, &quot;pages&quot;, &quot;pagetotal&quot;, &quot;addendum&quot;, &quot;pubstate&quot;, &quot;doi&quot;, &quot;eprint&quot;,</span>
+<span class="fc" id="L810">                    &quot;eprintclass&quot;, &quot;eprinttype&quot;, &quot;url&quot;, &quot;urldate&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L815">            return &quot;TechReport&quot;;</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L820">            return primaryOptionalFields;</span>
+        }
+    };
+
+<span class="fc" id="L824">    public static final BibLatexEntryType WWW = new BibLatexEntryType() {</span>
+
+        @Override
+        public String getName() {
+<span class="fc" id="L828">            return &quot;WWW&quot;;</span>
+        }
+
+        // Treated as alias of &quot;ONLINE&quot; according to Biblatex 1.0:
+        @Override
+        public List&lt;String&gt; getRequiredFields() {
+<span class="nc" id="L834">            return BibLatexEntryTypes.ONLINE.getRequiredFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getOptionalFields() {
+<span class="nc" id="L839">            return BibLatexEntryTypes.ONLINE.getOptionalFields();</span>
+        }
+
+        @Override
+        public List&lt;String&gt; getPrimaryOptionalFields() {
+<span class="nc" id="L844">            return BibLatexEntryTypes.ONLINE.getPrimaryOptionalFields();</span>
+        }
+    };
+
+    /**
+     * This type is used for IEEEtran.bst to control various
+     * be repeated or not. Not a very elegant solution, but it works...
+     */
+<span class="fc" id="L852">    public static final BibLatexEntryType IEEETRANBSTCTL = new BibLatexEntryType() {</span>
+
+        {
+<span class="fc" id="L855">            addAllOptional(&quot;ctluse_article_number&quot;, &quot;ctluse_paper&quot;, &quot;ctluse_forced_etal&quot;, &quot;ctluse_url&quot;,</span>
+<span class="fc" id="L856">                    &quot;ctlmax_names_forced_etal&quot;, &quot;ctlnames_show_etal&quot;, &quot;ctluse_alt_spacing&quot;, &quot;ctlalt_stretch_factor&quot;,</span>
+<span class="fc" id="L857">                    &quot;ctldash_repeated_names&quot;, &quot;ctlname_format_string&quot;, &quot;ctlname_latex_cmd&quot;, &quot;ctlname_url_prefix&quot;);</span>
+        }
+
+        @Override
+        public String getName() {
+<span class="fc" id="L862">            return &quot;IEEEtranBSTCTL&quot;;</span>
+        }
+    };
+
+<span class="fc" id="L866">    public static final List&lt;EntryType&gt; ALL = Arrays.asList(ARTICLE, BOOK, MVBOOK, INBOOK, BOOKINBOOK, SUPPBOOK,</span>
+<span class="fc" id="L867">            BOOKLET, COLLECTION, MVCOLLECTION, INCOLLECTION, SUPPCOLLECTION, MANUAL, MISC, ONLINE, PATENT, PERIODICAL,</span>
+<span class="fc" id="L868">            SUPPPERIODICAL, PROCEEDINGS, MVPROCEEDINGS, INPROCEEDINGS, REFERENCE, MVREFERENCE, INREFERENCE, REPORT, SET,</span>
+<span class="fc" id="L869">            THESIS, UNPUBLISHED, CONFERENCE, ELECTRONIC, MASTERSTHESIS, PHDTHESIS, TECHREPORT, WWW, IEEETRANBSTCTL);</span>
+
+    public static Optional&lt;EntryType&gt; getType(String name) {
+<span class="nc" id="L872">        return ALL.stream().filter(e -&gt; e.getName().equalsIgnoreCase(name)).findFirst();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ChangeScanner.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.collab</a> &gt; <span class="el_source">ChangeScanner.java</span></div><h1>ChangeScanner.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.collab;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.tree.DefaultMutableTreeNode;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Defaults;
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefExecutorService;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.MetaData;
+import net.sf.jabref.bibtex.comparator.EntryComparator;
+import net.sf.jabref.exporter.BibDatabaseWriter;
+import net.sf.jabref.exporter.SaveException;
+import net.sf.jabref.exporter.SavePreferences;
+import net.sf.jabref.exporter.SaveSession;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.importer.OpenDatabaseAction;
+import net.sf.jabref.importer.ParserResult;
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.DuplicateCheck;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.database.EntrySorter;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.BibtexString;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+public class ChangeScanner implements Runnable {
+
+<span class="nc" id="L60">    private static final String[] SORT_BY = new String[] {&quot;year&quot;, &quot;author&quot;, &quot;title&quot;};</span>
+
+    private final File f;
+
+    private final BibDatabase inMem;
+    private final MetaData mdInMem;
+    private final BasePanel panel;
+    private final JabRefFrame frame;
+
+    private BibDatabase inTemp;
+    private MetaData mdInTemp;
+
+<span class="nc" id="L72">    private static final Log LOGGER = LogFactory.getLog(ChangeScanner.class);</span>
+
+<span class="nc" id="L74">    private static final double MATCH_THRESHOLD = 0.4;</span>
+
+    /**
+     * We create an ArrayList to hold the changes we find. These will be added in the form
+     * of UndoEdit objects. We instantiate these so that the changes found in the file on disk
+     * can be reproduced in memory by calling redo() on them. REDO, not UNDO!
+     */
+<span class="nc" id="L81">    private final DefaultMutableTreeNode changes = new DefaultMutableTreeNode(Localization.lang(&quot;External changes&quot;));</span>
+
+    //  NamedCompound edit = new NamedCompound(&quot;Merged external changes&quot;)
+
+<span class="nc" id="L85">    public ChangeScanner(JabRefFrame frame, BasePanel bp, File file) {</span>
+<span class="nc" id="L86">        this.panel = bp;</span>
+<span class="nc" id="L87">        this.frame = frame;</span>
+<span class="nc" id="L88">        this.inMem = bp.getDatabase();</span>
+<span class="nc" id="L89">        this.mdInMem = bp.getBibDatabaseContext().getMetaData();</span>
+<span class="nc" id="L90">        this.f = file;</span>
+<span class="nc" id="L91">    }</span>
+
+    @Override
+    public void run() {
+        try {
+
+            // Parse the temporary file.
+<span class="nc" id="L98">            File tempFile = Globals.fileUpdateMonitor.getTempFile(panel.fileMonitorHandle());</span>
+<span class="nc" id="L99">            ParserResult pr = OpenDatabaseAction.loadDatabase(tempFile, Globals.prefs.getDefaultEncoding());</span>
+<span class="nc" id="L100">            inTemp = pr.getDatabase();</span>
+<span class="nc" id="L101">            mdInTemp = pr.getMetaData();</span>
+            // Parse the modified file.
+<span class="nc" id="L103">            pr = OpenDatabaseAction.loadDatabase(f, Globals.prefs.getDefaultEncoding());</span>
+<span class="nc" id="L104">            BibDatabase onDisk = pr.getDatabase();</span>
+<span class="nc" id="L105">            MetaData mdOnDisk = pr.getMetaData();</span>
+
+            // Sort both databases according to a common sort key.
+<span class="nc" id="L108">            EntryComparator comp = new EntryComparator(false, true, SORT_BY[2]);</span>
+<span class="nc" id="L109">            comp = new EntryComparator(false, true, SORT_BY[1], comp);</span>
+<span class="nc" id="L110">            comp = new EntryComparator(false, true, SORT_BY[0], comp);</span>
+<span class="nc" id="L111">            EntrySorter sInTemp = inTemp.getSorter(comp);</span>
+<span class="nc" id="L112">            comp = new EntryComparator(false, true, SORT_BY[2]);</span>
+<span class="nc" id="L113">            comp = new EntryComparator(false, true, SORT_BY[1], comp);</span>
+<span class="nc" id="L114">            comp = new EntryComparator(false, true, SORT_BY[0], comp);</span>
+<span class="nc" id="L115">            EntrySorter sOnDisk = onDisk.getSorter(comp);</span>
+<span class="nc" id="L116">            comp = new EntryComparator(false, true, SORT_BY[2]);</span>
+<span class="nc" id="L117">            comp = new EntryComparator(false, true, SORT_BY[1], comp);</span>
+<span class="nc" id="L118">            comp = new EntryComparator(false, true, SORT_BY[0], comp);</span>
+<span class="nc" id="L119">            EntrySorter sInMem = inMem.getSorter(comp);</span>
+
+            // Start looking at changes.
+<span class="nc" id="L122">            scanMetaData(mdInMem, mdInTemp, mdOnDisk);</span>
+<span class="nc" id="L123">            scanPreamble(inMem, inTemp, onDisk);</span>
+<span class="nc" id="L124">            scanStrings(inMem, inTemp, onDisk);</span>
+
+<span class="nc" id="L126">            scanEntries(sInMem, sInTemp, sOnDisk);</span>
+
+<span class="nc" id="L128">            scanGroups(mdInTemp, mdOnDisk);</span>
+
+<span class="nc" id="L130">        } catch (IOException ex) {</span>
+<span class="nc" id="L131">            LOGGER.warn(&quot;Problem running&quot;, ex);</span>
+        }
+<span class="nc" id="L133">    }</span>
+
+    public boolean changesFound() {
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        return changes.getChildCount() &gt; 0;</span>
+    }
+
+    public void displayResult(final DisplayResultCallback fup) {
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (changes.getChildCount() &gt; 0) {</span>
+<span class="nc" id="L141">            SwingUtilities.invokeLater((Runnable) () -&gt; {</span>
+<span class="nc" id="L142">                ChangeDisplayDialog dial = new ChangeDisplayDialog(frame, panel, inTemp, changes);</span>
+<span class="nc" id="L143">                dial.setLocationRelativeTo(frame);</span>
+<span class="nc" id="L144">                dial.setVisible(true);</span>
+<span class="nc" id="L145">                fup.scanResultsResolved(dial.isOkPressed());</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">                if (dial.isOkPressed()) {</span>
+                    // Overwrite the temp database:
+<span class="nc" id="L148">                    storeTempDatabase();</span>
+                }
+<span class="nc" id="L150">            });</span>
+
+<span class="nc" id="L152">        } else {</span>
+<span class="nc" id="L153">            JOptionPane.showMessageDialog(frame, Localization.lang(&quot;No actual changes found.&quot;),</span>
+<span class="nc" id="L154">                    Localization.lang(&quot;External changes&quot;), JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L155">            fup.scanResultsResolved(true);</span>
+        }
+<span class="nc" id="L157">    }</span>
+
+    private void storeTempDatabase() {
+<span class="nc" id="L160">        JabRefExecutorService.INSTANCE.execute((Runnable) () -&gt; {</span>
+            try {
+<span class="nc" id="L162">                SavePreferences prefs = SavePreferences.loadForSaveFromPreferences(Globals.prefs).withMakeBackup(false)</span>
+<span class="nc" id="L163">                        .withEncoding(panel.getEncoding());</span>
+
+<span class="nc" id="L165">                Defaults defaults = new Defaults(BibDatabaseMode</span>
+<span class="nc" id="L166">                        .fromPreference(Globals.prefs.getBoolean(JabRefPreferences.BIBLATEX_DEFAULT_MODE)));</span>
+<span class="nc" id="L167">                BibDatabaseWriter databaseWriter = new BibDatabaseWriter();</span>
+<span class="nc" id="L168">                SaveSession ss = databaseWriter.saveDatabase(new BibDatabaseContext(inTemp, mdInTemp, defaults), prefs);</span>
+<span class="nc" id="L169">                ss.commit(Globals.fileUpdateMonitor.getTempFile(panel.fileMonitorHandle()));</span>
+<span class="nc" id="L170">            } catch (SaveException ex) {</span>
+<span class="nc" id="L171">                LOGGER.warn(&quot;Problem updating tmp file after accepting external changes&quot;, ex);</span>
+            }
+<span class="nc" id="L173">        });</span>
+<span class="nc" id="L174">    }</span>
+
+    private void scanMetaData(MetaData inMem1, MetaData inTemp1, MetaData onDisk) {
+<span class="nc" id="L177">        MetaDataChange mdc = new MetaDataChange(inMem1, inTemp1);</span>
+<span class="nc" id="L178">        List&lt;String&gt; handledOnDisk = new ArrayList&lt;&gt;();</span>
+        // Loop through the metadata entries of the &quot;tmp&quot; database, looking for
+        // matches
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        for (String key : inTemp1) {</span>
+            // See if the key is missing in the disk database:
+<span class="nc" id="L183">            List&lt;String&gt; vod = onDisk.getData(key);</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            if (vod == null) {</span>
+<span class="nc" id="L185">                mdc.insertMetaDataRemoval(key);</span>
+<span class="nc" id="L186">            } else {</span>
+                // Both exist. Check if they are different:
+<span class="nc" id="L188">                List&lt;String&gt; vit = inTemp1.getData(key);</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">                if (!vod.equals(vit)) {</span>
+<span class="nc" id="L190">                    mdc.insertMetaDataChange(key, vod);</span>
+                }
+                // Remember that we've handled this one:
+<span class="nc" id="L193">                handledOnDisk.add(key);</span>
+            }
+        }
+
+        // See if there are unhandled keys in the disk database:
+<span class="nc bnc" id="L198" title="All 2 branches missed.">        for (String key : onDisk) {</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">            if (!handledOnDisk.contains(key)) {</span>
+<span class="nc" id="L200">                mdc.insertMetaDataAddition(key, onDisk.getData(key));</span>
+            }
+        }
+
+<span class="nc bnc" id="L204" title="All 2 branches missed.">        if (mdc.getChangeCount() &gt; 0) {</span>
+<span class="nc" id="L205">            changes.add(mdc);</span>
+        }
+<span class="nc" id="L207">    }</span>
+
+    private void scanEntries(EntrySorter mem, EntrySorter tmp, EntrySorter disk) {
+
+        // Create pointers that are incremented as the entries of each base are used in
+        // successive order from the beginning. Entries &quot;further down&quot; in the &quot;disk&quot; base
+        // can also be matched.
+        int piv1;
+<span class="nc" id="L215">        int piv2 = 0;</span>
+
+        // Create a HashSet where we can put references to entry numbers in the &quot;disk&quot;
+        // database that we have matched. This is to avoid matching them twice.
+<span class="nc" id="L219">        Set&lt;String&gt; used = new HashSet&lt;&gt;(disk.getEntryCount());</span>
+<span class="nc" id="L220">        Set&lt;Integer&gt; notMatched = new HashSet&lt;&gt;(tmp.getEntryCount());</span>
+
+        // Loop through the entries of the &quot;tmp&quot; database, looking for exact matches in the &quot;disk&quot; one.
+        // We must finish scanning for exact matches before looking for near matches, to avoid an exact
+        // match being &quot;stolen&quot; from another entry.
+        mainLoop:
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        for (piv1 = 0; piv1 &lt; tmp.getEntryCount(); piv1++) {</span>
+
+            // First check if the similarly placed entry in the other base matches exactly.
+<span class="nc" id="L229">            double comp = -1;</span>
+            // (if there are not any entries left in the &quot;disk&quot; database, comp will stay at -1,
+            // and this entry will be marked as nonmatched).
+<span class="nc bnc" id="L232" title="All 4 branches missed.">            if (!used.contains(String.valueOf(piv2)) &amp;&amp; (piv2 &lt; disk.getEntryCount())) {</span>
+<span class="nc" id="L233">                comp = DuplicateCheck.compareEntriesStrictly(tmp.getEntryAt(piv1), disk.getEntryAt(piv2));</span>
+            }
+<span class="nc bnc" id="L235" title="All 2 branches missed.">            if (comp &gt; 1) {</span>
+<span class="nc" id="L236">                used.add(String.valueOf(piv2));</span>
+<span class="nc" id="L237">                piv2++;</span>
+<span class="nc" id="L238">                continue;</span>
+            }
+
+            // No? Then check if another entry matches exactly.
+<span class="nc bnc" id="L242" title="All 2 branches missed.">            if (piv2 &lt; (disk.getEntryCount() - 1)) {</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">                for (int i = piv2 + 1; i &lt; disk.getEntryCount(); i++) {</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">                    if (used.contains(String.valueOf(i))) {</span>
+<span class="nc" id="L245">                        comp = -1;</span>
+<span class="nc" id="L246">                    } else {</span>
+<span class="nc" id="L247">                        comp = DuplicateCheck.compareEntriesStrictly(tmp.getEntryAt(piv1), disk.getEntryAt(i));</span>
+                    }
+
+<span class="nc bnc" id="L250" title="All 2 branches missed.">                    if (comp &gt; 1) {</span>
+<span class="nc" id="L251">                        used.add(String.valueOf(i));</span>
+<span class="nc" id="L252">                        continue mainLoop;</span>
+                    }
+                }
+            }
+
+            // No? Add this entry to the list of nonmatched entries.
+<span class="nc" id="L258">            notMatched.add(piv1);</span>
+        }
+
+        // Now we've found all exact matches, look through the remaining entries, looking
+        // for close matches.
+<span class="nc bnc" id="L263" title="All 2 branches missed.">        if (!notMatched.isEmpty()) {</span>
+
+<span class="nc bnc" id="L265" title="All 2 branches missed.">            for (Iterator&lt;Integer&gt; it = notMatched.iterator(); it.hasNext(); ) {</span>
+
+<span class="nc" id="L267">                piv1 = it.next();</span>
+
+                // These two variables will keep track of which entry most closely matches the
+                // one we're looking at, in case none matches completely.
+<span class="nc" id="L271">                int bestMatchI = -1;</span>
+<span class="nc" id="L272">                double bestMatch = 0;</span>
+                double comp;
+
+<span class="nc bnc" id="L275" title="All 2 branches missed.">                if (piv2 &lt; (disk.getEntryCount() - 1)) {</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">                    for (int i = piv2; i &lt; disk.getEntryCount(); i++) {</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">                        if (used.contains(String.valueOf(i))) {</span>
+<span class="nc" id="L278">                            comp = -1;</span>
+<span class="nc" id="L279">                        } else {</span>
+<span class="nc" id="L280">                            comp = DuplicateCheck.compareEntriesStrictly(tmp.getEntryAt(piv1), disk.getEntryAt(i));</span>
+                        }
+
+<span class="nc bnc" id="L283" title="All 2 branches missed.">                        if (comp &gt; bestMatch) {</span>
+<span class="nc" id="L284">                            bestMatch = comp;</span>
+<span class="nc" id="L285">                            bestMatchI = i;</span>
+                        }
+                    }
+                }
+
+<span class="nc bnc" id="L290" title="All 2 branches missed.">                if (bestMatch &gt; MATCH_THRESHOLD) {</span>
+<span class="nc" id="L291">                    used.add(String.valueOf(bestMatchI));</span>
+<span class="nc" id="L292">                    it.remove();</span>
+
+<span class="nc" id="L294">                    EntryChange ec = new EntryChange(bestFit(tmp, mem, piv1), tmp.getEntryAt(piv1),</span>
+<span class="nc" id="L295">                            disk.getEntryAt(bestMatchI));</span>
+<span class="nc" id="L296">                    changes.add(ec);</span>
+<span class="nc" id="L297">                } else {</span>
+<span class="nc" id="L298">                    EntryDeleteChange ec = new EntryDeleteChange(bestFit(tmp, mem, piv1), tmp.getEntryAt(piv1));</span>
+<span class="nc" id="L299">                    changes.add(ec);</span>
+                }
+
+            }
+
+        }
+
+        // Finally, look if there are still untouched entries in the disk database. These
+        // may have been added.
+<span class="nc bnc" id="L308" title="All 2 branches missed.">        if (used.size() &lt; disk.getEntryCount()) {</span>
+<span class="nc bnc" id="L309" title="All 2 branches missed.">            for (int i = 0; i &lt; disk.getEntryCount(); i++) {</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">                if (!used.contains(String.valueOf(i))) {</span>
+
+                    // See if there is an identical dupe in the mem database:
+<span class="nc" id="L313">                    boolean hasAlready = false;</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">                    for (int j = 0; j &lt; mem.getEntryCount(); j++) {</span>
+<span class="nc bnc" id="L315" title="All 2 branches missed.">                        if (DuplicateCheck.compareEntriesStrictly(mem.getEntryAt(j), disk.getEntryAt(i)) &gt;= 1) {</span>
+<span class="nc" id="L316">                            hasAlready = true;</span>
+<span class="nc" id="L317">                            break;</span>
+                        }
+                    }
+<span class="nc bnc" id="L320" title="All 2 branches missed.">                    if (!hasAlready) {</span>
+<span class="nc" id="L321">                        EntryAddChange ec = new EntryAddChange(disk.getEntryAt(i));</span>
+<span class="nc" id="L322">                        changes.add(ec);</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L327">    }</span>
+
+    /**
+     * Finds the entry in neu best fitting the specified entry in old. If no entries get a score
+     * above zero, an entry is still returned.
+     *
+     * @param old   EntrySorter
+     * @param neu   EntrySorter
+     * @param index int
+     * @return BibEntry
+     */
+    private static BibEntry bestFit(EntrySorter old, EntrySorter neu, int index) {
+<span class="nc" id="L339">        double comp = -1;</span>
+<span class="nc" id="L340">        int found = 0;</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        for (int i = 0; i &lt; neu.getEntryCount(); i++) {</span>
+<span class="nc" id="L342">            double res = DuplicateCheck.compareEntriesStrictly(old.getEntryAt(index), neu.getEntryAt(i));</span>
+<span class="nc bnc" id="L343" title="All 2 branches missed.">            if (res &gt; comp) {</span>
+<span class="nc" id="L344">                comp = res;</span>
+<span class="nc" id="L345">                found = i;</span>
+            }
+<span class="nc bnc" id="L347" title="All 2 branches missed.">            if (comp &gt; 1) {</span>
+<span class="nc" id="L348">                break;</span>
+            }
+        }
+<span class="nc" id="L351">        return neu.getEntryAt(found);</span>
+    }
+
+    private void scanPreamble(BibDatabase inMem1, BibDatabase onTmp, BibDatabase onDisk) {
+<span class="nc" id="L355">        String mem = inMem1.getPreamble();</span>
+<span class="nc" id="L356">        String tmp = onTmp.getPreamble();</span>
+<span class="nc" id="L357">        String disk = onDisk.getPreamble();</span>
+<span class="nc bnc" id="L358" title="All 2 branches missed.">        if (tmp == null) {</span>
+<span class="nc bnc" id="L359" title="All 4 branches missed.">            if ((disk != null) &amp;&amp; !disk.isEmpty()) {</span>
+<span class="nc" id="L360">                changes.add(new PreambleChange(mem, disk));</span>
+            }
+<span class="nc" id="L362">        } else {</span>
+<span class="nc bnc" id="L363" title="All 4 branches missed.">            if ((disk == null) || !tmp.equals(disk)) {</span>
+<span class="nc" id="L364">                changes.add(new PreambleChange(mem, disk));</span>
+            }
+        }
+<span class="nc" id="L367">    }</span>
+
+    private void scanStrings(BibDatabase inMem1, BibDatabase onTmp, BibDatabase onDisk) {
+<span class="nc bnc" id="L370" title="All 4 branches missed.">        if (onTmp.hasNoStrings() &amp;&amp; onDisk.hasNoStrings()) {</span>
+<span class="nc" id="L371">            return;</span>
+        }
+
+<span class="nc" id="L374">        Set&lt;Object&gt; used = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L375">        Set&lt;Object&gt; usedInMem = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L376">        Set&lt;String&gt; notMatched = new HashSet&lt;&gt;(onTmp.getStringCount());</span>
+
+        // First try to match by string names.
+        mainLoop:
+<span class="nc bnc" id="L380" title="All 2 branches missed.">        for (String key : onTmp.getStringKeySet()) {</span>
+<span class="nc" id="L381">            BibtexString tmp = onTmp.getString(key);</span>
+
+<span class="nc bnc" id="L383" title="All 2 branches missed.">            for (String diskId : onDisk.getStringKeySet()) {</span>
+<span class="nc bnc" id="L384" title="All 2 branches missed.">                if (!used.contains(diskId)) {</span>
+<span class="nc" id="L385">                    BibtexString disk = onDisk.getString(diskId);</span>
+<span class="nc bnc" id="L386" title="All 2 branches missed.">                    if (disk.getName().equals(tmp.getName())) {</span>
+                        // We have found a string with a matching name.
+<span class="nc bnc" id="L388" title="All 4 branches missed.">                        if ((tmp.getContent() != null) &amp;&amp; !tmp.getContent().equals(disk.getContent())) {</span>
+                            // But they have nonmatching contents, so we've found a change.
+<span class="nc" id="L390">                            Optional&lt;BibtexString&gt; mem = findString(inMem1, tmp.getName(), usedInMem);</span>
+<span class="nc bnc" id="L391" title="All 2 branches missed.">                            if (mem.isPresent()) {</span>
+<span class="nc" id="L392">                                changes.add(new StringChange(mem.get(), tmp, tmp.getName(), mem.get().getContent(),</span>
+<span class="nc" id="L393">                                        disk.getContent()));</span>
+<span class="nc" id="L394">                            } else {</span>
+<span class="nc" id="L395">                                changes.add(new StringChange(null, tmp, tmp.getName(), null, disk.getContent()));</span>
+                            }
+                        }
+<span class="nc" id="L398">                        used.add(diskId);</span>
+<span class="nc" id="L399">                        continue mainLoop;</span>
+                    }
+
+                }
+            }
+            // If we get here, there was no match for this string.
+<span class="nc" id="L405">            notMatched.add(tmp.getId());</span>
+        }
+
+        // See if we can detect a name change for those entries that we couldn't match.
+<span class="nc bnc" id="L409" title="All 2 branches missed.">        if (!notMatched.isEmpty()) {</span>
+<span class="nc bnc" id="L410" title="All 2 branches missed.">            for (Iterator&lt;String&gt; i = notMatched.iterator(); i.hasNext(); ) {</span>
+<span class="nc" id="L411">                BibtexString tmp = onTmp.getString(i.next());</span>
+
+                // If we get to this point, we found no string with matching name. See if we
+                // can find one with matching content.
+<span class="nc bnc" id="L415" title="All 2 branches missed.">                for (String diskId : onDisk.getStringKeySet()) {</span>
+
+<span class="nc bnc" id="L417" title="All 2 branches missed.">                    if (!used.contains(diskId)) {</span>
+<span class="nc" id="L418">                        BibtexString disk = onDisk.getString(diskId);</span>
+
+<span class="nc bnc" id="L420" title="All 2 branches missed.">                        if (disk.getContent().equals(tmp.getContent())) {</span>
+                            // We have found a string with the same content. It cannot have the same
+                            // name, or we would have found it above.
+
+                            // Try to find the matching one in memory:
+<span class="nc" id="L425">                            BibtexString bsMem = null;</span>
+
+<span class="nc bnc" id="L427" title="All 2 branches missed.">                            for (String memId : inMem1.getStringKeySet()) {</span>
+<span class="nc" id="L428">                                BibtexString bsMemCandidate = inMem1.getString(memId);</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">                                if (bsMemCandidate.getContent().equals(disk.getContent()) &amp;&amp; !usedInMem.contains(</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">                                        memId)) {</span>
+<span class="nc" id="L431">                                    usedInMem.add(memId);</span>
+<span class="nc" id="L432">                                    bsMem = bsMemCandidate;</span>
+<span class="nc" id="L433">                                    break;</span>
+                                }
+                            }
+
+<span class="nc bnc" id="L437" title="All 2 branches missed.">                            if (bsMem != null) {</span>
+<span class="nc" id="L438">                                changes.add(</span>
+<span class="nc" id="L439">                                        new StringNameChange(bsMem, tmp, bsMem.getName(), tmp.getName(), disk.getName(),</span>
+<span class="nc" id="L440">                                                tmp.getContent()));</span>
+<span class="nc" id="L441">                                i.remove();</span>
+<span class="nc" id="L442">                                used.add(diskId);</span>
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+<span class="nc bnc" id="L451" title="All 2 branches missed.">        if (!notMatched.isEmpty()) {</span>
+            // Still one or more non-matched strings. So they must have been removed.
+<span class="nc bnc" id="L453" title="All 2 branches missed.">            for (String nmId : notMatched) {</span>
+<span class="nc" id="L454">                BibtexString tmp = onTmp.getString(nmId);</span>
+                // The removed string is not removed from the mem version.
+<span class="nc" id="L456">                findString(inMem1, tmp.getName(), usedInMem).ifPresent(</span>
+<span class="nc" id="L457">                        x -&gt; changes.add(new StringRemoveChange(tmp, tmp, x)));</span>
+            }
+        }
+
+        // Finally, see if there are remaining strings in the disk database. They
+        // must have been added.
+<span class="nc bnc" id="L463" title="All 2 branches missed.">        for (String diskId : onDisk.getStringKeySet()) {</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">            if (!used.contains(diskId)) {</span>
+<span class="nc" id="L465">                BibtexString disk = onDisk.getString(diskId);</span>
+<span class="nc" id="L466">                used.add(diskId);</span>
+<span class="nc" id="L467">                changes.add(new StringAddChange(disk));</span>
+            }
+        }
+<span class="nc" id="L470">    }</span>
+
+    private static Optional&lt;BibtexString&gt; findString(BibDatabase base, String name, Set&lt;Object&gt; used) {
+<span class="nc bnc" id="L473" title="All 2 branches missed.">        if (!base.hasStringLabel(name)) {</span>
+<span class="nc" id="L474">            return Optional.empty();</span>
+        }
+<span class="nc bnc" id="L476" title="All 2 branches missed.">        for (String key : base.getStringKeySet()) {</span>
+<span class="nc" id="L477">            BibtexString bs = base.getString(key);</span>
+<span class="nc bnc" id="L478" title="All 4 branches missed.">            if (bs.getName().equals(name) &amp;&amp; !used.contains(key)) {</span>
+<span class="nc" id="L479">                used.add(key);</span>
+<span class="nc" id="L480">                return Optional.of(bs);</span>
+            }
+        }
+<span class="nc" id="L483">        return Optional.empty();</span>
+    }
+
+    /**
+     * This method only detects whether a change took place or not. It does not determine the type of change. This would
+     * be possible, but difficult to do properly, so I rather only report the change.
+     */
+    private void scanGroups(MetaData onTmp, MetaData onDisk) {
+<span class="nc" id="L491">        final GroupTreeNode groupsTmp = onTmp.getGroups();</span>
+<span class="nc" id="L492">        final GroupTreeNode groupsDisk = onDisk.getGroups();</span>
+<span class="nc bnc" id="L493" title="All 4 branches missed.">        if ((groupsTmp == null) &amp;&amp; (groupsDisk == null)) {</span>
+<span class="nc" id="L494">            return;</span>
+        }
+<span class="nc bnc" id="L496" title="All 6 branches missed.">        if (((groupsTmp != null) &amp;&amp; (groupsDisk == null)) || (groupsTmp == null)) {</span>
+<span class="nc" id="L497">            changes.add(new GroupChange(groupsDisk, groupsTmp));</span>
+<span class="nc" id="L498">            return;</span>
+        }
+<span class="nc bnc" id="L500" title="All 2 branches missed.">        if (!groupsTmp.equals(groupsDisk)) {</span>
+<span class="nc" id="L501">            changes.add(new GroupChange(groupsDisk, groupsTmp));</span>
+        }
+<span class="nc" id="L503">    }</span>
+
+
+    @FunctionalInterface
+    public interface DisplayResultCallback {
+        void scanResultsResolved(boolean resolved);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

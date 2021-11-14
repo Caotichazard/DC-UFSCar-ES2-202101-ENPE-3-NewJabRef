@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>UnicodeToLatexFormatter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.formatter.bibtexfields</a> &gt; <span class="el_source">UnicodeToLatexFormatter.java</span></div><h1>UnicodeToLatexFormatter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.logic.formatter.bibtexfields;
+
+import java.util.Objects;
+import java.util.Set;
+
+import net.sf.jabref.logic.formatter.Formatter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.layout.LayoutFormatter;
+import net.sf.jabref.logic.util.strings.HTMLUnicodeConversionMaps;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+<span class="fc" id="L29">public class UnicodeToLatexFormatter implements LayoutFormatter, Formatter {</span>
+
+<span class="fc" id="L31">    private static final Log LOGGER = LogFactory.getLog(UnicodeToLatexFormatter.class);</span>
+
+    @Override
+    public String format(String text) {
+<span class="nc" id="L35">        String result = Objects.requireNonNull(text);</span>
+
+<span class="nc bnc" id="L37" title="All 2 branches missed.">        if (result.isEmpty()) {</span>
+<span class="nc" id="L38">            return result;</span>
+        }
+
+        // Standard symbols
+<span class="nc" id="L42">        Set&lt;Character&gt; chars = HTMLUnicodeConversionMaps.UNICODE_LATEX_CONVERSION_MAP.keySet();</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        for (Character character : chars) {</span>
+<span class="nc" id="L44">            result = result.replaceAll(character.toString(),</span>
+<span class="nc" id="L45">                    HTMLUnicodeConversionMaps.UNICODE_LATEX_CONVERSION_MAP.get(character));</span>
+        }
+
+        // Combining accents
+<span class="nc" id="L49">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L50">        boolean consumed = false;</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        for (int i = 0; i &lt;= (result.length() - 2); i++) {</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">            if (!consumed &amp;&amp; (i &lt; (result.length() - 1))) {</span>
+<span class="nc" id="L53">                int cpCurrent = result.codePointAt(i);</span>
+<span class="nc" id="L54">                Integer cpNext = result.codePointAt(i + 1);</span>
+<span class="nc" id="L55">                String code = HTMLUnicodeConversionMaps.ESCAPED_ACCENTS.get(cpNext);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">                if (code == null) {</span>
+<span class="nc" id="L57">                    sb.append((char) cpCurrent);</span>
+<span class="nc" id="L58">                } else {</span>
+<span class="nc" id="L59">                    sb.append(&quot;{\\&quot; + code + '{' + (char) cpCurrent + &quot;}}&quot;);</span>
+<span class="nc" id="L60">                    consumed = true;</span>
+                }
+<span class="nc" id="L62">            } else {</span>
+<span class="nc" id="L63">                consumed = false;</span>
+            }
+        }
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (!consumed) {</span>
+<span class="nc" id="L67">            sb.append((char) result.codePointAt(result.length() - 1));</span>
+        }
+<span class="nc" id="L69">        result = sb.toString();</span>
+
+        // Check if any symbols is not converted
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        for (int i = 0; i &lt;= (result.length() - 1); i++) {</span>
+<span class="nc" id="L73">            int cp = result.codePointAt(i);</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">            if (cp &gt;= 129) {</span>
+<span class="nc" id="L75">                LOGGER.warn(&quot;Unicode character not converted: &quot; + cp);</span>
+            }
+        }
+<span class="nc" id="L78">        return result;</span>
+    }
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L83">        return Localization.lang(&quot;Converts Unicode characters to LaTeX encoding.&quot;);</span>
+    }
+
+    @Override
+    public String getExampleInput() {
+<span class="nc" id="L88">        return &quot;Mönch&quot;;</span>
+    }
+
+    @Override
+    public String getName() {
+<span class="fc" id="L93">        return Localization.lang(&quot;Unicode to LaTeX&quot;);</span>
+    }
+
+    @Override
+    public String getKey() {
+<span class="nc" id="L98">        return &quot;unicode_to_latex&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

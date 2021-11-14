@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ExternalFileMenuItem.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.external</a> &gt; <span class="el_source">ExternalFileMenuItem.java</span></div><h1>ExternalFileMenuItem.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.external;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+
+import javax.swing.Icon;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.desktop.JabRefDesktop;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * The menu item used in the popup menu for opening external resources associated
+ * with an entry. Shows the resource name and icon given, and adds an action listener
+ * to process the request if the user clicks this menu item.
+ */
+public class ExternalFileMenuItem extends JMenuItem implements ActionListener {
+
+<span class="nc" id="L44">    private static final Log LOGGER = LogFactory.getLog(ExternalFileMenuItem.class);</span>
+
+    private final BibEntry entry;
+    private final String link;
+    private final BibDatabaseContext databaseContext;
+    private Optional&lt;ExternalFileType&gt; fileType;
+    private final JabRefFrame frame;
+    private String fieldName;
+
+
+    public ExternalFileMenuItem(JabRefFrame frame, BibEntry entry, String name, String link, Icon icon,
+            BibDatabaseContext databaseContext, Optional&lt;ExternalFileType&gt; fileType) {
+<span class="nc" id="L56">        super(name, icon);</span>
+<span class="nc" id="L57">        this.frame = frame;</span>
+<span class="nc" id="L58">        this.entry = entry;</span>
+<span class="nc" id="L59">        this.link = link;</span>
+<span class="nc" id="L60">        this.databaseContext = databaseContext;</span>
+<span class="nc" id="L61">        this.fileType = fileType;</span>
+<span class="nc" id="L62">        addActionListener(this);</span>
+<span class="nc" id="L63">    }</span>
+
+    public ExternalFileMenuItem(JabRefFrame frame, BibEntry entry, String name, String link, Icon icon,
+            BibDatabaseContext databaseContext, String fieldName) {
+<span class="nc" id="L67">        this(frame, entry, name, link, icon, databaseContext, Optional.empty());</span>
+<span class="nc" id="L68">        this.fieldName = fieldName;</span>
+<span class="nc" id="L69">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L73">        boolean success = openLink();</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (!success) {</span>
+<span class="nc" id="L75">            frame.output(Localization.lang(&quot;Unable to open link.&quot;));</span>
+        }
+<span class="nc" id="L77">    }</span>
+
+    public boolean openLink() {
+<span class="nc" id="L80">        frame.output(Localization.lang(&quot;External viewer called&quot;) + &quot;.&quot;);</span>
+        try {
+<span class="nc" id="L82">            Optional&lt;ExternalFileType&gt; type = fileType;</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">            if (!this.fileType.isPresent()) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">                if (this.fieldName == null) {</span>
+                    // We don't already know the file type, so we try to deduce it from the extension:
+<span class="nc" id="L86">                    File file = new File(link);</span>
+                    // We try to check the extension for the file:
+<span class="nc" id="L88">                    String name = file.getName();</span>
+<span class="nc" id="L89">                    int pos = name.indexOf('.');</span>
+<span class="nc bnc" id="L90" title="All 4 branches missed.">                    String extension = (pos &gt;= 0) &amp;&amp; (pos &lt; (name.length() - 1)) ? name.substring(pos + 1)</span>
+<span class="nc" id="L91">                            .trim().toLowerCase() : null;</span>
+                    // Now we know the extension, check if it is one we know about:
+<span class="nc" id="L93">                    type = ExternalFileTypes.getInstance().getExternalFileTypeByExt(extension);</span>
+<span class="nc" id="L94">                    fileType = type;</span>
+<span class="nc" id="L95">                } else {</span>
+<span class="nc" id="L96">                    JabRefDesktop.openExternalViewer(databaseContext, link, fieldName);</span>
+<span class="nc" id="L97">                    return true;</span>
+                }
+            }
+
+<span class="nc bnc" id="L101" title="All 4 branches missed.">            if (type.isPresent() &amp;&amp; (type.get() instanceof UnknownExternalFileType)) {</span>
+<span class="nc" id="L102">                return JabRefDesktop.openExternalFileUnknown(frame, entry, databaseContext, link,</span>
+<span class="nc" id="L103">                        (UnknownExternalFileType) type.get());</span>
+            } else {
+<span class="nc" id="L105">                return JabRefDesktop.openExternalFileAnyFormat(databaseContext, link, type);</span>
+            }
+
+<span class="nc" id="L108">        } catch (IOException e1) {</span>
+            // See if we should show an error message concerning the application to open the
+            // link with. We check if the file type is set, and if the file type has a non-empty
+            // application link. If that link is referred by the error message, we can assume
+            // that the problem is in the open-with-application setting:
+<span class="nc bnc" id="L113" title="All 4 branches missed.">            if ((fileType.isPresent()) &amp;&amp; (!fileType.get().getOpenWithApplication().isEmpty())</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">                    &amp;&amp; e1.getMessage().contains(fileType.get().getOpenWithApplication())) {</span>
+
+<span class="nc" id="L116">                JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Unable to open link. &quot;</span>
+                                        + &quot;The application '%0' associated with the file type '%1' could not be called.&quot;,
+<span class="nc" id="L118">                        fileType.get().getOpenWithApplication(), fileType.get().getName()),</span>
+<span class="nc" id="L119">                        Localization.lang(&quot;Could not open link&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L120">                return false;</span>
+            }
+
+<span class="nc" id="L123">            LOGGER.warn(&quot;Unable to open link&quot;, e1);</span>
+        }
+<span class="nc" id="L125">        return false;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

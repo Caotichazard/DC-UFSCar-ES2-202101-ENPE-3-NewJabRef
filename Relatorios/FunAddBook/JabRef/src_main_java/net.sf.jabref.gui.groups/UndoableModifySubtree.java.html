@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>UndoableModifySubtree.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.groups</a> &gt; <span class="el_source">UndoableModifySubtree.java</span></div><h1>UndoableModifySubtree.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.groups;
+
+import java.util.List;
+import java.util.Vector;
+
+import javax.swing.undo.AbstractUndoableEdit;
+
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.logic.l10n.Localization;
+
+public class UndoableModifySubtree extends AbstractUndoableEdit {
+
+    /** A backup of the groups before the modification */
+    private final GroupTreeNode m_groupRoot;
+    private final GroupTreeNode m_subtreeBackup;
+    /** The path to the global groups root node */
+    private final List&lt;Integer&gt; m_subtreeRootPath;
+    /** This holds the new subtree (the root's modified children) to allow redo. */
+<span class="nc" id="L34">    private final List&lt;GroupTreeNode&gt; m_modifiedSubtree = new Vector&lt;&gt;();</span>
+    private final String m_name;
+
+
+    /**
+     *
+     * @param subtree
+     *            The root node of the subtree that was modified (this node may
+     *            not be modified, it is just used as a convenience handle).
+     */
+<span class="nc" id="L44">    public UndoableModifySubtree(GroupTreeNodeViewModel groupRoot,</span>
+            GroupTreeNodeViewModel subtree, String name) {
+<span class="nc" id="L46">        m_subtreeBackup = subtree.getNode().copySubtree();</span>
+<span class="nc" id="L47">        m_groupRoot = groupRoot.getNode();</span>
+<span class="nc" id="L48">        m_subtreeRootPath = subtree.getNode().getIndexedPathFromRoot();</span>
+<span class="nc" id="L49">        m_name = name;</span>
+<span class="nc" id="L50">    }</span>
+
+    @Override
+    public String getUndoPresentationName() {
+<span class="nc" id="L54">        return Localization.lang(&quot;Undo&quot;) + &quot;: &quot; + m_name;</span>
+
+    }
+
+    @Override
+    public String getRedoPresentationName() {
+<span class="nc" id="L60">        return Localization.lang(&quot;Redo&quot;) + &quot;: &quot; + m_name;</span>
+    }
+
+    @Override
+    public void undo() {
+<span class="nc" id="L65">        super.undo();</span>
+        // remember modified children for redo
+<span class="nc" id="L67">        m_modifiedSubtree.clear();</span>
+        // get node to edit
+<span class="nc" id="L69">        final GroupTreeNode subtreeRoot = m_groupRoot.getDescendant(m_subtreeRootPath).get(); //TODO: NULL</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        for (GroupTreeNode child : subtreeRoot.getChildren()) {</span>
+<span class="nc" id="L71">            m_modifiedSubtree.add(child);</span>
+        }
+        // keep subtree handle, but restore everything else from backup
+<span class="nc" id="L74">        subtreeRoot.removeAllChildren();</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        for (GroupTreeNode child : m_subtreeBackup.getChildren()) {</span>
+<span class="nc" id="L76">            child.copySubtree().moveTo(subtreeRoot);</span>
+        }
+<span class="nc" id="L78">    }</span>
+
+    @Override
+    public void redo() {
+<span class="nc" id="L82">        super.redo();</span>
+<span class="nc" id="L83">        final GroupTreeNode subtreeRoot = m_groupRoot.getDescendant(m_subtreeRootPath).get(); //TODO: NULL</span>
+<span class="nc" id="L84">        subtreeRoot.removeAllChildren();</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        for (GroupTreeNode modifiedNode : m_modifiedSubtree) {</span>
+<span class="nc" id="L86">            modifiedNode.moveTo(subtreeRoot);</span>
+        }
+<span class="nc" id="L88">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>PasteAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.actions</a> &gt; <span class="el_source">PasteAction.java</span></div><h1>PasteAction.java</h1><pre class="source lang-java linenums">package net.sf.jabref.gui.actions;
+
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.text.JTextComponent;
+
+import net.sf.jabref.gui.ClipBoardManager;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.net.URLUtil;
+
+public class PasteAction extends AbstractAction {
+    private final Component target;
+
+<span class="fc" id="L18">    public PasteAction(Component target) {</span>
+<span class="fc" id="L19">        this.target = target;</span>
+
+<span class="fc" id="L21">        putValue(Action.NAME, Localization.lang(&quot;Paste from clipboard&quot;));</span>
+<span class="fc" id="L22">        putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Paste from clipboard&quot;));</span>
+<span class="fc" id="L23">        putValue(Action.SMALL_ICON, IconTheme.JabRefIcon.PASTE.getSmallIcon());</span>
+<span class="fc" id="L24">        putValue(Action.LARGE_ICON_KEY, IconTheme.JabRefIcon.PASTE.getIcon());</span>
+<span class="fc" id="L25">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent evt) {
+<span class="nc" id="L29">        String data = new ClipBoardManager().getClipboardContents();</span>
+
+<span class="nc bnc" id="L31" title="All 2 branches missed.">        if (data.isEmpty()) {</span>
+<span class="nc" id="L32">            return;</span>
+        }
+        // auto corrections
+        // clean Google search URLs
+<span class="nc" id="L36">        data = URLUtil.cleanGoogleSearchURL(data);</span>
+
+        // caller
+<span class="nc bnc" id="L39" title="All 2 branches missed.">        if(target instanceof JTextComponent) {</span>
+<span class="nc" id="L40">            JTextComponent textField = (JTextComponent) target;</span>
+            // replace text selection
+<span class="nc" id="L42">            textField.replaceSelection(data);</span>
+        }
+<span class="nc" id="L44">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

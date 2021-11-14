@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GroupTreeNode.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.groups</a> &gt; <span class="el_source">GroupTreeNode.java</span></div><h1>GroupTreeNode.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.groups;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import net.sf.jabref.logic.search.SearchMatcher;
+import net.sf.jabref.logic.search.matchers.MatcherSet;
+import net.sf.jabref.logic.search.matchers.MatcherSets;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * A node in the groups tree that holds exactly one AbstractGroup.
+ */
+public class GroupTreeNode extends TreeNode&lt;GroupTreeNode&gt; {
+
+    private AbstractGroup group;
+
+    /**
+     * Creates this node and associates the specified group with it.
+     *
+     * @param group the group underlying this node
+     */
+    public GroupTreeNode(AbstractGroup group) {
+<span class="fc" id="L41">        super(GroupTreeNode.class);</span>
+<span class="fc" id="L42">        setGroup(group);</span>
+<span class="fc" id="L43">    }</span>
+
+    /**
+     * Returns the group underlying this node.
+     *
+     * @return the group associated with this node
+     */
+    public AbstractGroup getGroup() {
+<span class="fc" id="L51">        return group;</span>
+    }
+
+    /**
+     * Associates the specified group with this node.
+     *
+     * @param group the new group (has to be non-null)
+     */
+    public void setGroup(AbstractGroup group) {
+<span class="fc" id="L60">        this.group = Objects.requireNonNull(group);</span>
+<span class="fc" id="L61">    }</span>
+
+    /**
+     * Returns a textual representation of this node and its children. This
+     * representation contains both the tree structure and the textual
+     * representations of the group associated with each node.
+     * Every node is one entry in the list of strings.
+     *
+     * @return a representation of the tree based at this node as a list of strings
+     */
+    public List&lt;String&gt; getTreeAsString() {
+
+<span class="nc" id="L73">        List&lt;String&gt; representation = new ArrayList&lt;&gt;();</span>
+
+        // Append myself
+<span class="nc" id="L76">        representation.add(this.toString());</span>
+
+        // Append children
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        for(GroupTreeNode child : getChildren()) {</span>
+<span class="nc" id="L80">            representation.addAll(child.getTreeAsString());</span>
+        }
+
+<span class="nc" id="L83">        return representation;</span>
+    }
+
+    /**
+     * Update all groups, if necessary, to handle the situation where the group
+     * tree is applied to a different BibDatabase than it was created for. This
+     * is for instance used when updating the group tree due to an external change.
+     *
+     * @param db The database to refresh for.
+     * @deprecated This method shouldn't be necessary anymore once explicit group memberships are saved directly in the entry.
+     * TODO: Remove this method.
+     */
+    @Deprecated
+    public void refreshGroupsForNewDatabase(BibDatabase db) {
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        for (GroupTreeNode node : getChildren()) {</span>
+<span class="nc" id="L98">            node.group.refreshForNewDatabase(db);</span>
+<span class="nc" id="L99">            node.refreshGroupsForNewDatabase(db);</span>
+        }
+<span class="nc" id="L101">    }</span>
+
+    /**
+     * Creates a SearchRule that finds elements contained in this nodes group,
+     * or the union of those elements in its own group and its
+     * children's groups (recursively), or the intersection of the elements in
+     * its own group and its parent's group (depending on the hierarchical settings stored in the involved groups)
+     *
+     * @return a SearchRule that finds the desired elements
+     */
+    public SearchMatcher getSearchRule() {
+<span class="nc" id="L112">        return getSearchRule(group.getHierarchicalContext());</span>
+    }
+
+    private SearchMatcher getSearchRule(GroupHierarchyType originalContext) {
+<span class="nc" id="L116">        final GroupHierarchyType context = group.getHierarchicalContext();</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        if (context == GroupHierarchyType.INDEPENDENT) {</span>
+<span class="nc" id="L118">            return group;</span>
+        }
+<span class="nc" id="L120">        MatcherSet searchRule = MatcherSets.build(</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                context == GroupHierarchyType.REFINING ? MatcherSets.MatcherType.AND : MatcherSets.MatcherType.OR);</span>
+<span class="nc" id="L122">        searchRule.addRule(group);</span>
+<span class="nc bnc" id="L123" title="All 4 branches missed.">        if ((context == GroupHierarchyType.INCLUDING) &amp;&amp; (originalContext != GroupHierarchyType.REFINING)) {</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">            for (GroupTreeNode child : getChildren()) {</span>
+<span class="nc" id="L125">                searchRule.addRule(child.getSearchRule(originalContext));</span>
+            }
+<span class="nc bnc" id="L127" title="All 4 branches missed.">        } else if ((context == GroupHierarchyType.REFINING) &amp;&amp; !isRoot() &amp;&amp; (originalContext</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">                != GroupHierarchyType.INCLUDING)) {</span>
+<span class="nc" id="L129">            searchRule.addRule(getParent().get().getSearchRule(originalContext));</span>
+        }
+<span class="nc" id="L131">        return searchRule;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (this == o) {</span>
+<span class="nc" id="L137">            return true;</span>
+        }
+<span class="nc bnc" id="L139" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) {</span>
+<span class="nc" id="L140">            return false;</span>
+        }
+<span class="nc" id="L142">        GroupTreeNode that = (GroupTreeNode) o;</span>
+<span class="nc" id="L143">        return Objects.equals(group, that.group);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="fc" id="L148">        return Objects.hash(group);</span>
+    }
+
+    public List&lt;GroupTreeNode&gt; getContainingGroups(List&lt;BibEntry&gt; entries, boolean requireAll) {
+<span class="nc" id="L152">        List&lt;GroupTreeNode&gt; groups = new ArrayList&lt;&gt;();</span>
+
+        // Add myself if I contain the entries
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        if(requireAll) {</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">            if(this.group.containsAll(entries)) {</span>
+<span class="nc" id="L157">                groups.add(this);</span>
+            }
+<span class="nc" id="L159">        } else {</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            if(this.group.containsAny(entries)) {</span>
+<span class="nc" id="L161">                groups.add(this);</span>
+            }
+        }
+
+        // Traverse children
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        for(GroupTreeNode child : getChildren()) {</span>
+<span class="nc" id="L167">            groups.addAll(child.getContainingGroups(entries, requireAll));</span>
+        }
+
+<span class="nc" id="L170">        return groups;</span>
+    }
+
+    public List&lt;GroupTreeNode&gt; getMatchingGroups(List&lt;BibEntry&gt; entries) {
+<span class="nc" id="L174">        List&lt;GroupTreeNode&gt; groups = new ArrayList&lt;&gt;();</span>
+
+        // Add myself if I contain the entries
+<span class="nc" id="L177">        SearchMatcher matcher = getSearchRule();</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        for (BibEntry entry : entries) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            if (matcher.isMatch(entry)) {</span>
+<span class="nc" id="L180">                groups.add(this);</span>
+<span class="nc" id="L181">                break;</span>
+            }
+        }
+
+        // Traverse children
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        for(GroupTreeNode child : getChildren()) {</span>
+<span class="nc" id="L187">            groups.addAll(child.getMatchingGroups(entries));</span>
+        }
+
+<span class="nc" id="L190">        return groups;</span>
+    }
+
+    public boolean supportsAddingEntries() {
+<span class="nc" id="L194">        return group.supportsAdd();</span>
+    }
+
+    public String getName() {
+<span class="nc" id="L198">        return group.getName();</span>
+    }
+
+    public GroupTreeNode addSubgroup(AbstractGroup group) {
+<span class="nc" id="L202">        GroupTreeNode child = new GroupTreeNode(group);</span>
+<span class="nc" id="L203">        addChild(child);</span>
+<span class="nc" id="L204">        return child;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L209">        return String.valueOf(this.getLevel()) + ' ' + group.toString();</span>
+    }
+
+    @Override
+    public GroupTreeNode copyNode() {
+<span class="nc" id="L214">        return new GroupTreeNode(group);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

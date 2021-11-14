@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>VerticalLabelUI.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.util.component</a> &gt; <span class="el_source">VerticalLabelUI.java</span></div><h1>VerticalLabelUI.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.util.component;
+
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+
+import javax.swing.Icon;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.plaf.basic.BasicLabelUI;
+
+/**
+ * A UI delegate for JLabel that rotates the label 90°
+ * &lt;P&gt;
+ * Extends {@link BasicLabelUI}.
+ * &lt;P&gt;
+ * The only difference between the appearance of labels in the Basic and Metal L&amp;Fs is the manner in which diabled text
+ * is painted. As VerticalLabelUI does not override the method paintDisabledText, this class can be adapted for Metal
+ * L&amp;F by extending MetalLabelUI instead of BasicLabelUI.
+ * &lt;P&gt;
+ * No other changes are required.
+ *
+ * @author Darryl
+ */
+public class VerticalLabelUI extends BasicLabelUI {
+
+    private final boolean clockwise;
+    // see comment in BasicLabelUI
+<span class="fc" id="L47">    private Rectangle verticalViewR = new Rectangle();</span>
+<span class="fc" id="L48">    private Rectangle verticalIconR = new Rectangle();</span>
+<span class="fc" id="L49">    private Rectangle verticalTextR = new Rectangle();</span>
+
+    /**
+     * Constructs a &lt;code&gt;VerticalLabelUI&lt;/code&gt; with the desired rotation.
+     * &lt;P&gt;
+     * @param clockwise true to rotate clockwise, false for anticlockwise
+     */
+<span class="fc" id="L56">    public VerticalLabelUI(boolean clockwise) {</span>
+<span class="fc" id="L57">        this.clockwise = clockwise;</span>
+<span class="fc" id="L58">    }</span>
+
+    /**
+     * Overridden to always return -1, since a vertical label does not have a
+     * meaningful baseline.
+     *
+     * @see ComponentUI#getBaseline(JComponent, int, int)
+     */
+    @Override
+    public int getBaseline(JComponent c, int width, int height) {
+<span class="nc" id="L68">        super.getBaseline(c, width, height);</span>
+<span class="nc" id="L69">        return -1;</span>
+    }
+
+    /**
+     * Overridden to always return Component.BaselineResizeBehavior.OTHER,
+     * since a vertical label does not have a meaningful baseline
+     *
+     * @see ComponentUI#getBaselineResizeBehavior(javax.swing.JComponent)
+     */
+    @Override
+    public Component.BaselineResizeBehavior getBaselineResizeBehavior(
+            JComponent c) {
+<span class="nc" id="L81">        super.getBaselineResizeBehavior(c);</span>
+<span class="nc" id="L82">        return Component.BaselineResizeBehavior.OTHER;</span>
+    }
+
+    /**
+     * Transposes the view rectangles as appropriate for a vertical view
+     * before invoking the super method and copies them after they have been
+     * altered by {@link SwingUtilities#layoutCompoundLabel(FontMetrics, String,
+     * Icon, int, int, int, int, Rectangle, Rectangle, Rectangle, int)}
+     */
+    @Override
+    protected String layoutCL(JLabel label, FontMetrics fontMetrics,
+            String text, Icon icon, Rectangle viewR, Rectangle iconR,
+            Rectangle textR) {
+
+<span class="fc" id="L96">        String result = text;</span>
+<span class="fc" id="L97">        verticalViewR = transposeRectangle(viewR, verticalViewR);</span>
+<span class="fc" id="L98">        verticalIconR = transposeRectangle(iconR, verticalIconR);</span>
+<span class="fc" id="L99">        verticalTextR = transposeRectangle(textR, verticalTextR);</span>
+
+<span class="fc" id="L101">        result = super.layoutCL(label, fontMetrics, result, icon,</span>
+<span class="fc" id="L102">                verticalViewR, verticalIconR, verticalTextR);</span>
+
+<span class="fc" id="L104">        copyRectangle(verticalViewR, viewR);</span>
+<span class="fc" id="L105">        copyRectangle(verticalIconR, iconR);</span>
+<span class="fc" id="L106">        copyRectangle(verticalTextR, textR);</span>
+<span class="fc" id="L107">        return result;</span>
+    }
+
+    /**
+     * Transforms the Graphics for vertical rendering and invokes the
+     * super method.
+     */
+    @Override
+    public void paint(Graphics g, JComponent c) {
+<span class="fc" id="L116">        Graphics2D g2 = (Graphics2D) g.create();</span>
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">        if (clockwise) {</span>
+<span class="nc" id="L118">            g2.rotate(Math.PI / 2, c.getSize().width / 2.0, c.getSize().width / 2.0);</span>
+<span class="nc" id="L119">        } else {</span>
+<span class="fc" id="L120">            g2.rotate(-Math.PI / 2, c.getSize().height / 2.0, c.getSize().height / 2.0);</span>
+        }
+<span class="fc" id="L122">        super.paint(g2, c);</span>
+<span class="fc" id="L123">    }</span>
+
+    /**
+     * Returns a Dimension appropriate for vertical rendering
+     *
+     * @see ComponentUI#getPreferredSize(javax.swing.JComponent)
+     */
+    @Override
+    public Dimension getPreferredSize(JComponent c) {
+<span class="fc" id="L132">        return transposeDimension(super.getPreferredSize(c));</span>
+    }
+
+    /**
+     * Returns a Dimension appropriate for vertical rendering
+     *
+     * @see ComponentUI#getMaximumSize(javax.swing.JComponent)
+     */
+    @Override
+    public Dimension getMaximumSize(JComponent c) {
+<span class="nc" id="L142">        return transposeDimension(super.getMaximumSize(c));</span>
+    }
+
+    /**
+     * Returns a Dimension appropriate for vertical rendering
+     *
+     * @see ComponentUI#getMinimumSize(javax.swing.JComponent)
+     */
+    @Override
+    public Dimension getMinimumSize(JComponent c) {
+<span class="fc" id="L152">        return transposeDimension(super.getMinimumSize(c));</span>
+    }
+
+    private static Dimension transposeDimension(Dimension from) {
+<span class="fc" id="L156">        return new Dimension(from.height, from.width + 2);</span>
+    }
+
+    private static Rectangle transposeRectangle(Rectangle from, Rectangle to) {
+<span class="fc" id="L160">        Rectangle destination = to;</span>
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        if (destination == null) {</span>
+<span class="nc" id="L162">            destination = new Rectangle();</span>
+        }
+<span class="fc" id="L164">        destination.x = from.y;</span>
+<span class="fc" id="L165">        destination.y = from.x;</span>
+<span class="fc" id="L166">        destination.width = from.height;</span>
+<span class="fc" id="L167">        destination.height = from.width;</span>
+<span class="fc" id="L168">        return destination;</span>
+    }
+
+    private static void copyRectangle(Rectangle from, Rectangle to) {
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        if (to == null) {</span>
+<span class="nc" id="L173">            return;</span>
+        }
+<span class="fc" id="L175">        to.x = from.x;</span>
+<span class="fc" id="L176">        to.y = from.y;</span>
+<span class="fc" id="L177">        to.width = from.width;</span>
+<span class="fc" id="L178">        to.height = from.height;</span>
+<span class="fc" id="L179">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

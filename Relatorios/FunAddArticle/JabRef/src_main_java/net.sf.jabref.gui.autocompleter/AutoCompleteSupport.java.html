@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>AutoCompleteSupport.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.autocompleter</a> &gt; <span class="el_source">AutoCompleteSupport.java</span></div><h1>AutoCompleteSupport.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.autocompleter;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyEvent;
+import java.util.List;
+
+import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.JPopupMenu;
+import javax.swing.KeyStroke;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
+import javax.swing.text.JTextComponent;
+
+import net.sf.jabref.logic.autocompleter.AutoCompleter;
+
+/**
+ * Endows a textbox with the ability to autocomplete the input. Based on code by Santhosh Kumar
+ * (http://www.jroller.com/santhosh/date/20050620) James Lemieux (Glazed Lists AutoCompleteSupport)
+ *
+ * @param &lt;E&gt; type of items displayed in the autocomplete popup
+ */
+public class AutoCompleteSupport&lt;E&gt; {
+
+    private final AutoCompleteRenderer&lt;E&gt; renderer;
+    private AutoCompleter&lt;E&gt; autoCompleter;
+    private final JTextComponent textComp;
+<span class="fc" id="L51">    private final JPopupMenu popup = new JPopupMenu();</span>
+<span class="fc" id="L52">    private boolean selectsTextOnFocusGain = true;</span>
+
+
+    /**
+     * Constructs a new AutoCompleteSupport for the textbox using the autocompleter and a renderer.
+     *
+     * @param textComp the textbox component for which autocompletion should be enabled
+     * @param autoCompleter the autocompleter providing the data
+     * @param renderer the renderer displaying the popup
+     */
+<span class="fc" id="L62">    public AutoCompleteSupport(JTextComponent textComp, AutoCompleter&lt;E&gt; autoCompleter,</span>
+            AutoCompleteRenderer&lt;E&gt; renderer) {
+<span class="fc" id="L64">        this.renderer = renderer;</span>
+<span class="fc" id="L65">        this.textComp = textComp;</span>
+<span class="fc" id="L66">        this.autoCompleter = autoCompleter;</span>
+
+<span class="fc" id="L68">    }</span>
+
+    /**
+     * Constructs a new AutoCompleteSupport for the textbox. The possible autocomplete items are displayed as a simple
+     * list. The autocompletion items are provided by an AutoCompleter which has to be specified later using
+     * {@link setAutoCompleter}.
+     *
+     * @param textComp the textbox component for which autocompletion should be enabled
+     */
+    public AutoCompleteSupport(JTextComponent textComp) {
+<span class="fc" id="L78">        this(textComp, null, new ListAutoCompleteRenderer&lt;&gt;());</span>
+<span class="fc" id="L79">    }</span>
+
+    /**
+     * Constructs a new AutoCompleteSupport for the textbox using the autocompleter and a renderer. The possible
+     * autocomplete items are displayed as a simple list.
+     *
+     * @param textComp the textbox component for which autocompletion should be enabled
+     * @param autoCompleter the autocompleter providing the data
+     */
+    public AutoCompleteSupport(JTextComponent textComp, AutoCompleter&lt;E&gt; autoCompleter) {
+<span class="nc" id="L89">        this(textComp, autoCompleter, new ListAutoCompleteRenderer&lt;&gt;());</span>
+<span class="nc" id="L90">    }</span>
+
+    /**
+     * Inits the autocompletion popup. After this method is called, further input in the specified textbox will be
+     * autocompleted.
+     */
+    public void install() {
+        // ActionListeners for navigating the suggested autocomplete items with the arrow keys
+<span class="fc" id="L98">        final ActionListener upAction = new MoveAction(-1);</span>
+<span class="fc" id="L99">        final ActionListener downAction = new MoveAction(1);</span>
+        // ActionListener hiding the autocomplete popup
+<span class="pc" id="L101">        final ActionListener hidePopupAction = e -&gt; popup.setVisible(false);</span>
+
+        // ActionListener accepting the currently selected item as the autocompletion
+<span class="fc" id="L104">        final ActionListener acceptAction = e -&gt; {</span>
+<span class="nc" id="L105">            E itemToInsert = renderer.getSelectedItem();</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">            if (itemToInsert == null) {</span>
+<span class="nc" id="L107">                return;</span>
+            }
+
+<span class="nc" id="L110">            String toInsert = autoCompleter.getAutoCompleteText(itemToInsert);</span>
+
+            // TODO: The following should be refactored. For example, the autocompleter shouldn't know whether we want to complete one word or multiple.
+            // In most fields, we are only interested in the currently edited word, so we
+            // seek from the caret backward to the closest space:
+<span class="nc bnc" id="L115" title="All 2 branches missed.">            if (!autoCompleter.isSingleUnitField()) {</span>
+                // Get position of last word separator (whitespace or comma)
+<span class="nc" id="L117">                int priv = textComp.getText().length() - 1;</span>
+<span class="nc bnc" id="L118" title="All 4 branches missed.">                while ((priv &gt;= 0) &amp;&amp; !Character.isWhitespace(textComp.getText().charAt(priv))</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">                        &amp;&amp; (textComp.getText().charAt(priv) != ',')) {</span>
+<span class="nc" id="L120">                    priv--;</span>
+                }
+                // priv points to whitespace char or priv is -1
+                // copy everything from the next char up to the end of &quot;upToCaret&quot;
+<span class="nc" id="L124">                textComp.setText(textComp.getText().substring(0, priv + 1) + toInsert);</span>
+<span class="nc" id="L125">            } else {</span>
+                // For fields such as &quot;journal&quot; it is more reasonable to try to complete on the entire
+                // text field content, so we skip the searching and keep the entire part up to the caret:
+<span class="nc" id="L128">                textComp.setText(toInsert);</span>
+            }
+<span class="nc" id="L130">            textComp.setCaretPosition(textComp.getText().length());</span>
+<span class="nc" id="L131">            popup.setVisible(false);</span>
+<span class="nc" id="L132">        };</span>
+
+        // Create popup
+<span class="fc" id="L135">        popup.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.LIGHT_GRAY));</span>
+<span class="fc" id="L136">        popup.setPopupSize(textComp.getWidth(), 200);</span>
+<span class="fc" id="L137">        popup.setLayout(new BorderLayout());</span>
+<span class="fc" id="L138">        popup.setFocusable(false);</span>
+<span class="fc" id="L139">        popup.setRequestFocusEnabled(false);</span>
+<span class="fc" id="L140">        popup.add(renderer.init(acceptAction));</span>
+
+        // Listen for changes to the text -&gt; update autocomplete suggestions
+<span class="fc" id="L143">        textComp.getDocument().addDocumentListener(new DocumentListener() {</span>
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+<span class="nc" id="L147">                postProcessTextChange();</span>
+<span class="nc" id="L148">            }</span>
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+<span class="nc" id="L152">                postProcessTextChange();</span>
+<span class="nc" id="L153">            }</span>
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                // Do nothing
+<span class="nc" id="L158">            }</span>
+        });
+
+        // Listen for up/down arrow keys -&gt; move currently selected item up or down
+        // We have to reimplement this function here since we cannot be sure that a simple list will be used to display the items
+        // So better let the renderer decide what to do.
+        // (Moreover, the list does not have the focus so probably would not recognize the keystrokes in the first place.)
+<span class="fc" id="L165">        textComp.registerKeyboardAction(downAction, KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0),</span>
+<span class="fc" id="L166">                JComponent.WHEN_FOCUSED);</span>
+
+<span class="fc" id="L168">        textComp.registerKeyboardAction(upAction, KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), JComponent.WHEN_FOCUSED);</span>
+
+        // Listen for ESC key -&gt; hide popup
+<span class="fc" id="L171">        textComp.registerKeyboardAction(hidePopupAction, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),</span>
+<span class="fc" id="L172">                JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+
+        // Listen to focus events -&gt; select all the text on gaining the focus
+<span class="fc" id="L175">        this.textComp.addFocusListener(new ComboBoxEditorFocusHandler());</span>
+
+        // Listen for ENTER key if popup is visible -&gt; accept current autocomplete suggestion
+<span class="fc" id="L178">        popup.addPopupMenuListener(new PopupMenuListener() {</span>
+
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+<span class="nc" id="L182">                textComp.registerKeyboardAction(acceptAction, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),</span>
+<span class="nc" id="L183">                        JComponent.WHEN_FOCUSED);</span>
+<span class="nc" id="L184">            }</span>
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+<span class="nc" id="L188">                textComp.unregisterKeyboardAction(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0));</span>
+<span class="nc" id="L189">            }</span>
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+                // Do nothing
+<span class="nc" id="L194">            }</span>
+        });
+
+<span class="fc" id="L197">    }</span>
+
+    /**
+     * Returns whether the text in the textbox is selected when the textbox gains focus. Defaults to true.
+     *
+     * @return
+     */
+    public boolean isSelectsTextOnFocusGain() {
+<span class="nc" id="L205">        return selectsTextOnFocusGain;</span>
+    }
+
+    /**
+     * Sets whether the text in the textbox is selected when the textbox gains focus. Default is true.
+     *
+     * @param selectsTextOnFocusGain new value
+     */
+    public void setSelectsTextOnFocusGain(boolean selectsTextOnFocusGain) {
+<span class="nc" id="L214">        this.selectsTextOnFocusGain = selectsTextOnFocusGain;</span>
+<span class="nc" id="L215">    }</span>
+
+    /**
+     * The text changed so update autocomplete suggestions accordingly.
+     */
+    private void postProcessTextChange() {
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        if (autoCompleter == null) {</span>
+<span class="nc" id="L222">            popup.setVisible(false);</span>
+<span class="nc" id="L223">            return;</span>
+        }
+
+<span class="nc" id="L226">        String text = textComp.getText();</span>
+<span class="nc" id="L227">        List&lt;E&gt; candidates = autoCompleter.complete(text);</span>
+<span class="nc" id="L228">        renderer.update(candidates);</span>
+<span class="nc bnc" id="L229" title="All 4 branches missed.">        if (textComp.isEnabled() &amp;&amp; (!candidates.isEmpty())) {</span>
+<span class="nc" id="L230">            renderer.selectItem(0);</span>
+
+<span class="nc" id="L232">            popup.setPopupSize(textComp.getWidth(), 200);</span>
+<span class="nc" id="L233">            popup.show(textComp, 0, textComp.getHeight());</span>
+<span class="nc" id="L234">        } else {</span>
+<span class="nc" id="L235">            popup.setVisible(false);</span>
+        }
+
+<span class="nc bnc" id="L238" title="All 2 branches missed.">        if (!textComp.hasFocus()) {</span>
+<span class="nc" id="L239">            textComp.requestFocusInWindow();</span>
+        }
+<span class="nc" id="L241">    }</span>
+
+
+    /**
+     * The action invoked by hitting the up or down arrow key. If the popup is currently shown, that the action is
+     * relayed to it. Otherwise the arrow keys trigger the popup.
+     */
+    private class MoveAction extends AbstractAction {
+
+        private final int offset;
+
+
+<span class="fc" id="L253">        public MoveAction(int offset) {</span>
+<span class="fc" id="L254">            this.offset = offset;</span>
+<span class="fc" id="L255">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+<span class="nc bnc" id="L260" title="All 2 branches missed.">            if (popup.isVisible()) {</span>
+<span class="nc" id="L261">                renderer.selectItemRelative(offset);</span>
+<span class="nc" id="L262">            } else {</span>
+<span class="nc" id="L263">                popup.show(textComp, 0, textComp.getHeight());</span>
+            }
+
+<span class="nc" id="L266">        }</span>
+    }
+
+    /**
+     * Selects all text when the textbox gains focus. The behavior is controlled by the value returned from
+     * {@link AutoCompleteSupport#isSelectsTextOnFocusGain()}.
+     */
+<span class="fc" id="L273">    private class ComboBoxEditorFocusHandler extends FocusAdapter {</span>
+
+        @Override
+        public void focusGained(FocusEvent e) {
+<span class="nc bnc" id="L277" title="All 4 branches missed.">            if (isSelectsTextOnFocusGain() &amp;&amp; !e.isTemporary()) {</span>
+<span class="nc" id="L278">                textComp.selectAll();</span>
+            }
+<span class="nc" id="L280">        }</span>
+
+        @Override
+        public void focusLost(FocusEvent e) {
+            // Do nothing
+<span class="nc" id="L285">        }</span>
+    }
+
+
+    /**
+     * Sets the autocompleter used to present autocomplete suggestions.
+     *
+     * @param autoCompleter the autocompleter providing the data
+     */
+    public void setAutoCompleter(AutoCompleter&lt;E&gt; autoCompleter) {
+<span class="fc" id="L295">        this.autoCompleter = autoCompleter;</span>
+<span class="fc" id="L296">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

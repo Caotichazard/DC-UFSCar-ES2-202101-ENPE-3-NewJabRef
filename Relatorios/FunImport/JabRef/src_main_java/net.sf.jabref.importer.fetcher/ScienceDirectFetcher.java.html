@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ScienceDirectFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">ScienceDirectFetcher.java</span></div><h1>ScienceDirectFetcher.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer.fetcher;
+
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.net.URLDownload;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ *
+ * The current ScienceDirect fetcher implementation does no longer work
+ *
+ */
+@Deprecated
+<span class="nc" id="L45">public class ScienceDirectFetcher implements EntryFetcher {</span>
+
+    private static final String SCIENCE_DIRECT = &quot;ScienceDirect&quot;;
+
+<span class="nc" id="L49">    private static final Log LOGGER = LogFactory.getLog(ScienceDirectFetcher.class);</span>
+
+    private static final int MAX_PAGES_TO_LOAD = 8;
+    private static final String WEBSITE_URL = &quot;http://www.sciencedirect.com&quot;;
+    private static final String SEARCH_URL = ScienceDirectFetcher.WEBSITE_URL + &quot;/science/quicksearch?query=&quot;;
+
+    private static final String LINK_PREFIX = &quot;http://www.sciencedirect.com/science?_ob=ArticleURL&amp;&quot;;
+<span class="nc" id="L56">    private static final Pattern LINK_PATTERN = Pattern</span>
+<span class="nc" id="L57">            .compile(&quot;&lt;a href=\&quot;&quot; + ScienceDirectFetcher.LINK_PREFIX.replaceAll(&quot;\\?&quot;, &quot;\\\\?&quot;) + &quot;([^\&quot;]+)\&quot;\&quot;&quot;);</span>
+
+    private boolean stopFetching;
+
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L64">        return HelpFiles.FETCHER_SCIENCEDIRECT;</span>
+    }
+
+    @Override
+    public JPanel getOptionsPanel() {
+        // No Options panel
+<span class="nc" id="L70">        return null;</span>
+    }
+
+    @Override
+    public String getTitle() {
+<span class="nc" id="L75">        return &quot;ScienceDirect&quot;;</span>
+    }
+
+    @Override
+    public void stopFetching() {
+<span class="nc" id="L80">        stopFetching = true;</span>
+<span class="nc" id="L81">    }</span>
+
+    @Override
+    public boolean processQuery(String query, ImportInspector dialog, OutputPrinter status) {
+<span class="nc" id="L85">        stopFetching = false;</span>
+        try {
+<span class="nc" id="L87">            List&lt;String&gt; citations = getCitations(query);</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">            if (citations == null) {</span>
+<span class="nc" id="L89">                return false;</span>
+            }
+<span class="nc bnc" id="L91" title="All 2 branches missed.">            if (citations.isEmpty()) {</span>
+<span class="nc" id="L92">                status.showMessage(Localization.lang(&quot;No entries found for the search string '%0'&quot;,</span>
+<span class="nc" id="L93">                        query),</span>
+<span class="nc" id="L94">                        Localization.lang(&quot;Search %0&quot;, SCIENCE_DIRECT), JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L95">                return false;</span>
+            }
+
+<span class="nc" id="L98">            int i = 0;</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">            for (String cit : citations) {</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                if (stopFetching) {</span>
+<span class="nc" id="L101">                    break;</span>
+                }
+<span class="nc" id="L103">                BibsonomyScraper.getEntry(cit).ifPresent(dialog::addEntry);</span>
+<span class="nc" id="L104">                dialog.setProgress(++i, citations.size());</span>
+            }
+
+<span class="nc" id="L107">            return true;</span>
+
+<span class="nc" id="L109">        } catch (IOException e) {</span>
+<span class="nc" id="L110">            LOGGER.warn(&quot;Communcation problems&quot;, e);</span>
+<span class="nc" id="L111">            status.showMessage(</span>
+<span class="nc" id="L112">                    Localization.lang(&quot;Error while fetching from %0&quot;, SCIENCE_DIRECT) + &quot;: &quot; + e.getMessage());</span>
+        }
+<span class="nc" id="L114">        return false;</span>
+    }
+
+    /**
+     *
+     * @param query
+     *            The search term to query JStor for.
+     * @return a list of IDs
+     * @throws java.io.IOException
+     */
+    private static List&lt;String&gt; getCitations(String query) throws IOException {
+        String urlQuery;
+<span class="nc" id="L126">        List&lt;String&gt; ids = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L127">        urlQuery = ScienceDirectFetcher.SEARCH_URL + URLEncoder.encode(query, StandardCharsets.UTF_8.name());</span>
+<span class="nc" id="L128">        int count = 1;</span>
+        String nextPage;
+<span class="nc bnc" id="L130" title="All 4 branches missed.">        while (((nextPage = getCitationsFromUrl(urlQuery, ids)) != null)</span>
+<span class="nc" id="L131">                &amp;&amp; (count &lt; ScienceDirectFetcher.MAX_PAGES_TO_LOAD)) {</span>
+<span class="nc" id="L132">            urlQuery = nextPage;</span>
+<span class="nc" id="L133">            count++;</span>
+        }
+<span class="nc" id="L135">        return ids;</span>
+    }
+
+    private static String getCitationsFromUrl(String urlQuery, List&lt;String&gt; ids) throws IOException {
+<span class="nc" id="L139">        URL url = new URL(urlQuery);</span>
+<span class="nc" id="L140">        String cont = new URLDownload(url).downloadToString();</span>
+<span class="nc" id="L141">        Matcher m = ScienceDirectFetcher.LINK_PATTERN.matcher(cont);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (m.find()) {</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">            while (m.find()) {</span>
+<span class="nc" id="L144">                ids.add(ScienceDirectFetcher.LINK_PREFIX + m.group(1));</span>
+<span class="nc" id="L145">                cont = cont.substring(m.end());</span>
+<span class="nc" id="L146">                m = ScienceDirectFetcher.LINK_PATTERN.matcher(cont);</span>
+            }
+<span class="nc" id="L148">        }</span>
+
+        else {
+<span class="nc" id="L151">            return null;</span>
+        }
+<span class="nc" id="L153">        return null;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

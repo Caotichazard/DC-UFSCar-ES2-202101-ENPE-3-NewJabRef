@@ -1,0 +1,2304 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>JabRefFrame.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">JabRefFrame.java</span></div><h1>JabRefFrame.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui;
+
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.GraphicsEnvironment;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.MouseAdapter;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.Box;
+import javax.swing.ButtonGroup;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JProgressBar;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
+import javax.swing.MenuElement;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
+import javax.swing.UIManager;
+import javax.swing.WindowConstants;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Globals;
+import net.sf.jabref.HighlightMatchingGroupPreferences;
+import net.sf.jabref.JabRefExecutorService;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.exporter.AutoSaveManager;
+import net.sf.jabref.exporter.ExportCustomizationDialog;
+import net.sf.jabref.exporter.ExportFormats;
+import net.sf.jabref.exporter.SaveAllAction;
+import net.sf.jabref.exporter.SaveDatabaseAction;
+import net.sf.jabref.external.ExternalFileTypeEditor;
+import net.sf.jabref.external.push.PushToApplicationButton;
+import net.sf.jabref.external.push.PushToApplications;
+import net.sf.jabref.gui.actions.Actions;
+import net.sf.jabref.gui.actions.AutoLinkFilesAction;
+import net.sf.jabref.gui.actions.ErrorConsoleAction;
+import net.sf.jabref.gui.actions.ManageKeywordsAction;
+import net.sf.jabref.gui.actions.MassSetFieldAction;
+import net.sf.jabref.gui.actions.MnemonicAwareAction;
+import net.sf.jabref.gui.actions.NewDatabaseAction;
+import net.sf.jabref.gui.actions.NewEntryAction;
+import net.sf.jabref.gui.actions.NewSubDatabaseAction;
+import net.sf.jabref.gui.actions.SortTabsAction;
+import net.sf.jabref.gui.dbproperties.DatabasePropertiesDialog;
+import net.sf.jabref.gui.groups.EntryTableTransferHandler;
+import net.sf.jabref.gui.groups.GroupSelector;
+import net.sf.jabref.gui.help.AboutAction;
+import net.sf.jabref.gui.help.AboutDialog;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.gui.journals.ManageJournalsAction;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.gui.keyboard.KeyBindingRepository;
+import net.sf.jabref.gui.keyboard.KeyBindingsDialog;
+import net.sf.jabref.gui.menus.ChangeEntryTypeMenu;
+import net.sf.jabref.gui.menus.FileHistoryMenu;
+import net.sf.jabref.gui.menus.RightClickMenu;
+import net.sf.jabref.gui.menus.help.DonateAction;
+import net.sf.jabref.gui.menus.help.ForkMeOnGitHubAction;
+import net.sf.jabref.gui.openoffice.OpenOfficePanel;
+import net.sf.jabref.gui.preftabs.PreferencesDialog;
+import net.sf.jabref.gui.util.FocusRequester;
+import net.sf.jabref.gui.util.PositionWindow;
+import net.sf.jabref.gui.worker.MarkEntriesAction;
+import net.sf.jabref.importer.ImportCustomizationDialog;
+import net.sf.jabref.importer.ImportFormats;
+import net.sf.jabref.importer.OpenDatabaseAction;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.importer.ParserResult;
+import net.sf.jabref.importer.fetcher.GeneralFetcher;
+import net.sf.jabref.logic.CustomEntryTypesManager;
+import net.sf.jabref.logic.integrity.IntegrityCheck;
+import net.sf.jabref.logic.integrity.IntegrityMessage;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.logging.GuiAppender;
+import net.sf.jabref.logic.preferences.LastFocusedTabPreferences;
+import net.sf.jabref.logic.util.OS;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.BibtexEntryTypes;
+import net.sf.jabref.model.entry.EntryType;
+import net.sf.jabref.specialfields.Printed;
+import net.sf.jabref.specialfields.Priority;
+import net.sf.jabref.specialfields.Quality;
+import net.sf.jabref.specialfields.Rank;
+import net.sf.jabref.specialfields.ReadStatus;
+import net.sf.jabref.specialfields.Relevance;
+import net.sf.jabref.specialfields.SpecialFieldsUtils;
+import net.sf.jabref.sql.importer.DbImportAction;
+
+import com.jgoodies.looks.HeaderStyle;
+import com.jgoodies.looks.Options;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import osx.macadapter.MacAdapter;
+
+/**
+ * The main window of the application.
+ */
+public class JabRefFrame extends JFrame implements OutputPrinter {
+
+<span class="fc" id="L157">    private static final Log LOGGER = LogFactory.getLog(JabRefFrame.class);</span>
+<span class="fc" id="L158">    private static final String ELLIPSES = &quot;...&quot;;</span>
+
+<span class="fc" id="L160">    private final JSplitPane splitPane = new JSplitPane();</span>
+
+<span class="fc" id="L162">    private final JabRefPreferences prefs = Globals.prefs;</span>
+    private PreferencesDialog prefsDialog;
+
+<span class="fc" id="L165">    private int lastTabbedPanelSelectionIndex = -1;</span>
+
+    // The sidepane manager takes care of populating the sidepane.
+    private SidePaneManager sidePaneManager;
+
+    private JTabbedPane tabbedPane; // initialized at constructor
+
+<span class="fc" id="L172">    private final Insets marg = new Insets(1, 0, 2, 0);</span>
+
+    private PositionWindow pw;
+
+<span class="fc" id="L176">    private final GeneralAction checkIntegrity = new GeneralAction(Actions.CHECK_INTEGRITY, Localization.menuTitle(&quot;Check integrity&quot;) + ELLIPSES) {</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L180">            IntegrityCheck check = new IntegrityCheck(getCurrentBasePanel().getBibDatabaseContext());</span>
+<span class="nc" id="L181">            List&lt;IntegrityMessage&gt; messages = check.checkBibtexDatabase();</span>
+
+<span class="nc bnc" id="L183" title="All 2 branches missed.">            if (messages.isEmpty()) {</span>
+<span class="nc" id="L184">                JOptionPane.showMessageDialog(getCurrentBasePanel(), Localization.lang(&quot;No problems found.&quot;));</span>
+<span class="nc" id="L185">            } else {</span>
+                // prepare data model
+<span class="nc" id="L187">                Object[][] model = new Object[messages.size()][3];</span>
+<span class="nc" id="L188">                int i = 0;</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">                for (IntegrityMessage message : messages) {</span>
+<span class="nc" id="L190">                    model[i][0] = message.getEntry().getCiteKey();</span>
+<span class="nc" id="L191">                    model[i][1] = message.getFieldName();</span>
+<span class="nc" id="L192">                    model[i][2] = message.getMessage();</span>
+<span class="nc" id="L193">                    i++;</span>
+                }
+
+                // construct view
+<span class="nc" id="L197">                JTable table = new JTable(</span>
+<span class="nc" id="L198">                        model,</span>
+<span class="nc" id="L199">                        new Object[] {&quot;key&quot;, &quot;field&quot;, &quot;message&quot;}</span>
+                );
+
+<span class="nc" id="L202">                table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="nc" id="L203">                ListSelectionModel selectionModel = table.getSelectionModel();</span>
+
+<span class="nc" id="L205">                selectionModel.addListSelectionListener(event -&gt; {</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                    if (!event.getValueIsAdjusting()) {</span>
+<span class="nc" id="L207">                        String citeKey = (String) model[table.getSelectedRow()][0];</span>
+<span class="nc" id="L208">                        String fieldName = (String) model[table.getSelectedRow()][1];</span>
+<span class="nc" id="L209">                        getCurrentBasePanel().editEntryByKeyAndFocusField(citeKey, fieldName);</span>
+                    }
+<span class="nc" id="L211">                });</span>
+
+<span class="nc" id="L213">                table.getColumnModel().getColumn(0).setPreferredWidth(80);</span>
+<span class="nc" id="L214">                table.getColumnModel().getColumn(1).setPreferredWidth(30);</span>
+<span class="nc" id="L215">                table.getColumnModel().getColumn(2).setPreferredWidth(250);</span>
+<span class="nc" id="L216">                table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);</span>
+<span class="nc" id="L217">                JScrollPane scrollPane = new JScrollPane(table);</span>
+<span class="nc" id="L218">                String title = Localization.lang(&quot;%0 problem(s) found&quot;, String.valueOf(messages.size()));</span>
+<span class="nc" id="L219">                JDialog dialog = new JDialog(JabRefFrame.this, title, false);</span>
+<span class="nc" id="L220">                dialog.add(scrollPane);</span>
+<span class="nc" id="L221">                dialog.setSize(600, 500);</span>
+
+                // show view
+<span class="nc" id="L224">                dialog.setVisible(true);</span>
+            }
+<span class="nc" id="L226">        }</span>
+    };
+
+
+<span class="fc" id="L230">    private final ToolBar tlb = new ToolBar();</span>
+
+<span class="fc" id="L232">    private final JMenuBar mb = new JMenuBar();</span>
+
+<span class="fc" id="L234">    private final GridBagLayout gbl = new GridBagLayout();</span>
+<span class="fc" id="L235">    private final GridBagConstraints con = new GridBagConstraints();</span>
+
+<span class="fc" id="L237">    private final JLabel statusLine = new JLabel(&quot;&quot;, SwingConstants.LEFT);</span>
+<span class="fc" id="L238">    private final JLabel statusLabel = new JLabel(</span>
+<span class="fc" id="L239">            Localization.lang(&quot;Status&quot;)</span>
+<span class="fc" id="L240">                    + ':', SwingConstants.LEFT);</span>
+<span class="fc" id="L241">    private final JProgressBar progressBar = new JProgressBar();</span>
+
+<span class="fc" id="L243">    private final FileHistoryMenu fileHistory = new FileHistoryMenu(prefs, this);</span>
+
+    // The help window.
+<span class="fc" id="L246">    private final AboutDialog aboutDiag = new AboutDialog(this);</span>
+
+    // Here we instantiate menu/toolbar actions. Actions regarding
+    // the currently open database are defined as a GeneralAction
+    // with a unique command string. This causes the appropriate
+    // BasePanel's runCommand() method to be called with that command.
+    // Note: GeneralAction's constructor automatically gets translations
+    // for the name and message strings.
+
+    /* References to the toggle buttons in the toolbar */
+    // the groups interface
+    public JToggleButton groupToggle;
+    private JToggleButton previewToggle;
+    private JToggleButton fetcherToggle;
+
+
+<span class="fc" id="L262">    private final OpenDatabaseAction open = new OpenDatabaseAction(this, true);</span>
+<span class="fc" id="L263">    private final EditModeAction editModeAction = new EditModeAction();</span>
+<span class="fc" id="L264">    private final AbstractAction quit = new CloseAction();</span>
+<span class="fc" id="L265">    private final AbstractAction selectKeys = new SelectKeysAction();</span>
+<span class="fc" id="L266">    private final AbstractAction newBibtexDatabaseAction = new NewDatabaseAction(this, BibDatabaseMode.BIBTEX);</span>
+<span class="fc" id="L267">    private final AbstractAction newBiblatexDatabaseAction = new NewDatabaseAction(this, BibDatabaseMode.BIBLATEX);</span>
+<span class="fc" id="L268">    private final AbstractAction newSubDatabaseAction = new NewSubDatabaseAction(this);</span>
+<span class="fc" id="L269">    private final AbstractAction forkMeOnGitHubAction = new ForkMeOnGitHubAction();</span>
+<span class="fc" id="L270">    private final AbstractAction donationAction = new DonateAction();</span>
+<span class="fc" id="L271">    private final AbstractAction help = new HelpAction(Localization.menuTitle(&quot;Online help&quot;), Localization.lang(&quot;Online help&quot;),</span>
+<span class="fc" id="L272">            HelpFiles.CONTENTS, Globals.getKeyPrefs().getKey(KeyBinding.HELP));</span>
+<span class="fc" id="L273">    private final AbstractAction about = new AboutAction(Localization.menuTitle(&quot;About JabRef&quot;), aboutDiag,</span>
+<span class="fc" id="L274">            Localization.lang(&quot;About JabRef&quot;), IconTheme.getImage(&quot;about&quot;));</span>
+<span class="fc" id="L275">    private final AbstractAction editEntry = new GeneralAction(Actions.EDIT, Localization.menuTitle(&quot;Edit entry&quot;),</span>
+<span class="fc" id="L276">            Localization.lang(&quot;Edit entry&quot;), Globals.getKeyPrefs().getKey(KeyBinding.EDIT_ENTRY), IconTheme.JabRefIcon.EDIT_ENTRY.getIcon());</span>
+<span class="fc" id="L277">    private final AbstractAction focusTable = new GeneralAction(Actions.FOCUS_TABLE,</span>
+<span class="fc" id="L278">            Localization.menuTitle(&quot;Focus entry table&quot;),</span>
+<span class="fc" id="L279">            Localization.lang(&quot;Move the keyboard focus to the entry table&quot;), Globals.getKeyPrefs().getKey(KeyBinding.FOCUS_ENTRY_TABLE));</span>
+<span class="fc" id="L280">    private final AbstractAction save = new GeneralAction(Actions.SAVE, Localization.menuTitle(&quot;Save database&quot;),</span>
+<span class="fc" id="L281">            Localization.lang(&quot;Save database&quot;), Globals.getKeyPrefs().getKey(KeyBinding.SAVE_DATABASE), IconTheme.JabRefIcon.SAVE.getIcon());</span>
+<span class="fc" id="L282">    private final AbstractAction saveAs = new GeneralAction(Actions.SAVE_AS,</span>
+<span class="fc" id="L283">            Localization.menuTitle(&quot;Save database as...&quot;), Localization.lang(&quot;Save database as...&quot;),</span>
+<span class="fc" id="L284">            Globals.getKeyPrefs().getKey(KeyBinding.SAVE_DATABASE_AS));</span>
+<span class="fc" id="L285">    private final AbstractAction saveAll = new SaveAllAction(JabRefFrame.this);</span>
+<span class="fc" id="L286">    private final AbstractAction saveSelectedAs = new GeneralAction(Actions.SAVE_SELECTED_AS,</span>
+<span class="fc" id="L287">            Localization.menuTitle(&quot;Save selected as...&quot;), Localization.lang(&quot;Save selected as...&quot;));</span>
+<span class="fc" id="L288">    private final AbstractAction saveSelectedAsPlain = new GeneralAction(Actions.SAVE_SELECTED_AS_PLAIN,</span>
+<span class="fc" id="L289">            Localization.menuTitle(&quot;Save selected as plain BibTeX...&quot;),</span>
+<span class="fc" id="L290">            Localization.lang(&quot;Save selected as plain BibTeX...&quot;));</span>
+<span class="fc" id="L291">    private final AbstractAction exportAll = ExportFormats.getExportAction(this, false);</span>
+<span class="fc" id="L292">    private final AbstractAction exportSelected = ExportFormats.getExportAction(this, true);</span>
+<span class="fc" id="L293">    private final AbstractAction importCurrent = ImportFormats.getImportAction(this, false);</span>
+<span class="fc" id="L294">    private final AbstractAction importNew = ImportFormats.getImportAction(this, true);</span>
+<span class="fc" id="L295">    public final AbstractAction nextTab = new ChangeTabAction(true);</span>
+<span class="fc" id="L296">    public final AbstractAction prevTab = new ChangeTabAction(false);</span>
+<span class="fc" id="L297">    private final AbstractAction sortTabs = new SortTabsAction(this);</span>
+<span class="fc" id="L298">    private final AbstractAction undo = new GeneralAction(Actions.UNDO, Localization.menuTitle(&quot;Undo&quot;),</span>
+<span class="fc" id="L299">            Localization.lang(&quot;Undo&quot;), Globals.getKeyPrefs().getKey(KeyBinding.UNDO), IconTheme.JabRefIcon.UNDO.getIcon());</span>
+<span class="fc" id="L300">    private final AbstractAction redo = new GeneralAction(Actions.REDO, Localization.menuTitle(&quot;Redo&quot;),</span>
+<span class="fc" id="L301">            Localization.lang(&quot;Redo&quot;), Globals.getKeyPrefs().getKey(KeyBinding.REDO), IconTheme.JabRefIcon.REDO.getIcon());</span>
+<span class="fc" id="L302">    private final AbstractAction forward = new GeneralAction(Actions.FORWARD, Localization.menuTitle(&quot;Forward&quot;),</span>
+<span class="fc" id="L303">            Localization.lang(&quot;Forward&quot;), Globals.getKeyPrefs().getKey(KeyBinding.FORWARD), IconTheme.JabRefIcon.RIGHT.getIcon());</span>
+<span class="fc" id="L304">    private final AbstractAction back = new GeneralAction(Actions.BACK, Localization.menuTitle(&quot;Back&quot;),</span>
+<span class="fc" id="L305">            Localization.lang(&quot;Back&quot;), Globals.getKeyPrefs().getKey(KeyBinding.BACK), IconTheme.JabRefIcon.LEFT.getIcon());</span>
+<span class="fc" id="L306">    private final AbstractAction deleteEntry = new GeneralAction(Actions.DELETE, Localization.menuTitle(&quot;Delete entry&quot;),</span>
+<span class="fc" id="L307">            Localization.lang(&quot;Delete entry&quot;), Globals.getKeyPrefs().getKey(KeyBinding.DELETE_ENTRY), IconTheme.JabRefIcon.DELETE_ENTRY.getIcon());</span>
+<span class="fc" id="L308">    private final AbstractAction copy = new EditAction(Actions.COPY, Localization.menuTitle(&quot;Copy&quot;),</span>
+<span class="fc" id="L309">            Localization.lang(&quot;Copy&quot;), Globals.getKeyPrefs().getKey(KeyBinding.COPY), IconTheme.JabRefIcon.COPY.getIcon());</span>
+<span class="fc" id="L310">    private final AbstractAction paste = new EditAction(Actions.PASTE, Localization.menuTitle(&quot;Paste&quot;),</span>
+<span class="fc" id="L311">            Localization.lang(&quot;Paste&quot;), Globals.getKeyPrefs().getKey(KeyBinding.PASTE), IconTheme.JabRefIcon.PASTE.getIcon());</span>
+<span class="fc" id="L312">    private final AbstractAction cut = new EditAction(Actions.CUT, Localization.menuTitle(&quot;Cut&quot;),</span>
+<span class="fc" id="L313">            Localization.lang(&quot;Cut&quot;), Globals.getKeyPrefs().getKey(KeyBinding.CUT), IconTheme.JabRefIcon.CUT.getIcon());</span>
+<span class="fc" id="L314">    private final AbstractAction openConsole = new GeneralAction(Actions.OPEN_CONSOLE,</span>
+<span class="fc" id="L315">            Localization.menuTitle(&quot;Open terminal here&quot;),</span>
+<span class="fc" id="L316">            Localization.lang(&quot;Open terminal here&quot;),</span>
+<span class="fc" id="L317">            Globals.getKeyPrefs().getKey(KeyBinding.OPEN_CONSOLE),</span>
+<span class="fc" id="L318">            IconTheme.JabRefIcon.CONSOLE.getIcon());</span>
+<span class="fc" id="L319">    private final AbstractAction mark = new GeneralAction(Actions.MARK_ENTRIES, Localization.menuTitle(&quot;Mark entries&quot;),</span>
+<span class="fc" id="L320">            Localization.lang(&quot;Mark entries&quot;), Globals.getKeyPrefs().getKey(KeyBinding.MARK_ENTRIES), IconTheme.JabRefIcon.MARK_ENTRIES.getIcon());</span>
+<span class="fc" id="L321">    private final AbstractAction unmark = new GeneralAction(Actions.UNMARK_ENTRIES,</span>
+<span class="fc" id="L322">            Localization.menuTitle(&quot;Unmark entries&quot;), Localization.lang(&quot;Unmark entries&quot;),</span>
+<span class="fc" id="L323">            Globals.getKeyPrefs().getKey(KeyBinding.UNMARK_ENTRIES), IconTheme.JabRefIcon.UNMARK_ENTRIES.getIcon());</span>
+<span class="fc" id="L324">    private final AbstractAction unmarkAll = new GeneralAction(Actions.UNMARK_ALL, Localization.menuTitle(&quot;Unmark all&quot;));</span>
+<span class="fc" id="L325">    private final AbstractAction toggleRelevance = new GeneralAction(</span>
+<span class="fc" id="L326">            Relevance.getInstance().getValues().get(0).getActionName(),</span>
+<span class="fc" id="L327">            Relevance.getInstance().getValues().get(0).getMenuString(),</span>
+<span class="fc" id="L328">            Relevance.getInstance().getValues().get(0).getToolTipText(),</span>
+<span class="fc" id="L329">            IconTheme.JabRefIcon.RELEVANCE.getIcon());</span>
+<span class="fc" id="L330">    private final AbstractAction toggleQualityAssured = new GeneralAction(</span>
+<span class="fc" id="L331">            Quality.getInstance().getValues().get(0).getActionName(),</span>
+<span class="fc" id="L332">            Quality.getInstance().getValues().get(0).getMenuString(),</span>
+<span class="fc" id="L333">            Quality.getInstance().getValues().get(0).getToolTipText(),</span>
+<span class="fc" id="L334">            IconTheme.JabRefIcon.QUALITY_ASSURED.getIcon());</span>
+<span class="fc" id="L335">    private final AbstractAction togglePrinted = new GeneralAction(</span>
+<span class="fc" id="L336">            Printed.getInstance().getValues().get(0).getActionName(),</span>
+<span class="fc" id="L337">            Printed.getInstance().getValues().get(0).getMenuString(),</span>
+<span class="fc" id="L338">            Printed.getInstance().getValues().get(0).getToolTipText(),</span>
+<span class="fc" id="L339">            IconTheme.JabRefIcon.PRINTED.getIcon());</span>
+<span class="fc" id="L340">    private final AbstractAction manageSelectors = new GeneralAction(Actions.MANAGE_SELECTORS,</span>
+<span class="fc" id="L341">            Localization.menuTitle(&quot;Manage content selectors&quot;));</span>
+<span class="fc" id="L342">    private final AbstractAction normalSearch = new GeneralAction(Actions.SEARCH, Localization.menuTitle(&quot;Search&quot;),</span>
+<span class="fc" id="L343">            Localization.lang(&quot;Search&quot;), Globals.getKeyPrefs().getKey(KeyBinding.SEARCH), IconTheme.JabRefIcon.SEARCH.getIcon());</span>
+
+<span class="fc" id="L345">    private final AbstractAction copyKey = new GeneralAction(Actions.COPY_KEY, Localization.menuTitle(&quot;Copy BibTeX key&quot;),</span>
+<span class="fc" id="L346">            Globals.getKeyPrefs().getKey(KeyBinding.COPY_BIBTEX_KEY));</span>
+<span class="fc" id="L347">    private final AbstractAction copyCiteKey = new GeneralAction(Actions.COPY_CITE_KEY, Localization.menuTitle(</span>
+<span class="fc" id="L348">            &quot;Copy \\cite{BibTeX key}&quot;),</span>
+<span class="fc" id="L349">            Globals.getKeyPrefs().getKey(KeyBinding.COPY_CITE_BIBTEX_KEY));</span>
+<span class="fc" id="L350">    private final AbstractAction copyKeyAndTitle = new GeneralAction(Actions.COPY_KEY_AND_TITLE,</span>
+<span class="fc" id="L351">            Localization.menuTitle(&quot;Copy BibTeX key and title&quot;),</span>
+<span class="fc" id="L352">            Globals.getKeyPrefs().getKey(KeyBinding.COPY_BIBTEX_KEY_AND_TITLE));</span>
+<span class="fc" id="L353">    private final AbstractAction mergeDatabaseAction = new GeneralAction(Actions.MERGE_DATABASE,</span>
+<span class="fc" id="L354">            Localization.menuTitle(&quot;Append database&quot;),</span>
+<span class="fc" id="L355">            Localization.lang(&quot;Append contents from a BibTeX database into the currently viewed database&quot;));</span>
+<span class="fc" id="L356">    private final AbstractAction selectAll = new GeneralAction(Actions.SELECT_ALL, Localization.menuTitle(&quot;Select all&quot;),</span>
+<span class="fc" id="L357">            Globals.getKeyPrefs().getKey(KeyBinding.SELECT_ALL));</span>
+<span class="fc" id="L358">    private final AbstractAction replaceAll = new GeneralAction(Actions.REPLACE_ALL,</span>
+<span class="fc" id="L359">            Localization.menuTitle(&quot;Replace string&quot;) + ELLIPSES, Globals.getKeyPrefs().getKey(KeyBinding.REPLACE_STRING));</span>
+
+<span class="fc" id="L361">    private final AbstractAction editPreamble = new GeneralAction(Actions.EDIT_PREAMBLE,</span>
+<span class="fc" id="L362">            Localization.menuTitle(&quot;Edit preamble&quot;),</span>
+<span class="fc" id="L363">            Localization.lang(&quot;Edit preamble&quot;),</span>
+<span class="fc" id="L364">            Globals.getKeyPrefs().getKey(KeyBinding.EDIT_PREAMBLE));</span>
+<span class="fc" id="L365">    private final AbstractAction editStrings = new GeneralAction(Actions.EDIT_STRINGS,</span>
+<span class="fc" id="L366">            Localization.menuTitle(&quot;Edit strings&quot;),</span>
+<span class="fc" id="L367">            Localization.lang(&quot;Edit strings&quot;),</span>
+<span class="fc" id="L368">            Globals.getKeyPrefs().getKey(KeyBinding.EDIT_STRINGS),</span>
+<span class="fc" id="L369">            IconTheme.JabRefIcon.EDIT_STRINGS.getIcon());</span>
+<span class="fc" id="L370">    private final AbstractAction customizeAction = new CustomizeEntryTypeAction();</span>
+<span class="fc" id="L371">    private final Action toggleToolbar = enableToggle(new AbstractAction(Localization.menuTitle(&quot;Hide/show toolbar&quot;)) {</span>
+
+        {
+<span class="fc" id="L374">            putValue(Action.ACCELERATOR_KEY, Globals.getKeyPrefs().getKey(KeyBinding.HIDE_SHOW_TOOLBAR));</span>
+<span class="fc" id="L375">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Hide/show toolbar&quot;));</span>
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc bnc" id="L380" title="All 2 branches missed.">            tlb.setVisible(!tlb.isVisible());</span>
+<span class="nc" id="L381">        }</span>
+    });
+
+<span class="fc" id="L384">    private final Action toggleGroups = enableToggle(new GeneralAction(Actions.TOGGLE_GROUPS,</span>
+<span class="fc" id="L385">            Localization.menuTitle(&quot;Toggle groups interface&quot;),</span>
+<span class="fc" id="L386">            Localization.lang(&quot;Toggle groups interface&quot;),</span>
+<span class="fc" id="L387">            Globals.getKeyPrefs().getKey(KeyBinding.TOGGLE_GROUPS_INTERFACE),</span>
+<span class="fc" id="L388">            IconTheme.JabRefIcon.TOGGLE_GROUPS.getIcon()));</span>
+<span class="fc" id="L389">    private final AbstractAction addToGroup = new GeneralAction(Actions.ADD_TO_GROUP, Localization.lang(&quot;Add to group&quot;) + ELLIPSES);</span>
+<span class="fc" id="L390">    private final AbstractAction removeFromGroup = new GeneralAction(Actions.REMOVE_FROM_GROUP,</span>
+<span class="fc" id="L391">            Localization.lang(&quot;Remove from group&quot;) + ELLIPSES);</span>
+<span class="fc" id="L392">    private final AbstractAction moveToGroup = new GeneralAction(Actions.MOVE_TO_GROUP, Localization.lang(&quot;Move to group&quot;) + ELLIPSES);</span>
+
+<span class="fc" id="L394">    private final Action togglePreview = enableToggle(new GeneralAction(Actions.TOGGLE_PREVIEW,</span>
+<span class="fc" id="L395">            Localization.menuTitle(&quot;Toggle entry preview&quot;),</span>
+<span class="fc" id="L396">            Localization.lang(&quot;Toggle entry preview&quot;),</span>
+<span class="fc" id="L397">            Globals.getKeyPrefs().getKey(KeyBinding.TOGGLE_ENTRY_PREVIEW),</span>
+<span class="fc" id="L398">            IconTheme.JabRefIcon.TOGGLE_ENTRY_PREVIEW.getIcon()));</span>
+<span class="fc" id="L399">    private final Action toggleHighlightAny = enableToggle(new GeneralAction(Actions.TOGGLE_HIGHLIGHTS_GROUPS_MATCHING_ANY,</span>
+<span class="fc" id="L400">            Localization.menuTitle(&quot;Highlight groups matching any selected entry&quot;),</span>
+<span class="fc" id="L401">            Localization.lang(&quot;Highlight groups matching any selected entry&quot;)));</span>
+<span class="fc" id="L402">    private final Action toggleHighlightAll = enableToggle(new GeneralAction(Actions.TOGGLE_HIGHLIGHTS_GROUPS_MATCHING_ALL,</span>
+<span class="fc" id="L403">            Localization.menuTitle(&quot;Highlight groups matching all selected entries&quot;),</span>
+<span class="fc" id="L404">            Localization.lang(&quot;Highlight groups matching all selected entries&quot;)));</span>
+<span class="fc" id="L405">    private final Action toggleHighlightDisable = enableToggle(new GeneralAction(Actions.TOGGLE_HIGHLIGHTS_GROUPS_MATCHING_DISABLE,</span>
+<span class="fc" id="L406">            Localization.menuTitle(&quot;Disable highlight groups matching entries&quot;),</span>
+<span class="fc" id="L407">            Localization.lang(&quot;Disable highlight groups matching entries&quot;)));</span>
+
+
+<span class="fc" id="L410">    private final AbstractAction switchPreview = new GeneralAction(Actions.SWITCH_PREVIEW,</span>
+<span class="fc" id="L411">            Localization.menuTitle(&quot;Switch preview layout&quot;),</span>
+<span class="fc" id="L412">            Globals.getKeyPrefs().getKey(KeyBinding.SWITCH_PREVIEW_LAYOUT));</span>
+<span class="fc" id="L413">    private final AbstractAction makeKeyAction = new GeneralAction(Actions.MAKE_KEY,</span>
+<span class="fc" id="L414">            Localization.menuTitle(&quot;Autogenerate BibTeX keys&quot;),</span>
+<span class="fc" id="L415">            Localization.lang(&quot;Autogenerate BibTeX keys&quot;),</span>
+<span class="fc" id="L416">            Globals.getKeyPrefs().getKey(KeyBinding.AUTOGENERATE_BIBTEX_KEYS),</span>
+<span class="fc" id="L417">            IconTheme.JabRefIcon.MAKE_KEY.getIcon());</span>
+
+<span class="fc" id="L419">    private final AbstractAction writeXmpAction = new GeneralAction(Actions.WRITE_XMP,</span>
+<span class="fc" id="L420">            Localization.menuTitle(&quot;Write XMP-metadata to PDFs&quot;),</span>
+<span class="fc" id="L421">            Localization.lang(&quot;Will write XMP-metadata to the PDFs linked from selected entries.&quot;),</span>
+<span class="fc" id="L422">            Globals.getKeyPrefs().getKey(KeyBinding.WRITE_XMP));</span>
+
+<span class="fc" id="L424">    private final AbstractAction openFolder = new GeneralAction(Actions.OPEN_FOLDER,</span>
+<span class="fc" id="L425">            Localization.menuTitle(&quot;Open folder&quot;), Localization.lang(&quot;Open folder&quot;),</span>
+<span class="fc" id="L426">            Globals.getKeyPrefs().getKey(KeyBinding.OPEN_FOLDER));</span>
+<span class="fc" id="L427">    private final AbstractAction openFile = new GeneralAction(Actions.OPEN_EXTERNAL_FILE,</span>
+<span class="fc" id="L428">            Localization.menuTitle(&quot;Open file&quot;),</span>
+<span class="fc" id="L429">            Localization.lang(&quot;Open file&quot;),</span>
+<span class="fc" id="L430">            Globals.getKeyPrefs().getKey(KeyBinding.OPEN_FILE),</span>
+<span class="fc" id="L431">            IconTheme.JabRefIcon.FILE.getIcon());</span>
+<span class="fc" id="L432">    private final AbstractAction openUrl = new GeneralAction(Actions.OPEN_URL,</span>
+<span class="fc" id="L433">            Localization.menuTitle(&quot;Open URL or DOI&quot;),</span>
+<span class="fc" id="L434">            Localization.lang(&quot;Open URL or DOI&quot;),</span>
+<span class="fc" id="L435">            Globals.getKeyPrefs().getKey(KeyBinding.OPEN_URL_OR_DOI),</span>
+<span class="fc" id="L436">            IconTheme.JabRefIcon.WWW.getIcon());</span>
+<span class="fc" id="L437">    private final AbstractAction dupliCheck = new GeneralAction(Actions.DUPLI_CHECK,</span>
+<span class="fc" id="L438">            Localization.menuTitle(&quot;Find duplicates&quot;), IconTheme.JabRefIcon.FIND_DUPLICATES.getIcon());</span>
+<span class="fc" id="L439">    private final AbstractAction plainTextImport = new GeneralAction(Actions.PLAIN_TEXT_IMPORT,</span>
+<span class="fc" id="L440">            Localization.menuTitle(&quot;New entry from plain text&quot;) + ELLIPSES,</span>
+<span class="fc" id="L441">            Globals.getKeyPrefs().getKey(KeyBinding.NEW_FROM_PLAIN_TEXT));</span>
+
+<span class="fc" id="L443">    private final AbstractAction customExpAction = new CustomizeExportsAction();</span>
+<span class="fc" id="L444">    private final AbstractAction customImpAction = new CustomizeImportsAction();</span>
+<span class="fc" id="L445">    private final AbstractAction customFileTypesAction = ExternalFileTypeEditor.getAction(this);</span>
+<span class="fc" id="L446">    private final AbstractAction exportToClipboard = new GeneralAction(Actions.EXPORT_TO_CLIPBOARD,</span>
+<span class="fc" id="L447">            Localization.menuTitle(&quot;Export selected entries to clipboard&quot;),</span>
+<span class="fc" id="L448">            IconTheme.JabRefIcon.EXPORT_TO_CLIPBOARD.getIcon());</span>
+<span class="fc" id="L449">    private final AbstractAction autoSetFile = new GeneralAction(Actions.AUTO_SET_FILE,</span>
+<span class="fc" id="L450">            Localization.lang(&quot;Synchronize file links&quot;) + ELLIPSES,</span>
+<span class="fc" id="L451">            Globals.getKeyPrefs().getKey(KeyBinding.SYNCHRONIZE_FILES));</span>
+
+<span class="fc" id="L453">    private final AbstractAction abbreviateMedline = new GeneralAction(Actions.ABBREVIATE_MEDLINE,</span>
+<span class="fc" id="L454">            Localization.menuTitle(&quot;Abbreviate journal names (MEDLINE)&quot;),</span>
+<span class="fc" id="L455">            Localization.lang(&quot;Abbreviate journal names of the selected entries (MEDLINE abbreviation)&quot;));</span>
+<span class="fc" id="L456">    private final AbstractAction abbreviateIso = new GeneralAction(Actions.ABBREVIATE_ISO,</span>
+<span class="fc" id="L457">            Localization.menuTitle(&quot;Abbreviate journal names (ISO)&quot;),</span>
+<span class="fc" id="L458">            Localization.lang(&quot;Abbreviate journal names of the selected entries (ISO abbreviation)&quot;),</span>
+<span class="fc" id="L459">            Globals.getKeyPrefs().getKey(KeyBinding.ABBREVIATE));</span>
+
+<span class="fc" id="L461">    private final AbstractAction unabbreviate = new GeneralAction(Actions.UNABBREVIATE,</span>
+<span class="fc" id="L462">            Localization.menuTitle(&quot;Unabbreviate journal names&quot;),</span>
+<span class="fc" id="L463">            Localization.lang(&quot;Unabbreviate journal names of the selected entries&quot;),</span>
+<span class="fc" id="L464">            Globals.getKeyPrefs().getKey(KeyBinding.UNABBREVIATE));</span>
+<span class="fc" id="L465">    private final AbstractAction manageJournals = new ManageJournalsAction(this);</span>
+<span class="fc" id="L466">    private final AbstractAction databaseProperties = new DatabasePropertiesAction();</span>
+<span class="fc" id="L467">    private final AbstractAction bibtexKeyPattern = new BibtexKeyPatternAction();</span>
+<span class="fc" id="L468">    private final AbstractAction errorConsole = new ErrorConsoleAction(this, Globals.streamEavesdropper, GuiAppender.CACHE);</span>
+
+<span class="fc" id="L470">    private final AbstractAction dbConnect = new GeneralAction(Actions.DB_CONNECT,</span>
+<span class="fc" id="L471">            Localization.menuTitle(&quot;Connect to external SQL database&quot;),</span>
+<span class="fc" id="L472">            Localization.lang(&quot;Connect to external SQL database&quot;));</span>
+
+<span class="fc" id="L474">    private final AbstractAction dbExport = new GeneralAction(Actions.DB_EXPORT,</span>
+<span class="fc" id="L475">            Localization.menuTitle(&quot;Export to external SQL database&quot;),</span>
+<span class="fc" id="L476">            Localization.lang(&quot;Export to external SQL database&quot;));</span>
+
+<span class="fc" id="L478">    private final AbstractAction cleanupEntries = new GeneralAction(Actions.CLEANUP,</span>
+<span class="fc" id="L479">            Localization.menuTitle(&quot;Cleanup entries&quot;) + ELLIPSES,</span>
+<span class="fc" id="L480">            Localization.lang(&quot;Cleanup entries&quot;),</span>
+<span class="fc" id="L481">            Globals.getKeyPrefs().getKey(KeyBinding.CLEANUP),</span>
+<span class="fc" id="L482">            IconTheme.JabRefIcon.CLEANUP_ENTRIES.getIcon());</span>
+
+<span class="fc" id="L484">    private final AbstractAction mergeEntries = new GeneralAction(Actions.MERGE_ENTRIES,</span>
+<span class="fc" id="L485">            Localization.menuTitle(&quot;Merge entries&quot;) + ELLIPSES,</span>
+<span class="fc" id="L486">            Localization.lang(&quot;Merge entries&quot;),</span>
+<span class="fc" id="L487">            IconTheme.JabRefIcon.MERGE_ENTRIES.getIcon());</span>
+
+<span class="fc" id="L489">    private final AbstractAction dbImport = new DbImportAction(this).getAction();</span>
+<span class="fc" id="L490">    private final AbstractAction downloadFullText = new GeneralAction(Actions.DOWNLOAD_FULL_TEXT,</span>
+<span class="fc" id="L491">            Localization.menuTitle(&quot;Look up full text document&quot;),</span>
+<span class="fc" id="L492">            Localization.lang(&quot;Follow DOI or URL link and try to locate PDF full text document&quot;));</span>
+<span class="fc" id="L493">    private final AbstractAction increaseFontSize = new IncreaseTableFontSizeAction();</span>
+<span class="fc" id="L494">    private final AbstractAction decreseFontSize = new DecreaseTableFontSizeAction();</span>
+<span class="fc" id="L495">    private final AbstractAction resolveDuplicateKeys = new GeneralAction(Actions.RESOLVE_DUPLICATE_KEYS,</span>
+<span class="fc" id="L496">            Localization.menuTitle(&quot;Resolve duplicate BibTeX keys&quot;),</span>
+<span class="fc" id="L497">            Localization.lang(&quot;Find and remove duplicate BibTeX keys&quot;),</span>
+<span class="fc" id="L498">            Globals.getKeyPrefs().getKey(KeyBinding.RESOLVE_DUPLICATE_BIBTEX_KEYS));</span>
+
+<span class="fc" id="L500">    private final AbstractAction sendAsEmail = new GeneralAction(Actions.SEND_AS_EMAIL,</span>
+<span class="fc" id="L501">            Localization.lang(&quot;Send as email&quot;), IconTheme.JabRefIcon.EMAIL.getIcon());</span>
+
+<span class="fc" id="L503">    private final MassSetFieldAction massSetField = new MassSetFieldAction(this);</span>
+<span class="fc" id="L504">    private final ManageKeywordsAction manageKeywords = new ManageKeywordsAction(this);</span>
+
+<span class="fc" id="L506">    private final GeneralAction findUnlinkedFiles = new GeneralAction(</span>
+<span class="fc" id="L507">            FindUnlinkedFilesDialog.ACTION_COMMAND,</span>
+<span class="fc" id="L508">            FindUnlinkedFilesDialog.ACTION_MENU_TITLE, FindUnlinkedFilesDialog.ACTION_SHORT_DESCRIPTION,</span>
+<span class="fc" id="L509">            Globals.getKeyPrefs().getKey(KeyBinding.FIND_UNLINKED_FILES)</span>
+    );
+
+<span class="fc" id="L512">    private final AutoLinkFilesAction autoLinkFile = new AutoLinkFilesAction();</span>
+
+    private PushToApplicationButton pushExternalButton;
+
+    private GeneralFetcher generalFetcher;
+
+    private GroupSelector groupSelector;
+
+<span class="fc" id="L520">    private int previousTabCount = -1;</span>
+
+    // The action for adding a new entry of unspecified type.
+<span class="fc" id="L523">    private final NewEntryAction newEntryAction = new NewEntryAction(this, Globals.getKeyPrefs().getKey(KeyBinding.NEW_ENTRY));</span>
+<span class="fc" id="L524">    private final List&lt;NewEntryAction&gt; newSpecificEntryAction = getNewEntryActions();</span>
+
+    // The action for closing the current database and leaving the window open.
+<span class="fc" id="L527">    private final CloseDatabaseAction closeDatabaseAction = new CloseDatabaseAction();</span>
+<span class="fc" id="L528">    private final CloseAllDatabasesAction closeAllDatabasesAction = new CloseAllDatabasesAction();</span>
+<span class="fc" id="L529">    private final CloseOtherDatabasesAction closeOtherDatabasesAction = new CloseOtherDatabasesAction();</span>
+
+    // The action for opening the preferences dialog.
+<span class="fc" id="L532">    private final AbstractAction showPrefs = new ShowPrefsAction();</span>
+
+    // Lists containing different subsets of actions for different purposes
+<span class="fc" id="L535">    private final List&lt;Object&gt; specialFieldButtons = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L536">    private final List&lt;Object&gt; openDatabaseOnlyActions = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L537">    private final List&lt;Object&gt; severalDatabasesOnlyActions = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L538">    private final List&lt;Object&gt; openAndSavedDatabasesOnlyActions = new LinkedList&lt;&gt;();</span>
+
+
+    private class EditModeAction extends AbstractAction {
+
+<span class="fc" id="L543">        public EditModeAction() {</span>
+<span class="fc" id="L544">            initName();</span>
+<span class="fc" id="L545">        }</span>
+
+        public void initName() {
+<span class="fc bfc" id="L548" title="All 2 branches covered.">            if (JabRefFrame.this.getCurrentBasePanel() == null) {</span>
+<span class="fc" id="L549">                putValue(Action.NAME, Localization.menuTitle(&quot;Switch to %0 mode&quot;, &quot;BibTeX/BibLaTeX&quot;));</span>
+<span class="fc" id="L550">            } else {</span>
+<span class="fc" id="L551">                BibDatabaseMode mode = JabRefFrame.this.getCurrentBasePanel().getBibDatabaseContext().getMode();</span>
+<span class="fc" id="L552">                String modeName = mode.getOppositeMode().getFormattedName();</span>
+<span class="fc" id="L553">                putValue(Action.NAME, Localization.menuTitle(&quot;Switch to %0 mode&quot;, modeName));</span>
+            }
+<span class="fc" id="L555">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+<span class="nc bnc" id="L559" title="All 2 branches missed.">            if (JabRefFrame.this.getCurrentBasePanel() == null) {</span>
+<span class="nc" id="L560">                return;</span>
+            }
+
+<span class="nc" id="L563">            BibDatabaseMode newMode = JabRefFrame.this.getCurrentBasePanel().getBibDatabaseContext().getMode()</span>
+<span class="nc" id="L564">                    .getOppositeMode();</span>
+<span class="nc" id="L565">            JabRefFrame.this.getCurrentBasePanel().getBibDatabaseContext().setMode(newMode);</span>
+<span class="nc" id="L566">            JabRefFrame.this.refreshTitleAndTabs();</span>
+
+<span class="nc" id="L568">            initName();</span>
+
+            // update all elements in current base panel
+<span class="nc" id="L571">            JabRefFrame.this.getCurrentBasePanel().hideBottomComponent();</span>
+<span class="nc" id="L572">            JabRefFrame.this.getCurrentBasePanel().rebuildAllEntryEditors();</span>
+<span class="nc" id="L573">            JabRefFrame.this.getCurrentBasePanel().updateEntryEditorIfShowing();</span>
+<span class="nc" id="L574">        }</span>
+
+    }
+
+
+<span class="fc" id="L579">    public JabRefFrame() {</span>
+<span class="fc" id="L580">        init();</span>
+<span class="fc" id="L581">        updateEnabledState();</span>
+
+<span class="fc" id="L583">    }</span>
+
+    private List&lt;NewEntryAction&gt; getNewEntryActions() {
+        // only Bibtex
+<span class="fc" id="L587">        List&lt;NewEntryAction&gt; actions = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L588" title="All 2 branches covered.">        for (EntryType type : BibtexEntryTypes.ALL) {</span>
+<span class="fc" id="L589">            KeyStroke keyStroke = new ChangeEntryTypeMenu().entryShortCuts.get(type.getName());</span>
+<span class="fc bfc" id="L590" title="All 2 branches covered.">            if (keyStroke == null) {</span>
+<span class="fc" id="L591">                actions.add(new NewEntryAction(this, type.getName()));</span>
+<span class="fc" id="L592">            } else {</span>
+<span class="fc" id="L593">                actions.add(new NewEntryAction(this, type.getName(), keyStroke));</span>
+            }
+        }
+<span class="fc" id="L596">        return actions;</span>
+    }
+
+    private JPopupMenu tabPopupMenu() {
+<span class="fc" id="L600">        JPopupMenu popupMenu = new JPopupMenu();</span>
+
+        // Close actions
+<span class="fc" id="L603">        JMenuItem close = new JMenuItem(Localization.lang(&quot;Close&quot;));</span>
+<span class="fc" id="L604">        JMenuItem closeOthers = new JMenuItem(Localization.lang(&quot;Close Others&quot;));</span>
+<span class="fc" id="L605">        JMenuItem closeAll = new JMenuItem(Localization.lang(&quot;Close All&quot;));</span>
+<span class="fc" id="L606">        close.addActionListener(closeDatabaseAction);</span>
+<span class="fc" id="L607">        closeOthers.addActionListener(closeOtherDatabasesAction);</span>
+<span class="fc" id="L608">        closeAll.addActionListener(closeAllDatabasesAction);</span>
+<span class="fc" id="L609">        popupMenu.add(close);</span>
+<span class="fc" id="L610">        popupMenu.add(closeOthers);</span>
+<span class="fc" id="L611">        popupMenu.add(closeAll);</span>
+
+<span class="fc" id="L613">        popupMenu.addSeparator();</span>
+
+<span class="fc" id="L615">        JMenuItem databaseProperties = new JMenuItem(Localization.lang(&quot;Database properties&quot;));</span>
+<span class="fc" id="L616">        databaseProperties.addActionListener(this.databaseProperties);</span>
+<span class="fc" id="L617">        popupMenu.add(databaseProperties);</span>
+
+<span class="fc" id="L619">        JMenuItem bibtexKeyPatternBtn = new JMenuItem(Localization.lang(&quot;BibTeX key patterns&quot;));</span>
+<span class="fc" id="L620">        bibtexKeyPatternBtn.addActionListener(bibtexKeyPattern);</span>
+<span class="fc" id="L621">        popupMenu.add(bibtexKeyPatternBtn);</span>
+
+<span class="fc" id="L623">        JMenuItem manageSelectorsBtn = new JMenuItem(Localization.lang(&quot;Manage content selectors&quot;));</span>
+<span class="fc" id="L624">        manageSelectorsBtn.addActionListener(manageSelectors);</span>
+<span class="fc" id="L625">        popupMenu.add(manageSelectorsBtn);</span>
+
+<span class="fc" id="L627">        return popupMenu;</span>
+    }
+
+    private void init() {
+<span class="fc" id="L631">        tabbedPane = new DragDropPopupPane(tabPopupMenu());</span>
+
+<span class="fc" id="L633">        MyGlassPane glassPane = new MyGlassPane();</span>
+<span class="fc" id="L634">        setGlassPane(glassPane);</span>
+
+<span class="fc" id="L636">        setTitle(GUIGlobals.FRAME_TITLE);</span>
+<span class="fc" id="L637">        setIconImage(new ImageIcon(IconTheme.getIconUrl(&quot;jabrefIcon48&quot;)).getImage());</span>
+<span class="fc" id="L638">        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);</span>
+<span class="fc" id="L639">        addWindowListener(new WindowAdapter() {</span>
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+
+<span class="pc bpc" id="L644" title="1 of 2 branches missed.">                if (OS.OS_X) {</span>
+<span class="nc" id="L645">                    JabRefFrame.this.setVisible(false);</span>
+<span class="nc" id="L646">                } else {</span>
+<span class="fc" id="L647">                    new CloseAction().actionPerformed(null);</span>
+                }
+<span class="fc" id="L649">            }</span>
+        });
+
+<span class="fc" id="L652">        initSidePane();</span>
+
+<span class="fc" id="L654">        initLayout();</span>
+
+<span class="fc" id="L656">        initActions();</span>
+
+        // Show the toolbar if it was visible at last shutdown:
+<span class="fc" id="L659">        tlb.setVisible(Globals.prefs.getBoolean(JabRefPreferences.TOOLBAR_VISIBLE));</span>
+
+<span class="fc" id="L661">        setBounds(GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds());</span>
+<span class="fc" id="L662">        pw = new PositionWindow(this, JabRefPreferences.POS_X, JabRefPreferences.POS_Y, JabRefPreferences.SIZE_X,</span>
+<span class="fc" id="L663">                JabRefPreferences.SIZE_Y);</span>
+<span class="fc" id="L664">        positionWindowOnScreen();</span>
+
+<span class="fc" id="L666">        tabbedPane.setBorder(null);</span>
+<span class="fc" id="L667">        tabbedPane.setForeground(GUIGlobals.INACTIVE_TABBED_COLOR);</span>
+
+        /*
+         * The following state listener makes sure focus is registered with the
+         * correct database when the user switches tabs. Without this,
+         * cut/paste/copy operations would some times occur in the wrong tab.
+         */
+<span class="fc" id="L674">        tabbedPane.addChangeListener(e -&gt; {</span>
+<span class="fc" id="L675">            markActiveBasePanel();</span>
+
+<span class="fc" id="L677">            BasePanel bp = getCurrentBasePanel();</span>
+<span class="pc bpc" id="L678" title="1 of 2 branches missed.">            if (bp == null) {</span>
+<span class="nc" id="L679">                return;</span>
+            }
+
+<span class="fc" id="L682">            groupToggle.setSelected(sidePaneManager.isComponentVisible(&quot;groups&quot;));</span>
+<span class="fc" id="L683">            previewToggle.setSelected(Globals.prefs.getBoolean(JabRefPreferences.PREVIEW_ENABLED));</span>
+<span class="fc" id="L684">            fetcherToggle.setSelected(sidePaneManager.isComponentVisible(generalFetcher.getTitle()));</span>
+<span class="fc" id="L685">            Globals.focusListener.setFocused(bp.mainTable);</span>
+<span class="fc" id="L686">            setWindowTitle();</span>
+<span class="fc" id="L687">            editModeAction.initName();</span>
+            // Update search autocompleter with information for the correct database:
+<span class="fc" id="L689">            bp.updateSearchManager();</span>
+            // Set correct enabled state for Back and Forward actions:
+<span class="fc" id="L691">            bp.setBackAndForwardEnabledState();</span>
+<span class="fc" id="L692">            new FocusRequester(bp.mainTable);</span>
+<span class="fc" id="L693">        });</span>
+
+        //Note: The registration of Apple event is at the end of initialization, because
+        //if the events happen too early (ie when the window is not initialized yet), the
+        //opened (double-clicked) documents are not displayed.
+<span class="pc bpc" id="L698" title="1 of 2 branches missed.">        if (OS.OS_X) {</span>
+            try {
+<span class="nc" id="L700">                new MacAdapter().registerMacEvents(this);</span>
+<span class="nc" id="L701">            } catch (Exception e) {</span>
+<span class="nc" id="L702">                LOGGER.fatal(&quot;Could not interface with Mac OS X methods.&quot;, e);</span>
+            }
+        }
+<span class="fc" id="L705">    }</span>
+
+    private void positionWindowOnScreen() {
+<span class="pc bpc" id="L708" title="1 of 2 branches missed.">        if (!prefs.getBoolean(JabRefPreferences.WINDOW_MAXIMISED)) {</span>
+<span class="fc" id="L709">            pw.setWindowPosition();</span>
+        }
+<span class="fc" id="L711">    }</span>
+
+    private void refreshTitleAndTabs() {
+<span class="nc" id="L714">        setWindowTitle();</span>
+<span class="nc" id="L715">        updateAllTabTitles();</span>
+<span class="nc" id="L716">    }</span>
+
+    /**
+     * Sets the title of the main window.
+     */
+    public void setWindowTitle() {
+<span class="fc" id="L722">        BasePanel panel = getCurrentBasePanel();</span>
+
+        // no database open
+<span class="pc bpc" id="L725" title="1 of 2 branches missed.">        if (panel == null) {</span>
+<span class="nc" id="L726">            setTitle(GUIGlobals.FRAME_TITLE);</span>
+<span class="nc" id="L727">            return;</span>
+        }
+
+<span class="fc" id="L730">        String mode = panel.getBibDatabaseContext().getMode().getFormattedName();</span>
+<span class="fc" id="L731">        String modeInfo = String.format(&quot; (%s)&quot;, Localization.lang(&quot;%0 mode&quot;, mode));</span>
+<span class="fc bfc" id="L732" title="All 2 branches covered.">        String changeFlag = panel.isModified() ? &quot;*&quot; : &quot;&quot;;</span>
+
+<span class="pc bpc" id="L734" title="1 of 2 branches missed.">        if (panel.getBibDatabaseContext().getDatabaseFile() == null) {</span>
+<span class="nc" id="L735">            setTitle(GUIGlobals.FRAME_TITLE + &quot; - &quot; + GUIGlobals.UNTITLED_TITLE + changeFlag + modeInfo);</span>
+<span class="nc" id="L736">        } else {</span>
+<span class="fc" id="L737">            String databaseFile = panel.getBibDatabaseContext().getDatabaseFile().getPath();</span>
+<span class="fc" id="L738">            setTitle(GUIGlobals.FRAME_TITLE + &quot; - &quot; + databaseFile + changeFlag + modeInfo);</span>
+        }
+<span class="fc" id="L740">    }</span>
+
+    private void initSidePane() {
+<span class="fc" id="L743">        sidePaneManager = new SidePaneManager(this);</span>
+
+<span class="fc" id="L745">        groupSelector = new GroupSelector(this, sidePaneManager);</span>
+
+<span class="fc" id="L747">        generalFetcher = new GeneralFetcher(sidePaneManager, this);</span>
+
+<span class="fc" id="L749">        sidePaneManager.register(&quot;groups&quot;, groupSelector);</span>
+<span class="fc" id="L750">    }</span>
+
+    /**
+     * The MacAdapter calls this method when a &quot;.bib&quot; file has been double-clicked from the Finder.
+     */
+    public void openAction(String filePath) {
+<span class="nc" id="L756">        File file = new File(filePath);</span>
+        // all the logic is done in openIt. Even raising an existing panel
+<span class="nc" id="L758">        getOpenDatabaseAction().openFile(file, true);</span>
+<span class="nc" id="L759">    }</span>
+
+    // General info dialog.  The MacAdapter calls this method when &quot;About&quot;
+    // is selected from the application menu.
+    public void about() {
+        // reuse the normal about action
+        // null as parameter is OK as the code of actionPerformed does not rely on the data sent in the event.
+<span class="nc" id="L766">        about.actionPerformed(null);</span>
+<span class="nc" id="L767">    }</span>
+
+    // General preferences dialog.  The MacAdapter calls this method when &quot;Preferences...&quot;
+    // is selected from the application menu.
+    public void preferences() {
+<span class="nc" id="L772">        output(Localization.lang(&quot;Opening preferences...&quot;));</span>
+<span class="nc bnc" id="L773" title="All 2 branches missed.">        if (prefsDialog == null) {</span>
+<span class="nc" id="L774">            prefsDialog = new PreferencesDialog(JabRefFrame.this);</span>
+<span class="nc" id="L775">            prefsDialog.setLocationRelativeTo(JabRefFrame.this);</span>
+<span class="nc" id="L776">        } else {</span>
+<span class="nc" id="L777">            prefsDialog.setValues();</span>
+        }
+
+<span class="nc" id="L780">        prefsDialog.setVisible(true);</span>
+<span class="nc" id="L781">        output(&quot;&quot;);</span>
+<span class="nc" id="L782">    }</span>
+
+    public JabRefPreferences prefs() {
+<span class="nc" id="L785">        return prefs;</span>
+    }
+
+    /**
+     * Tears down all things started by JabRef
+     * &lt;p&gt;
+     * FIXME: Currently some threads remain and therefore hinder JabRef to be closed properly
+     *
+     * @param filenames the filenames of all currently opened files - used for storing them if prefs openLastEdited is set to true
+     */
+    private void tearDownJabRef(List&lt;String&gt; filenames) {
+<span class="fc" id="L796">        JabRefExecutorService.INSTANCE.shutdownEverything();</span>
+
+<span class="fc" id="L798">        dispose();</span>
+
+<span class="pc bpc" id="L800" title="1 of 2 branches missed.">        if (getCurrentBasePanel() != null) {</span>
+<span class="fc" id="L801">            getCurrentBasePanel().saveDividerLocation();</span>
+        }
+
+        //prefs.putBoolean(JabRefPreferences.WINDOW_MAXIMISED, (getExtendedState()&amp;MAXIMIZED_BOTH)&gt;0);
+<span class="pc bpc" id="L805" title="1 of 2 branches missed.">        prefs.putBoolean(JabRefPreferences.WINDOW_MAXIMISED, getExtendedState() == Frame.MAXIMIZED_BOTH);</span>
+
+<span class="fc" id="L807">        prefs.putBoolean(JabRefPreferences.TOOLBAR_VISIBLE, tlb.isVisible());</span>
+        // Store divider location for side pane:
+<span class="fc" id="L809">        int width = splitPane.getDividerLocation();</span>
+<span class="pc bpc" id="L810" title="1 of 2 branches missed.">        if (width &gt; 0) {</span>
+<span class="nc" id="L811">            prefs.putInt(JabRefPreferences.SIDE_PANE_WIDTH, width);</span>
+        }
+<span class="pc bpc" id="L813" title="1 of 2 branches missed.">        if (prefs.getBoolean(JabRefPreferences.OPEN_LAST_EDITED)) {</span>
+            // Here we store the names of all current files. If
+            // there is no current file, we remove any
+            // previously stored filename.
+<span class="pc bpc" id="L817" title="1 of 2 branches missed.">            if (filenames.isEmpty()) {</span>
+<span class="nc" id="L818">                prefs.remove(JabRefPreferences.LAST_EDITED);</span>
+<span class="nc" id="L819">            } else {</span>
+<span class="fc" id="L820">                prefs.putStringList(JabRefPreferences.LAST_EDITED, filenames);</span>
+<span class="fc" id="L821">                File focusedDatabase = getCurrentBasePanel().getBibDatabaseContext().getDatabaseFile();</span>
+<span class="fc" id="L822">                new LastFocusedTabPreferences(prefs).setLastFocusedTab(focusedDatabase);</span>
+            }
+
+        }
+
+<span class="fc" id="L827">        fileHistory.storeHistory();</span>
+<span class="fc" id="L828">        prefs.customExports.store();</span>
+<span class="fc" id="L829">        prefs.customImports.store();</span>
+<span class="fc" id="L830">        CustomEntryTypesManager.saveCustomEntryTypes(prefs);</span>
+
+        // Clear autosave files:
+<span class="pc bpc" id="L833" title="1 of 2 branches missed.">        if (Globals.autoSaveManager != null) {</span>
+<span class="fc" id="L834">            Globals.autoSaveManager.clearAutoSaves();</span>
+        }
+
+<span class="fc" id="L837">        prefs.flush();</span>
+
+        // dispose all windows, even if they are not displayed anymore
+<span class="fc bfc" id="L840" title="All 2 branches covered.">        for (Window window : Window.getWindows()) {</span>
+<span class="fc" id="L841">            window.dispose();</span>
+        }
+
+        // shutdown any timers that are may be active
+<span class="pc bpc" id="L845" title="1 of 2 branches missed.">        if (Globals.autoSaveManager != null) {</span>
+<span class="fc" id="L846">            Globals.stopAutoSaveManager();</span>
+        }
+<span class="fc" id="L848">    }</span>
+
+    /**
+     * General info dialog.  The MacAdapter calls this method when &quot;Quit&quot;
+     * is selected from the application menu, Cmd-Q is pressed, or &quot;Quit&quot; is selected from the Dock.
+     * The function returns a boolean indicating if quitting is ok or not.
+     * &lt;p&gt;
+     * Non-OSX JabRef calls this when choosing &quot;Quit&quot; from the menu
+     * &lt;p&gt;
+     * SIDE EFFECT: tears down JabRef
+     *
+     * @return true if the user chose to quit; false otherwise
+     */
+    public boolean quit() {
+        // Ask here if the user really wants to close, if the base
+        // has not been saved since last save.
+<span class="fc" id="L864">        boolean close = true;</span>
+<span class="fc" id="L865">        List&lt;String&gt; filenames = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L866" title="1 of 2 branches missed.">        if (tabbedPane.getTabCount() &gt; 0) {</span>
+<span class="fc bfc" id="L867" title="All 2 branches covered.">            for (int i = 0; i &lt; tabbedPane.getTabCount(); i++) {</span>
+<span class="pc bpc" id="L868" title="1 of 2 branches missed.">                if (getBasePanelAt(i).isModified()) {</span>
+<span class="fc" id="L869">                    tabbedPane.setSelectedIndex(i);</span>
+                    String filename;
+
+<span class="pc bpc" id="L872" title="1 of 2 branches missed.">                    if (getBasePanelAt(i).getBibDatabaseContext().getDatabaseFile() == null) {</span>
+<span class="nc" id="L873">                        filename = GUIGlobals.UNTITLED_TITLE;</span>
+<span class="nc" id="L874">                    } else {</span>
+<span class="fc" id="L875">                        filename = getBasePanelAt(i).getBibDatabaseContext().getDatabaseFile().getAbsolutePath();</span>
+                    }
+<span class="fc" id="L877">                    int answer = showSaveDialog(filename);</span>
+
+<span class="pc bpc" id="L879" title="1 of 2 branches missed.">                    if ((answer == JOptionPane.CANCEL_OPTION) ||</span>
+<span class="pc bpc" id="L880" title="1 of 2 branches missed.">                            (answer == JOptionPane.CLOSED_OPTION)) {</span>
+<span class="nc" id="L881">                        return false;</span>
+                    }
+<span class="pc bpc" id="L883" title="1 of 2 branches missed.">                    if (answer == JOptionPane.YES_OPTION) {</span>
+                        // The user wants to save.
+                        try {
+                            //getCurrentBasePanel().runCommand(&quot;save&quot;);
+<span class="nc" id="L887">                            SaveDatabaseAction saveAction = new SaveDatabaseAction(getCurrentBasePanel());</span>
+<span class="nc" id="L888">                            saveAction.runCommand();</span>
+<span class="nc bnc" id="L889" title="All 4 branches missed.">                            if (saveAction.isCanceled() || !saveAction.isSuccess()) {</span>
+                                // The action was either canceled or unsuccessful.
+                                // Break!
+<span class="nc" id="L892">                                output(Localization.lang(&quot;Unable to save database&quot;));</span>
+<span class="nc" id="L893">                                close = false;</span>
+                            }
+<span class="nc" id="L895">                        } catch (Throwable ex) {</span>
+                            // Something prevented the file
+                            // from being saved. Break!!!
+<span class="nc" id="L898">                            close = false;</span>
+<span class="nc" id="L899">                            break;</span>
+                        }
+                    }
+                }
+
+<span class="pc bpc" id="L904" title="1 of 2 branches missed.">                if (getBasePanelAt(i).getBibDatabaseContext().getDatabaseFile() != null) {</span>
+<span class="fc" id="L905">                    filenames.add(getBasePanelAt(i).getBibDatabaseContext().getDatabaseFile().getAbsolutePath());</span>
+                }
+            }
+        }
+
+<span class="pc bpc" id="L910" title="1 of 2 branches missed.">        if (close) {</span>
+<span class="fc bfc" id="L911" title="All 2 branches covered.">            for (int i = 0; i &lt; tabbedPane.getTabCount(); i++) {</span>
+<span class="pc bpc" id="L912" title="1 of 2 branches missed.">                if (getBasePanelAt(i).isSaving()) {</span>
+                    // There is a database still being saved, so we need to wait.
+<span class="nc" id="L914">                    WaitForSaveOperation w = new WaitForSaveOperation(this);</span>
+<span class="nc" id="L915">                    w.show(); // This method won't return until canceled or the save operation is done.</span>
+<span class="nc bnc" id="L916" title="All 2 branches missed.">                    if (w.canceled()) {</span>
+<span class="nc" id="L917">                        return false; // The user clicked cancel.</span>
+                    }
+                }
+            }
+
+<span class="fc" id="L922">            tearDownJabRef(filenames);</span>
+<span class="fc" id="L923">            return true;</span>
+        }
+
+<span class="nc" id="L926">        return false;</span>
+    }
+
+    private void initLayout() {
+<span class="fc" id="L930">        tabbedPane.putClientProperty(Options.NO_CONTENT_BORDER_KEY, Boolean.TRUE);</span>
+
+<span class="fc" id="L932">        setProgressBarVisible(false);</span>
+
+<span class="fc" id="L934">        pushExternalButton = new PushToApplicationButton(this, PushToApplications.getApplications());</span>
+<span class="fc" id="L935">        fillMenu();</span>
+<span class="fc" id="L936">        createToolBar();</span>
+<span class="fc" id="L937">        getContentPane().setLayout(gbl);</span>
+<span class="fc" id="L938">        splitPane.setDividerSize(2);</span>
+<span class="fc" id="L939">        splitPane.setBorder(null);</span>
+        //getContentPane().setBackground(GUIGlobals.lightGray);
+<span class="fc" id="L941">        con.fill = GridBagConstraints.HORIZONTAL;</span>
+<span class="fc" id="L942">        con.anchor = GridBagConstraints.WEST;</span>
+<span class="fc" id="L943">        con.weightx = 1;</span>
+<span class="fc" id="L944">        con.weighty = 0;</span>
+<span class="fc" id="L945">        con.gridwidth = GridBagConstraints.REMAINDER;</span>
+
+        //gbl.setConstraints(mb, con);
+        //getContentPane().add(mb);
+<span class="fc" id="L949">        setJMenuBar(mb);</span>
+<span class="fc" id="L950">        con.anchor = GridBagConstraints.NORTH;</span>
+        //con.gridwidth = 1;//GridBagConstraints.REMAINDER;;
+<span class="fc" id="L952">        gbl.setConstraints(tlb, con);</span>
+<span class="fc" id="L953">        getContentPane().add(tlb);</span>
+
+<span class="fc" id="L955">        Component lim = Box.createGlue();</span>
+<span class="fc" id="L956">        gbl.setConstraints(lim, con);</span>
+        //getContentPane().add(lim);
+        /*
+          JPanel empt = new JPanel();
+          empt.setBackground(GUIGlobals.lightGray);
+          gbl.setConstraints(empt, con);
+               getContentPane().add(empt);
+
+          con.insets = new Insets(1,0,1,1);
+          con.anchor = GridBagConstraints.EAST;
+          con.weightx = 0;
+          gbl.setConstraints(searchManager, con);
+          getContentPane().add(searchManager);*/
+<span class="fc" id="L969">        con.gridwidth = GridBagConstraints.REMAINDER;</span>
+<span class="fc" id="L970">        con.weightx = 1;</span>
+<span class="fc" id="L971">        con.weighty = 0;</span>
+<span class="fc" id="L972">        con.fill = GridBagConstraints.BOTH;</span>
+<span class="fc" id="L973">        con.anchor = GridBagConstraints.WEST;</span>
+<span class="fc" id="L974">        con.insets = new Insets(0, 0, 0, 0);</span>
+<span class="fc" id="L975">        lim = Box.createGlue();</span>
+<span class="fc" id="L976">        gbl.setConstraints(lim, con);</span>
+<span class="fc" id="L977">        getContentPane().add(lim);</span>
+        //tabbedPane.setVisible(false);
+        //tabbedPane.setForeground(GUIGlobals.lightGray);
+<span class="fc" id="L980">        con.weighty = 1;</span>
+<span class="fc" id="L981">        gbl.setConstraints(splitPane, con);</span>
+<span class="fc" id="L982">        getContentPane().add(splitPane);</span>
+
+<span class="fc" id="L984">        UIManager.put(&quot;TabbedPane.contentBorderInsets&quot;, new Insets(0, 0, 0, 0));</span>
+
+<span class="fc" id="L986">        splitPane.setRightComponent(tabbedPane);</span>
+<span class="fc" id="L987">        splitPane.setLeftComponent(sidePaneManager.getPanel());</span>
+<span class="fc" id="L988">        sidePaneManager.updateView();</span>
+
+<span class="fc" id="L990">        JPanel status = new JPanel();</span>
+<span class="fc" id="L991">        status.setLayout(gbl);</span>
+<span class="fc" id="L992">        con.weighty = 0;</span>
+<span class="fc" id="L993">        con.weightx = 0;</span>
+<span class="fc" id="L994">        con.gridwidth = 1;</span>
+<span class="fc" id="L995">        con.insets = new Insets(0, 2, 0, 0);</span>
+<span class="fc" id="L996">        gbl.setConstraints(statusLabel, con);</span>
+<span class="fc" id="L997">        status.add(statusLabel);</span>
+<span class="fc" id="L998">        con.weightx = 1;</span>
+<span class="fc" id="L999">        con.insets = new Insets(0, 4, 0, 0);</span>
+<span class="fc" id="L1000">        con.gridwidth = 1;</span>
+<span class="fc" id="L1001">        gbl.setConstraints(statusLine, con);</span>
+<span class="fc" id="L1002">        status.add(statusLine);</span>
+<span class="fc" id="L1003">        con.weightx = 0;</span>
+<span class="fc" id="L1004">        con.gridwidth = GridBagConstraints.REMAINDER;</span>
+<span class="fc" id="L1005">        con.insets = new Insets(2, 4, 2, 2);</span>
+<span class="fc" id="L1006">        gbl.setConstraints(progressBar, con);</span>
+<span class="fc" id="L1007">        status.add(progressBar);</span>
+<span class="fc" id="L1008">        con.weightx = 1;</span>
+<span class="fc" id="L1009">        con.gridwidth = GridBagConstraints.REMAINDER;</span>
+<span class="fc" id="L1010">        statusLabel.setForeground(GUIGlobals.ENTRY_EDITOR_LABEL_COLOR.darker());</span>
+<span class="fc" id="L1011">        con.insets = new Insets(0, 0, 0, 0);</span>
+<span class="fc" id="L1012">        gbl.setConstraints(status, con);</span>
+<span class="fc" id="L1013">        getContentPane().add(status);</span>
+
+        // Drag and drop for tabbedPane:
+<span class="fc" id="L1016">        TransferHandler xfer = new EntryTableTransferHandler(null, this, null);</span>
+<span class="fc" id="L1017">        tabbedPane.setTransferHandler(xfer);</span>
+<span class="fc" id="L1018">        tlb.setTransferHandler(xfer);</span>
+<span class="fc" id="L1019">        mb.setTransferHandler(xfer);</span>
+<span class="fc" id="L1020">        sidePaneManager.getPanel().setTransferHandler(xfer);</span>
+<span class="fc" id="L1021">    }</span>
+
+    /**
+     * Returns the indexed BasePanel.
+     *
+     * @param i Index of base
+     */
+    public BasePanel getBasePanelAt(int i) {
+<span class="fc" id="L1029">        return (BasePanel) tabbedPane.getComponentAt(i);</span>
+    }
+
+    /**
+     * Returns a list of BasePanel.
+     *
+     */
+    public List&lt;BasePanel&gt; getBasePanelList() {
+<span class="fc" id="L1037">        List&lt;BasePanel&gt; returnList = new ArrayList&lt;&gt;(getBasePanelCount());</span>
+<span class="fc bfc" id="L1038" title="All 2 branches covered.">        for (int i=0; i&lt; getBasePanelCount(); i++) {</span>
+<span class="fc" id="L1039">            returnList.add((BasePanel) tabbedPane.getComponentAt(i));</span>
+        }
+<span class="fc" id="L1041">        return returnList;</span>
+    }
+
+    public void showBasePanelAt(int i) {
+<span class="nc" id="L1045">        tabbedPane.setSelectedIndex(i);</span>
+<span class="nc" id="L1046">    }</span>
+
+    public void showBasePanel(BasePanel bp) {
+<span class="nc" id="L1049">        tabbedPane.setSelectedComponent(bp);</span>
+<span class="nc" id="L1050">    }</span>
+
+    /**
+     * Returns the currently viewed BasePanel.
+     */
+    public BasePanel getCurrentBasePanel() {
+<span class="fc bfc" id="L1056" title="All 2 branches covered.">        if (tabbedPane == null) {</span>
+<span class="fc" id="L1057">            return null;</span>
+        }
+<span class="fc" id="L1059">        return (BasePanel) tabbedPane.getSelectedComponent();</span>
+    }
+
+    /**
+     * @return the BasePanel count.
+     */
+    public int getBasePanelCount() {
+<span class="fc" id="L1066">        return tabbedPane.getComponentCount();</span>
+    }
+
+    /**
+     * handle the color of active and inactive JTabbedPane tabs
+     */
+    private void markActiveBasePanel() {
+<span class="fc" id="L1073">        int now = tabbedPane.getSelectedIndex();</span>
+<span class="fc" id="L1074">        int len = tabbedPane.getTabCount();</span>
+<span class="pc bpc" id="L1075" title="3 of 4 branches missed.">        if ((lastTabbedPanelSelectionIndex &gt; -1) &amp;&amp; (lastTabbedPanelSelectionIndex &lt; len)) {</span>
+<span class="nc" id="L1076">            tabbedPane.setForegroundAt(lastTabbedPanelSelectionIndex, GUIGlobals.INACTIVE_TABBED_COLOR);</span>
+        }
+<span class="pc bpc" id="L1078" title="2 of 4 branches missed.">        if ((now &gt; -1) &amp;&amp; (now &lt; len)) {</span>
+<span class="fc" id="L1079">            tabbedPane.setForegroundAt(now, GUIGlobals.ACTIVE_TABBED_COLOR);</span>
+        }
+<span class="fc" id="L1081">        lastTabbedPanelSelectionIndex = now;</span>
+<span class="fc" id="L1082">    }</span>
+
+    private int getTabIndex(JComponent comp) {
+<span class="nc bnc" id="L1085" title="All 2 branches missed.">        for (int i = 0; i &lt; tabbedPane.getTabCount(); i++) {</span>
+<span class="nc bnc" id="L1086" title="All 2 branches missed.">            if (tabbedPane.getComponentAt(i) == comp) {</span>
+<span class="nc" id="L1087">                return i;</span>
+            }
+        }
+<span class="nc" id="L1090">        return -1;</span>
+    }
+
+    public JTabbedPane getTabbedPane() {
+<span class="fc" id="L1094">        return tabbedPane;</span>
+    }
+
+    public void setTabTitle(JComponent comp, String title, String toolTip) {
+<span class="nc" id="L1098">        int index = getTabIndex(comp);</span>
+<span class="nc" id="L1099">        tabbedPane.setTitleAt(index, title);</span>
+<span class="nc" id="L1100">        tabbedPane.setToolTipTextAt(index, toolTip);</span>
+<span class="nc" id="L1101">    }</span>
+
+    private static Action enableToggle(Action a, boolean initialValue) {
+        // toggle only works correctly when the SELECTED_KEY is set to false or true explicitly upon start
+<span class="fc" id="L1105">        a.putValue(Action.SELECTED_KEY, String.valueOf(initialValue));</span>
+
+<span class="fc" id="L1107">        return a;</span>
+    }
+
+    private static Action enableToggle(Action a) {
+<span class="fc" id="L1111">        return enableToggle(a, false);</span>
+    }
+
+    private class GeneralAction extends MnemonicAwareAction {
+
+        private final String command;
+
+<span class="fc" id="L1118">        public GeneralAction(String command, String text) {</span>
+<span class="fc" id="L1119">            this.command = command;</span>
+<span class="fc" id="L1120">            putValue(Action.NAME, text);</span>
+<span class="fc" id="L1121">        }</span>
+
+<span class="fc" id="L1123">        public GeneralAction(String command, String text, String description) {</span>
+<span class="fc" id="L1124">            this.command = command;</span>
+<span class="fc" id="L1125">            putValue(Action.NAME, text);</span>
+<span class="fc" id="L1126">            putValue(Action.SHORT_DESCRIPTION, description);</span>
+<span class="fc" id="L1127">        }</span>
+
+<span class="fc" id="L1129">        public GeneralAction(String command, String text, Icon icon) {</span>
+<span class="fc" id="L1130">            super(icon);</span>
+
+<span class="fc" id="L1132">            this.command = command;</span>
+<span class="fc" id="L1133">            putValue(Action.NAME, text);</span>
+<span class="fc" id="L1134">        }</span>
+
+<span class="fc" id="L1136">        public GeneralAction(String command, String text, String description, Icon icon) {</span>
+<span class="fc" id="L1137">            super(icon);</span>
+
+<span class="fc" id="L1139">            this.command = command;</span>
+<span class="fc" id="L1140">            putValue(Action.NAME, text);</span>
+<span class="fc" id="L1141">            putValue(Action.SHORT_DESCRIPTION, description);</span>
+<span class="fc" id="L1142">        }</span>
+
+<span class="fc" id="L1144">        public GeneralAction(String command, String text, KeyStroke key) {</span>
+<span class="fc" id="L1145">            this.command = command;</span>
+<span class="fc" id="L1146">            putValue(Action.NAME, text);</span>
+<span class="fc" id="L1147">            putValue(Action.ACCELERATOR_KEY, key);</span>
+<span class="fc" id="L1148">        }</span>
+
+<span class="fc" id="L1150">        public GeneralAction(String command, String text, String description, KeyStroke key) {</span>
+<span class="fc" id="L1151">            this.command = command;</span>
+<span class="fc" id="L1152">            putValue(Action.NAME, text);</span>
+<span class="fc" id="L1153">            putValue(Action.SHORT_DESCRIPTION, description);</span>
+<span class="fc" id="L1154">            putValue(Action.ACCELERATOR_KEY, key);</span>
+<span class="fc" id="L1155">        }</span>
+
+<span class="fc" id="L1157">        public GeneralAction(String command, String text, String description, KeyStroke key, Icon icon) {</span>
+<span class="fc" id="L1158">            super(icon);</span>
+
+<span class="fc" id="L1160">            this.command = command;</span>
+<span class="fc" id="L1161">            putValue(Action.NAME, text);</span>
+<span class="fc" id="L1162">            putValue(Action.SHORT_DESCRIPTION, description);</span>
+<span class="fc" id="L1163">            putValue(Action.ACCELERATOR_KEY, key);</span>
+<span class="fc" id="L1164">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc bnc" id="L1168" title="All 2 branches missed.">            if (tabbedPane.getTabCount() &gt; 0) {</span>
+                try {
+<span class="nc" id="L1170">                    ((BasePanel) tabbedPane.getSelectedComponent()).runCommand(command);</span>
+<span class="nc" id="L1171">                } catch (Throwable ex) {</span>
+<span class="nc" id="L1172">                    LOGGER.error(&quot;Problem with executing command: &quot; + command, ex);</span>
+                }
+<span class="nc" id="L1174">            } else {</span>
+<span class="nc" id="L1175">                LOGGER.info(&quot;Action '&quot; + command + &quot;' must be disabled when no database is open.&quot;);</span>
+            }
+<span class="nc" id="L1177">        }</span>
+    }
+
+    private void fillMenu() {
+<span class="fc" id="L1181">        mb.setBorder(null);</span>
+<span class="fc" id="L1182">        JMenu file = JabRefFrame.subMenu(Localization.menuTitle(&quot;File&quot;));</span>
+<span class="fc" id="L1183">        JMenu edit = JabRefFrame.subMenu(Localization.menuTitle(&quot;Edit&quot;));</span>
+<span class="fc" id="L1184">        JMenu search = JabRefFrame.subMenu(Localization.menuTitle(&quot;Search&quot;));</span>
+<span class="fc" id="L1185">        JMenu groups = JabRefFrame.subMenu(Localization.menuTitle(&quot;Groups&quot;));</span>
+<span class="fc" id="L1186">        JMenu bibtex = JabRefFrame.subMenu(&quot;&amp;BibTeX&quot;);</span>
+<span class="fc" id="L1187">        JMenu quality = JabRefFrame.subMenu(Localization.menuTitle(&quot;Quality&quot;));</span>
+<span class="fc" id="L1188">        JMenu view = JabRefFrame.subMenu(Localization.menuTitle(&quot;View&quot;));</span>
+<span class="fc" id="L1189">        JMenu tools = JabRefFrame.subMenu(Localization.menuTitle(&quot;Tools&quot;));</span>
+<span class="fc" id="L1190">        JMenu options = JabRefFrame.subMenu(Localization.menuTitle(&quot;Options&quot;));</span>
+<span class="fc" id="L1191">        JMenu newSpec = JabRefFrame.subMenu(Localization.menuTitle(&quot;New entry by type...&quot;));</span>
+<span class="fc" id="L1192">        JMenu helpMenu = JabRefFrame.subMenu(Localization.menuTitle(&quot;Help&quot;));</span>
+
+<span class="fc" id="L1194">        file.add(newBibtexDatabaseAction);</span>
+<span class="fc" id="L1195">        file.add(newBiblatexDatabaseAction);</span>
+<span class="fc" id="L1196">        file.add(getOpenDatabaseAction());</span>
+<span class="fc" id="L1197">        file.add(mergeDatabaseAction);</span>
+<span class="fc" id="L1198">        file.add(save);</span>
+<span class="fc" id="L1199">        file.add(saveAs);</span>
+<span class="fc" id="L1200">        file.add(saveAll);</span>
+<span class="fc" id="L1201">        file.add(saveSelectedAs);</span>
+<span class="fc" id="L1202">        file.add(saveSelectedAsPlain);</span>
+<span class="fc" id="L1203">        file.addSeparator();</span>
+<span class="fc" id="L1204">        file.add(importNew);</span>
+<span class="fc" id="L1205">        file.add(importCurrent);</span>
+<span class="fc" id="L1206">        file.add(exportAll);</span>
+<span class="fc" id="L1207">        file.add(exportSelected);</span>
+<span class="fc" id="L1208">        file.addSeparator();</span>
+<span class="fc" id="L1209">        file.add(dbConnect);</span>
+<span class="fc" id="L1210">        file.add(dbImport);</span>
+<span class="fc" id="L1211">        file.add(dbExport);</span>
+
+<span class="fc" id="L1213">        file.addSeparator();</span>
+<span class="fc" id="L1214">        file.add(databaseProperties);</span>
+<span class="fc" id="L1215">        file.add(editModeAction);</span>
+<span class="fc" id="L1216">        file.addSeparator();</span>
+
+<span class="fc" id="L1218">        file.add(fileHistory);</span>
+<span class="fc" id="L1219">        file.addSeparator();</span>
+<span class="fc" id="L1220">        file.add(closeDatabaseAction);</span>
+<span class="fc" id="L1221">        file.add(quit);</span>
+<span class="fc" id="L1222">        mb.add(file);</span>
+
+<span class="fc" id="L1224">        edit.add(undo);</span>
+<span class="fc" id="L1225">        edit.add(redo);</span>
+
+<span class="fc" id="L1227">        edit.addSeparator();</span>
+
+<span class="fc" id="L1229">        edit.add(cut);</span>
+<span class="fc" id="L1230">        edit.add(copy);</span>
+<span class="fc" id="L1231">        edit.add(paste);</span>
+
+<span class="fc" id="L1233">        edit.addSeparator();</span>
+
+<span class="fc" id="L1235">        edit.add(copyKey);</span>
+<span class="fc" id="L1236">        edit.add(copyCiteKey);</span>
+<span class="fc" id="L1237">        edit.add(copyKeyAndTitle);</span>
+<span class="fc" id="L1238">        edit.add(exportToClipboard);</span>
+<span class="fc" id="L1239">        edit.add(sendAsEmail);</span>
+
+<span class="fc" id="L1241">        edit.addSeparator();</span>
+<span class="fc" id="L1242">        edit.add(mark);</span>
+<span class="fc" id="L1243">        JMenu markSpecific = JabRefFrame.subMenu(Localization.menuTitle(&quot;Mark specific color&quot;));</span>
+<span class="fc bfc" id="L1244" title="All 2 branches covered.">        for (int i = 0; i &lt; EntryMarker.MAX_MARKING_LEVEL; i++) {</span>
+<span class="fc" id="L1245">            markSpecific.add(new MarkEntriesAction(this, i).getMenuItem());</span>
+        }
+<span class="fc" id="L1247">        edit.add(markSpecific);</span>
+<span class="fc" id="L1248">        edit.add(unmark);</span>
+<span class="fc" id="L1249">        edit.add(unmarkAll);</span>
+<span class="fc" id="L1250">        edit.addSeparator();</span>
+<span class="pc bpc" id="L1251" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SPECIALFIELDSENABLED)) {</span>
+            JMenu m;
+<span class="pc bpc" id="L1253" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RANKING)) {</span>
+<span class="fc" id="L1254">                m = new JMenu();</span>
+<span class="fc" id="L1255">                RightClickMenu.populateSpecialFieldMenu(m, Rank.getInstance(), this);</span>
+<span class="fc" id="L1256">                edit.add(m);</span>
+            }
+<span class="pc bpc" id="L1258" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RELEVANCE)) {</span>
+<span class="nc" id="L1259">                edit.add(toggleRelevance);</span>
+            }
+<span class="pc bpc" id="L1261" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_QUALITY)) {</span>
+<span class="nc" id="L1262">                edit.add(toggleQualityAssured);</span>
+            }
+<span class="pc bpc" id="L1264" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRIORITY)) {</span>
+<span class="nc" id="L1265">                m = new JMenu();</span>
+<span class="nc" id="L1266">                RightClickMenu.populateSpecialFieldMenu(m, Priority.getInstance(), this);</span>
+<span class="nc" id="L1267">                edit.add(m);</span>
+            }
+<span class="pc bpc" id="L1269" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRINTED)) {</span>
+<span class="nc" id="L1270">                edit.add(togglePrinted);</span>
+            }
+<span class="pc bpc" id="L1272" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_READ)) {</span>
+<span class="nc" id="L1273">                m = new JMenu();</span>
+<span class="nc" id="L1274">                RightClickMenu.populateSpecialFieldMenu(m, ReadStatus.getInstance(), this);</span>
+<span class="nc" id="L1275">                edit.add(m);</span>
+            }
+<span class="fc" id="L1277">            edit.addSeparator();</span>
+        }
+
+<span class="fc" id="L1280">        edit.add(getManageKeywords());</span>
+<span class="fc" id="L1281">        edit.add(getMassSetField());</span>
+<span class="fc" id="L1282">        edit.addSeparator();</span>
+<span class="fc" id="L1283">        edit.add(selectAll);</span>
+<span class="fc" id="L1284">        mb.add(edit);</span>
+
+<span class="fc" id="L1286">        search.add(normalSearch);</span>
+<span class="fc" id="L1287">        search.add(replaceAll);</span>
+<span class="fc" id="L1288">        search.addSeparator();</span>
+<span class="fc" id="L1289">        search.add(new JCheckBoxMenuItem(generalFetcher.getAction()));</span>
+<span class="pc bpc" id="L1290" title="1 of 2 branches missed.">        if (prefs.getBoolean(JabRefPreferences.WEB_SEARCH_VISIBLE)) {</span>
+<span class="nc" id="L1291">            sidePaneManager.register(generalFetcher.getTitle(), generalFetcher);</span>
+<span class="nc" id="L1292">            sidePaneManager.show(generalFetcher.getTitle());</span>
+        }
+<span class="fc" id="L1294">        mb.add(search);</span>
+
+<span class="fc" id="L1296">        groups.add(new JCheckBoxMenuItem(toggleGroups));</span>
+<span class="fc" id="L1297">        groups.addSeparator();</span>
+<span class="fc" id="L1298">        groups.add(addToGroup);</span>
+<span class="fc" id="L1299">        groups.add(removeFromGroup);</span>
+<span class="fc" id="L1300">        groups.add(moveToGroup);</span>
+<span class="fc" id="L1301">        groups.addSeparator();</span>
+<span class="fc" id="L1302">        JRadioButtonMenuItem toggleHighlightAnyItem = new JRadioButtonMenuItem(toggleHighlightAny);</span>
+<span class="fc" id="L1303">        groups.add(toggleHighlightAnyItem);</span>
+<span class="fc" id="L1304">        JRadioButtonMenuItem toggleHighlightAllItem = new JRadioButtonMenuItem(toggleHighlightAll);</span>
+<span class="fc" id="L1305">        groups.add(toggleHighlightAllItem);</span>
+<span class="fc" id="L1306">        JRadioButtonMenuItem toggleHighlightDisableItem = new JRadioButtonMenuItem(toggleHighlightDisable);</span>
+<span class="fc" id="L1307">        groups.add(toggleHighlightDisableItem);</span>
+<span class="fc" id="L1308">        ButtonGroup highlightButtonGroup = new ButtonGroup();</span>
+<span class="fc" id="L1309">        highlightButtonGroup.add(toggleHighlightDisableItem);</span>
+<span class="fc" id="L1310">        highlightButtonGroup.add(toggleHighlightAnyItem);</span>
+<span class="fc" id="L1311">        highlightButtonGroup.add(toggleHighlightAllItem);</span>
+
+<span class="fc" id="L1313">        HighlightMatchingGroupPreferences highlightMatchingGroupPreferences = new HighlightMatchingGroupPreferences(Globals.prefs);</span>
+<span class="pc bpc" id="L1314" title="1 of 2 branches missed.">        if(highlightMatchingGroupPreferences.isAll()) {</span>
+<span class="nc" id="L1315">            toggleHighlightAllItem.setSelected(true);</span>
+<span class="pc bpc" id="L1316" title="1 of 2 branches missed.">        } else if(highlightMatchingGroupPreferences.isAny()) {</span>
+<span class="nc" id="L1317">            toggleHighlightAnyItem.setSelected(true);</span>
+<span class="nc" id="L1318">        } else {</span>
+<span class="fc" id="L1319">            toggleHighlightDisableItem.setSelected(true);</span>
+        }
+
+<span class="fc" id="L1322">        mb.add(groups);</span>
+
+<span class="fc" id="L1324">        view.add(getBackAction());</span>
+<span class="fc" id="L1325">        view.add(getForwardAction());</span>
+<span class="fc" id="L1326">        view.add(focusTable);</span>
+<span class="fc" id="L1327">        view.add(nextTab);</span>
+<span class="fc" id="L1328">        view.add(prevTab);</span>
+<span class="fc" id="L1329">        view.add(sortTabs);</span>
+<span class="fc" id="L1330">        view.addSeparator();</span>
+<span class="fc" id="L1331">        view.add(increaseFontSize);</span>
+<span class="fc" id="L1332">        view.add(decreseFontSize);</span>
+<span class="fc" id="L1333">        view.addSeparator();</span>
+<span class="fc" id="L1334">        view.add(new JCheckBoxMenuItem(toggleToolbar));</span>
+<span class="fc" id="L1335">        view.add(new JCheckBoxMenuItem(enableToggle(generalFetcher.getAction())));</span>
+<span class="fc" id="L1336">        view.add(new JCheckBoxMenuItem(toggleGroups));</span>
+<span class="fc" id="L1337">        view.add(new JCheckBoxMenuItem(togglePreview));</span>
+<span class="fc" id="L1338">        view.add(getSwitchPreviewAction());</span>
+
+<span class="fc" id="L1340">        mb.add(view);</span>
+
+<span class="fc" id="L1342">        bibtex.add(newEntryAction);</span>
+
+<span class="fc bfc" id="L1344" title="All 2 branches covered.">        for (NewEntryAction a : newSpecificEntryAction) {</span>
+<span class="fc" id="L1345">            newSpec.add(a);</span>
+        }
+<span class="fc" id="L1347">        bibtex.add(newSpec);</span>
+
+<span class="fc" id="L1349">        bibtex.add(plainTextImport);</span>
+<span class="fc" id="L1350">        bibtex.addSeparator();</span>
+<span class="fc" id="L1351">        bibtex.add(editEntry);</span>
+<span class="fc" id="L1352">        bibtex.add(editPreamble);</span>
+<span class="fc" id="L1353">        bibtex.add(editStrings);</span>
+<span class="fc" id="L1354">        bibtex.addSeparator();</span>
+<span class="fc" id="L1355">        bibtex.add(customizeAction);</span>
+<span class="fc" id="L1356">        bibtex.addSeparator();</span>
+<span class="fc" id="L1357">        bibtex.add(deleteEntry);</span>
+<span class="fc" id="L1358">        mb.add(bibtex);</span>
+
+<span class="fc" id="L1360">        quality.add(dupliCheck);</span>
+<span class="fc" id="L1361">        quality.add(mergeEntries);</span>
+<span class="fc" id="L1362">        quality.addSeparator();</span>
+<span class="fc" id="L1363">        quality.add(resolveDuplicateKeys);</span>
+<span class="fc" id="L1364">        quality.add(checkIntegrity);</span>
+<span class="fc" id="L1365">        quality.add(cleanupEntries);</span>
+<span class="fc" id="L1366">        quality.add(makeKeyAction);</span>
+<span class="fc" id="L1367">        quality.addSeparator();</span>
+<span class="fc" id="L1368">        quality.add(autoSetFile);</span>
+<span class="fc" id="L1369">        quality.add(findUnlinkedFiles);</span>
+<span class="fc" id="L1370">        quality.add(autoLinkFile);</span>
+<span class="fc" id="L1371">        quality.add(downloadFullText);</span>
+<span class="fc" id="L1372">        mb.add(quality);</span>
+
+<span class="fc" id="L1374">        tools.add(newSubDatabaseAction);</span>
+<span class="fc" id="L1375">        tools.add(writeXmpAction);</span>
+<span class="fc" id="L1376">        OpenOfficePanel otp = OpenOfficePanel.getInstance();</span>
+<span class="fc" id="L1377">        otp.init(this, sidePaneManager);</span>
+<span class="fc" id="L1378">        tools.add(otp.getMenuItem());</span>
+<span class="fc" id="L1379">        tools.add(pushExternalButton.getMenuAction());</span>
+<span class="fc" id="L1380">        tools.addSeparator();</span>
+<span class="fc" id="L1381">        tools.add(openFolder);</span>
+<span class="fc" id="L1382">        tools.add(openFile);</span>
+<span class="fc" id="L1383">        tools.add(openUrl);</span>
+<span class="fc" id="L1384">        tools.add(openConsole);</span>
+<span class="fc" id="L1385">        tools.addSeparator();</span>
+<span class="fc" id="L1386">        tools.add(abbreviateIso);</span>
+<span class="fc" id="L1387">        tools.add(abbreviateMedline);</span>
+<span class="fc" id="L1388">        tools.add(unabbreviate);</span>
+<span class="fc" id="L1389">        mb.add(tools);</span>
+
+<span class="fc" id="L1391">        options.add(showPrefs);</span>
+
+<span class="fc" id="L1393">        AbstractAction genFieldsCustomization = new GenFieldsCustomizationAction();</span>
+<span class="fc" id="L1394">        options.add(genFieldsCustomization);</span>
+<span class="fc" id="L1395">        options.add(customExpAction);</span>
+<span class="fc" id="L1396">        options.add(customImpAction);</span>
+<span class="fc" id="L1397">        options.add(customFileTypesAction);</span>
+<span class="fc" id="L1398">        options.add(manageJournals);</span>
+<span class="fc" id="L1399">        options.add(manageSelectors);</span>
+<span class="fc" id="L1400">        options.add(selectKeys);</span>
+<span class="fc" id="L1401">        mb.add(options);</span>
+
+<span class="fc" id="L1403">        helpMenu.add(help);</span>
+<span class="fc" id="L1404">        helpMenu.addSeparator();</span>
+<span class="fc" id="L1405">        helpMenu.add(errorConsole);</span>
+<span class="fc" id="L1406">        helpMenu.addSeparator();</span>
+<span class="fc" id="L1407">        helpMenu.add(forkMeOnGitHubAction);</span>
+<span class="fc" id="L1408">        helpMenu.add(donationAction);</span>
+<span class="fc" id="L1409">        helpMenu.addSeparator();</span>
+<span class="fc" id="L1410">        helpMenu.add(about);</span>
+<span class="fc" id="L1411">        mb.add(helpMenu);</span>
+
+<span class="fc" id="L1413">        createDisabledIconsForMenuEntries(mb);</span>
+<span class="fc" id="L1414">    }</span>
+
+    public static JMenu subMenu(String name) {
+<span class="fc" id="L1417">        int i = name.indexOf('&amp;');</span>
+        JMenu res;
+<span class="fc bfc" id="L1419" title="All 2 branches covered.">        if (i &gt;= 0) {</span>
+<span class="fc" id="L1420">            res = new JMenu(name.substring(0, i) + name.substring(i + 1));</span>
+<span class="fc" id="L1421">            char mnemonic = Character.toUpperCase(name.charAt(i + 1));</span>
+<span class="fc" id="L1422">            res.setMnemonic((int) mnemonic);</span>
+<span class="fc" id="L1423">        } else {</span>
+<span class="fc" id="L1424">            res = new JMenu(name);</span>
+        }
+
+<span class="fc" id="L1427">        return res;</span>
+    }
+
+    public void addParserResult(ParserResult pr, boolean raisePanel) {
+<span class="pc bpc" id="L1431" title="1 of 2 branches missed.">        if (pr.toOpenTab()) {</span>
+            // Add the entries to the open tab.
+<span class="nc" id="L1433">            BasePanel panel = getCurrentBasePanel();</span>
+<span class="nc bnc" id="L1434" title="All 2 branches missed.">            if (panel == null) {</span>
+                // There is no open tab to add to, so we create a new tab:
+<span class="nc" id="L1436">                addTab(pr.getDatabaseContext(), pr.getEncoding(), raisePanel);</span>
+<span class="nc" id="L1437">            } else {</span>
+<span class="nc" id="L1438">                List&lt;BibEntry&gt; entries = new ArrayList&lt;&gt;(pr.getDatabase().getEntries());</span>
+<span class="nc" id="L1439">                addImportedEntries(panel, entries, false);</span>
+            }
+<span class="nc" id="L1441">        } else {</span>
+<span class="fc" id="L1442">            addTab(pr.getDatabaseContext(), pr.getEncoding(), raisePanel);</span>
+        }
+<span class="fc" id="L1444">    }</span>
+
+    private void createToolBar() {
+<span class="fc" id="L1447">        tlb.putClientProperty(Options.HEADER_STYLE_KEY, HeaderStyle.BOTH);</span>
+<span class="fc" id="L1448">        tlb.setBorder(null);</span>
+<span class="fc" id="L1449">        tlb.setRollover(true);</span>
+
+<span class="fc" id="L1451">        tlb.setFloatable(false);</span>
+<span class="pc bpc" id="L1452" title="1 of 2 branches missed.">        if(Globals.prefs.getBoolean(JabRefPreferences.BIBLATEX_DEFAULT_MODE)) {</span>
+<span class="nc" id="L1453">            tlb.addAction(newBiblatexDatabaseAction);</span>
+<span class="nc" id="L1454">        } else {</span>
+<span class="fc" id="L1455">            tlb.addAction(newBibtexDatabaseAction);</span>
+        }
+<span class="fc" id="L1457">        tlb.addAction(getOpenDatabaseAction());</span>
+<span class="fc" id="L1458">        tlb.addAction(save);</span>
+<span class="fc" id="L1459">        tlb.addAction(saveAll);</span>
+
+<span class="fc" id="L1461">        tlb.addSeparator();</span>
+<span class="fc" id="L1462">        tlb.addAction(cut);</span>
+<span class="fc" id="L1463">        tlb.addAction(copy);</span>
+<span class="fc" id="L1464">        tlb.addAction(paste);</span>
+<span class="fc" id="L1465">        tlb.addAction(undo);</span>
+<span class="fc" id="L1466">        tlb.addAction(redo);</span>
+
+<span class="fc" id="L1468">        tlb.addSeparator();</span>
+<span class="fc" id="L1469">        tlb.addAction(getBackAction());</span>
+<span class="fc" id="L1470">        tlb.addAction(getForwardAction());</span>
+<span class="fc" id="L1471">        tlb.addSeparator();</span>
+<span class="fc" id="L1472">        tlb.addAction(newEntryAction);</span>
+<span class="fc" id="L1473">        tlb.addAction(editEntry);</span>
+<span class="fc" id="L1474">        tlb.addAction(editStrings);</span>
+<span class="fc" id="L1475">        tlb.addAction(deleteEntry);</span>
+<span class="fc" id="L1476">        tlb.addSeparator();</span>
+<span class="fc" id="L1477">        tlb.addAction(makeKeyAction);</span>
+<span class="fc" id="L1478">        tlb.addAction(cleanupEntries);</span>
+<span class="fc" id="L1479">        tlb.addAction(mergeEntries);</span>
+<span class="fc" id="L1480">        tlb.addAction(openConsole);</span>
+
+<span class="fc" id="L1482">        tlb.addSeparator();</span>
+<span class="fc" id="L1483">        tlb.addAction(mark);</span>
+<span class="fc" id="L1484">        tlb.addAction(unmark);</span>
+<span class="pc bpc" id="L1485" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SPECIALFIELDSENABLED)) {</span>
+<span class="pc bpc" id="L1486" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RANKING)) {</span>
+<span class="fc" id="L1487">                JButton button = net.sf.jabref.specialfields.SpecialFieldDropDown</span>
+<span class="fc" id="L1488">                        .generateSpecialFieldButtonWithDropDown(Rank.getInstance(), this);</span>
+<span class="fc" id="L1489">                tlb.add(button);</span>
+<span class="fc" id="L1490">                specialFieldButtons.add(button);</span>
+            }
+<span class="pc bpc" id="L1492" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_RELEVANCE)) {</span>
+<span class="nc" id="L1493">                tlb.addAction(toggleRelevance);</span>
+            }
+<span class="pc bpc" id="L1495" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_QUALITY)) {</span>
+<span class="nc" id="L1496">                tlb.addAction(toggleQualityAssured);</span>
+            }
+<span class="pc bpc" id="L1498" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRIORITY)) {</span>
+<span class="nc" id="L1499">                JButton button = net.sf.jabref.specialfields.SpecialFieldDropDown</span>
+<span class="nc" id="L1500">                        .generateSpecialFieldButtonWithDropDown(Priority.getInstance(), this);</span>
+<span class="nc" id="L1501">                tlb.add(button);</span>
+<span class="nc" id="L1502">                specialFieldButtons.add(button);</span>
+            }
+<span class="pc bpc" id="L1504" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_PRINTED)) {</span>
+<span class="nc" id="L1505">                tlb.addAction(togglePrinted);</span>
+            }
+<span class="pc bpc" id="L1507" title="1 of 2 branches missed.">            if (Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SHOWCOLUMN_READ)) {</span>
+<span class="nc" id="L1508">                JButton button = net.sf.jabref.specialfields.SpecialFieldDropDown</span>
+<span class="nc" id="L1509">                        .generateSpecialFieldButtonWithDropDown(ReadStatus.getInstance(), this);</span>
+<span class="nc" id="L1510">                tlb.add(button);</span>
+<span class="nc" id="L1511">                specialFieldButtons.add(button);</span>
+            }
+        }
+<span class="fc" id="L1514">        tlb.addSeparator();</span>
+
+<span class="fc" id="L1516">        fetcherToggle = new JToggleButton(generalFetcher.getAction());</span>
+<span class="fc" id="L1517">        tlb.addJToogleButton(fetcherToggle);</span>
+
+<span class="fc" id="L1519">        previewToggle = new JToggleButton(togglePreview);</span>
+<span class="fc" id="L1520">        tlb.addJToogleButton(previewToggle);</span>
+
+<span class="fc" id="L1522">        groupToggle = new JToggleButton(toggleGroups);</span>
+<span class="fc" id="L1523">        tlb.addJToogleButton(groupToggle);</span>
+
+<span class="fc" id="L1525">        tlb.addSeparator();</span>
+
+<span class="fc" id="L1527">        tlb.add(pushExternalButton.getComponent());</span>
+<span class="fc" id="L1528">        tlb.addSeparator();</span>
+<span class="fc" id="L1529">        tlb.add(donationAction);</span>
+<span class="fc" id="L1530">    }</span>
+
+    public void output(final String s) {
+<span class="fc" id="L1533">        SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="fc" id="L1534">            statusLine.setText(s);</span>
+<span class="fc" id="L1535">            statusLine.repaint();</span>
+<span class="fc" id="L1536">        });</span>
+<span class="fc" id="L1537">    }</span>
+
+    private void initActions() {
+<span class="fc" id="L1540">        openDatabaseOnlyActions.clear();</span>
+<span class="fc" id="L1541">        openDatabaseOnlyActions.addAll(Arrays.asList(manageSelectors, mergeDatabaseAction, newSubDatabaseAction, save,</span>
+<span class="fc" id="L1542">                saveAs, saveSelectedAs, saveSelectedAsPlain, undo, redo, cut, deleteEntry, copy, paste, mark, unmark,</span>
+<span class="fc" id="L1543">                unmarkAll, editEntry, selectAll, copyKey, copyCiteKey, copyKeyAndTitle, editPreamble, editStrings,</span>
+<span class="fc" id="L1544">                toggleGroups, makeKeyAction, normalSearch, mergeEntries, cleanupEntries, exportToClipboard, replaceAll,</span>
+<span class="fc" id="L1545">                sendAsEmail, downloadFullText, writeXmpAction, findUnlinkedFiles, addToGroup, removeFromGroup,</span>
+<span class="fc" id="L1546">                moveToGroup, autoLinkFile, resolveDuplicateKeys, openUrl, openFolder, openFile, togglePreview,</span>
+<span class="fc" id="L1547">                dupliCheck, autoSetFile, newEntryAction, plainTextImport, getMassSetField(), getManageKeywords(),</span>
+<span class="fc" id="L1548">                pushExternalButton.getMenuAction(), closeDatabaseAction, getSwitchPreviewAction(), checkIntegrity,</span>
+<span class="fc" id="L1549">                toggleHighlightAny, toggleHighlightAll, toggleHighlightDisable, databaseProperties, abbreviateIso, abbreviateMedline,</span>
+<span class="fc" id="L1550">                unabbreviate, exportAll, exportSelected, importCurrent, saveAll, dbConnect, dbExport, focusTable,</span>
+<span class="fc" id="L1551">                toggleRelevance, toggleQualityAssured, togglePrinted, pushExternalButton.getComponent()));</span>
+
+<span class="fc" id="L1553">        openDatabaseOnlyActions.addAll(newSpecificEntryAction);</span>
+
+<span class="fc" id="L1555">        openDatabaseOnlyActions.addAll(specialFieldButtons);</span>
+
+<span class="fc" id="L1557">        severalDatabasesOnlyActions.clear();</span>
+<span class="fc" id="L1558">        severalDatabasesOnlyActions.addAll(Arrays</span>
+<span class="fc" id="L1559">                .asList(nextTab, prevTab, sortTabs));</span>
+
+<span class="fc" id="L1561">        openAndSavedDatabasesOnlyActions.addAll(Arrays.asList(openConsole));</span>
+
+<span class="fc" id="L1563">        tabbedPane.addChangeListener(event -&gt; updateEnabledState());</span>
+
+<span class="fc" id="L1565">    }</span>
+
+    /**
+     * Takes a list of Object and calls the method setEnabled on them, depending on whether it is an Action or a Component.
+     *
+     * @param list    List that should contain Actions and Components.
+     * @param enabled
+     */
+    private static void setEnabled(List&lt;Object&gt; list, boolean enabled) {
+<span class="fc bfc" id="L1574" title="All 2 branches covered.">        for (Object o : list) {</span>
+<span class="fc bfc" id="L1575" title="All 2 branches covered.">            if (o instanceof Action) {</span>
+<span class="fc" id="L1576">                ((Action) o).setEnabled(enabled);</span>
+            }
+<span class="fc bfc" id="L1578" title="All 2 branches covered.">            if (o instanceof Component) {</span>
+<span class="fc" id="L1579">                ((Component) o).setEnabled(enabled);</span>
+            }
+        }
+<span class="fc" id="L1582">    }</span>
+
+    /**
+     * Enable or Disable all actions based on the number of open tabs.
+     * &lt;p&gt;
+     * The action that are affected are set in initActions.
+     */
+    public void updateEnabledState() {
+<span class="fc" id="L1590">        int tabCount = tabbedPane.getTabCount();</span>
+<span class="pc bpc" id="L1591" title="1 of 2 branches missed.">        if (tabCount != previousTabCount) {</span>
+<span class="fc" id="L1592">            previousTabCount = tabCount;</span>
+<span class="fc bfc" id="L1593" title="All 2 branches covered.">            setEnabled(openDatabaseOnlyActions, tabCount &gt; 0);</span>
+<span class="pc bpc" id="L1594" title="1 of 2 branches missed.">            setEnabled(severalDatabasesOnlyActions, tabCount &gt; 1);</span>
+        }
+<span class="fc bfc" id="L1596" title="All 2 branches covered.">        if (tabCount == 0) {</span>
+<span class="fc" id="L1597">            getBackAction().setEnabled(false);</span>
+<span class="fc" id="L1598">            getForwardAction().setEnabled(false);</span>
+        }
+
+
+<span class="fc bfc" id="L1602" title="All 2 branches covered.">        if (tabCount &gt; 0) {</span>
+<span class="fc" id="L1603">            BasePanel current = getCurrentBasePanel();</span>
+<span class="pc bpc" id="L1604" title="1 of 2 branches missed.">            if(current != null) {</span>
+<span class="pc bpc" id="L1605" title="1 of 2 branches missed.">                boolean saved = current.getBibDatabaseContext().getDatabaseFile() != null;</span>
+<span class="fc" id="L1606">                setEnabled(openAndSavedDatabasesOnlyActions, saved);</span>
+            }
+        }
+<span class="fc" id="L1609">    }</span>
+
+    /**
+     * This method causes all open BasePanels to set up their tables
+     * anew. When called from PrefsDialog3, this updates to the new
+     * settings.
+     */
+    public void setupAllTables() {
+        // This action can be invoked without an open database, so
+        // we have to check if we have one before trying to invoke
+        // methods to execute changes in the preferences.
+
+        // We want to notify all tabs about the changes to
+        // avoid problems when changing the column set.
+<span class="nc bnc" id="L1623" title="All 2 branches missed.">        for (int i = 0; i &lt; tabbedPane.getTabCount(); i++) {</span>
+<span class="nc" id="L1624">            BasePanel bf = getBasePanelAt(i);</span>
+
+            // Update tables:
+<span class="nc bnc" id="L1627" title="All 2 branches missed.">            if (bf.getDatabase() != null) {</span>
+<span class="nc" id="L1628">                bf.setupMainPanel();</span>
+
+            }
+        }
+<span class="nc" id="L1632">    }</span>
+
+    public BasePanel addTab(BibDatabaseContext databaseContext, Charset encoding, boolean raisePanel) {
+<span class="fc" id="L1635">        Objects.requireNonNull(databaseContext);</span>
+
+        Charset usedEncoding;
+<span class="pc bpc" id="L1638" title="1 of 2 branches missed.">        if (encoding == null) {</span>
+<span class="nc" id="L1639">            usedEncoding = Globals.prefs.getDefaultEncoding();</span>
+<span class="nc" id="L1640">        } else {</span>
+<span class="fc" id="L1641">            usedEncoding = encoding;</span>
+        }
+
+<span class="fc" id="L1644">        BasePanel bp = new BasePanel(JabRefFrame.this, databaseContext, usedEncoding);</span>
+<span class="fc" id="L1645">        addTab(bp, raisePanel);</span>
+<span class="fc" id="L1646">        return bp;</span>
+    }
+
+    private List&lt;String&gt; collectDatabaseFilePaths() {
+<span class="fc" id="L1650">        List&lt;String&gt; dbPaths = new ArrayList&lt;&gt;(getBasePanelCount());</span>
+
+<span class="fc bfc" id="L1652" title="All 2 branches covered.">        for (BasePanel basePanel : getBasePanelList()) {</span>
+            try {
+                // db file exists
+<span class="pc bpc" id="L1655" title="1 of 2 branches missed.">                if (basePanel.getBibDatabaseContext().getDatabaseFile() == null) {</span>
+<span class="nc" id="L1656">                    dbPaths.add(&quot;&quot;);</span>
+<span class="nc" id="L1657">                } else {</span>
+<span class="fc" id="L1658">                    dbPaths.add(basePanel.getBibDatabaseContext().getDatabaseFile().getCanonicalPath());</span>
+                }
+<span class="pc" id="L1660">            } catch (IOException ex) {</span>
+<span class="nc" id="L1661">                LOGGER.error(&quot;Invalid database file path: &quot; + ex.getMessage());</span>
+            }
+        }
+<span class="fc" id="L1664">        return dbPaths;</span>
+    }
+
+    private List&lt;String&gt; getUniquePathParts() {
+<span class="fc" id="L1668">        List&lt;String&gt; dbPaths = collectDatabaseFilePaths();</span>
+
+<span class="fc" id="L1670">        return FileUtil.uniquePathSubstrings(dbPaths);</span>
+    }
+
+    public void updateAllTabTitles() {
+<span class="fc" id="L1674">        List&lt;String&gt; paths = getUniquePathParts();</span>
+<span class="fc bfc" id="L1675" title="All 2 branches covered.">        for (int i = 0; i &lt; getBasePanelCount(); i++) {</span>
+<span class="fc" id="L1676">            String uniqPath = paths.get(i);</span>
+<span class="fc" id="L1677">            File file = getBasePanelAt(i).getBibDatabaseContext().getDatabaseFile();</span>
+
+<span class="pc bpc" id="L1679" title="2 of 4 branches missed.">            if ((file != null) &amp;&amp; !uniqPath.equals(file.getName())) {</span>
+                // remove filename
+<span class="nc" id="L1681">                uniqPath = uniqPath.substring(0, uniqPath.lastIndexOf(File.separator));</span>
+<span class="nc" id="L1682">                tabbedPane.setTitleAt(i, getBasePanelAt(i).getTabTitle() + &quot; \u2014 &quot; + uniqPath);</span>
+<span class="pc bpc" id="L1683" title="2 of 4 branches missed.">            } else if ((file != null) &amp;&amp; uniqPath.equals(file.getName())) {</span>
+                // set original filename (again)
+<span class="fc" id="L1685">                tabbedPane.setTitleAt(i, getBasePanelAt(i).getTabTitle());</span>
+            }
+<span class="pc bpc" id="L1687" title="1 of 2 branches missed.">            tabbedPane.setToolTipTextAt(i, file == null ? null : file.getAbsolutePath());</span>
+        }
+<span class="fc" id="L1689">    }</span>
+
+    public void addTab(BasePanel bp, boolean raisePanel) {
+        // add tab
+<span class="fc" id="L1693">        tabbedPane.add(bp.getTabTitle(), bp);</span>
+
+        // update all tab titles
+<span class="fc" id="L1696">        updateAllTabTitles();</span>
+
+<span class="pc bpc" id="L1698" title="1 of 2 branches missed.">        if (raisePanel) {</span>
+<span class="fc" id="L1699">            tabbedPane.setSelectedComponent(bp);</span>
+        }
+<span class="fc" id="L1701">    }</span>
+
+    /**
+     * Creates icons for the disabled state for all JMenuItems with FontBasedIcons in the given menuElement.
+     * This is necessary as Swing is not able to generate default disabled icons for font based icons.
+     *
+     * @param menuElement the menuElement for which disabled icons should be generated
+     */
+    public void createDisabledIconsForMenuEntries(MenuElement menuElement) {
+<span class="fc bfc" id="L1710" title="All 2 branches covered.">        for (MenuElement subElement : menuElement.getSubElements()) {</span>
+<span class="fc bfc" id="L1711" title="All 4 branches covered.">            if ((subElement instanceof JMenu) || (subElement instanceof JPopupMenu)) {</span>
+<span class="fc" id="L1712">                createDisabledIconsForMenuEntries(subElement);</span>
+<span class="pc bpc" id="L1713" title="1 of 2 branches missed.">            } else if (subElement instanceof JMenuItem) {</span>
+<span class="fc" id="L1714">                JMenuItem item = (JMenuItem) subElement;</span>
+<span class="fc bfc" id="L1715" title="All 2 branches covered.">                if (item.getIcon() instanceof IconTheme.FontBasedIcon) {</span>
+<span class="fc" id="L1716">                    item.setDisabledIcon(((IconTheme.FontBasedIcon) item.getIcon()).createDisabledIcon());</span>
+                }
+            }
+        }
+<span class="fc" id="L1720">    }</span>
+
+    private class SelectKeysAction extends AbstractAction {
+
+<span class="fc" id="L1724">        public SelectKeysAction() {</span>
+<span class="fc" id="L1725">            super(Localization.lang(&quot;Customize key bindings&quot;));</span>
+<span class="fc" id="L1726">            this.putValue(Action.SMALL_ICON, IconTheme.JabRefIcon.KEY_BINDINGS.getSmallIcon());</span>
+<span class="fc" id="L1727">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1731">            KeyBindingsDialog d = new KeyBindingsDialog(new KeyBindingRepository(Globals.getKeyPrefs().getKeyBindings()));</span>
+<span class="nc" id="L1732">            d.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);</span>
+<span class="nc" id="L1733">            d.pack(); //setSize(300,500);</span>
+<span class="nc" id="L1734">            d.setLocationRelativeTo(JabRefFrame.this);</span>
+<span class="nc" id="L1735">            d.setVisible(true);</span>
+<span class="nc" id="L1736">        }</span>
+    }
+
+    /**
+     * The action concerned with closing the window.
+     */
+    private class CloseAction extends MnemonicAwareAction {
+
+<span class="fc" id="L1744">        public CloseAction() {</span>
+<span class="fc" id="L1745">            putValue(Action.NAME, Localization.menuTitle(&quot;Quit&quot;));</span>
+<span class="fc" id="L1746">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Quit JabRef&quot;));</span>
+<span class="fc" id="L1747">            putValue(Action.ACCELERATOR_KEY, Globals.getKeyPrefs().getKey(KeyBinding.QUIT_JABREF));</span>
+<span class="fc" id="L1748">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="fc" id="L1752">            quit();</span>
+<span class="fc" id="L1753">        }</span>
+    }
+
+    private class ShowPrefsAction extends MnemonicAwareAction {
+
+<span class="fc" id="L1758">        public ShowPrefsAction() {</span>
+<span class="fc" id="L1759">            super(IconTheme.JabRefIcon.PREFERENCES.getIcon());</span>
+<span class="fc" id="L1760">            putValue(Action.NAME, Localization.menuTitle(&quot;Preferences&quot;));</span>
+<span class="fc" id="L1761">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Preferences&quot;));</span>
+<span class="fc" id="L1762">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1766">            preferences();</span>
+<span class="nc" id="L1767">        }</span>
+    }
+
+    /**
+     * This method does the job of adding imported entries into the active
+     * database, or into a new one. It shows the ImportInspectionDialog if
+     * preferences indicate it should be used. Otherwise it imports directly.
+     *
+     * @param panel     The BasePanel to add to.
+     * @param entries   The entries to add.
+     * @param openInNew Should the entries be imported into a new database?
+     */
+    private void addImportedEntries(final BasePanel panel, final List&lt;BibEntry&gt; entries, final boolean openInNew) {
+<span class="nc" id="L1780">        SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L1781">            ImportInspectionDialog diag = new ImportInspectionDialog(JabRefFrame.this, panel,</span>
+<span class="nc" id="L1782">                    Localization.lang(&quot;Import&quot;), openInNew);</span>
+<span class="nc" id="L1783">            diag.addEntries(entries);</span>
+<span class="nc" id="L1784">            diag.entryListComplete();</span>
+<span class="nc" id="L1785">            diag.setLocationRelativeTo(JabRefFrame.this);</span>
+<span class="nc" id="L1786">            diag.setVisible(true);</span>
+<span class="nc" id="L1787">            diag.toFront();</span>
+<span class="nc" id="L1788">        });</span>
+<span class="nc" id="L1789">    }</span>
+
+    public FileHistoryMenu getFileHistory() {
+<span class="nc" id="L1792">        return fileHistory;</span>
+    }
+
+    public void removeCachedEntryEditors() {
+<span class="nc bnc" id="L1796" title="All 2 branches missed.">        for (int j = 0; j &lt; tabbedPane.getTabCount(); j++) {</span>
+<span class="nc" id="L1797">            BasePanel bp = (BasePanel) tabbedPane.getComponentAt(j);</span>
+<span class="nc" id="L1798">            bp.entryEditors.clear();</span>
+        }
+<span class="nc" id="L1800">    }</span>
+
+    /**
+     * This method shows a wait cursor and blocks all input to the JFrame's contents.
+     */
+    public void block() {
+<span class="nc" id="L1806">        getGlassPane().setVisible(true);</span>
+<span class="nc" id="L1807">    }</span>
+
+    /**
+     * This method reverts the cursor to normal, and stops blocking input to the JFrame's contents.
+     * There are no adverse effects of calling this method redundantly.
+     */
+    public void unblock() {
+<span class="nc" id="L1814">        getGlassPane().setVisible(false);</span>
+<span class="nc" id="L1815">    }</span>
+
+    /**
+     * Set the visibility of the progress bar in the right end of the
+     * status line at the bottom of the frame.
+     * &lt;p&gt;
+     * If not called on the event dispatch thread, this method uses
+     * SwingUtilities.invokeLater() to do the actual operation on the EDT.
+     */
+    public void setProgressBarVisible(final boolean visible) {
+<span class="pc bpc" id="L1825" title="1 of 2 branches missed.">        if (SwingUtilities.isEventDispatchThread()) {</span>
+<span class="fc" id="L1826">            progressBar.setVisible(visible);</span>
+<span class="fc" id="L1827">        } else {</span>
+<span class="nc" id="L1828">            SwingUtilities.invokeLater(() -&gt; progressBar.setVisible(visible));</span>
+        }
+<span class="fc" id="L1830">    }</span>
+
+    /**
+     * Sets the current value of the progress bar.
+     * &lt;p&gt;
+     * If not called on the event dispatch thread, this method uses
+     * SwingUtilities.invokeLater() to do the actual operation on the EDT.
+     */
+    public void setProgressBarValue(final int value) {
+<span class="nc bnc" id="L1839" title="All 2 branches missed.">        if (SwingUtilities.isEventDispatchThread()) {</span>
+<span class="nc" id="L1840">            progressBar.setValue(value);</span>
+<span class="nc" id="L1841">        } else {</span>
+<span class="nc" id="L1842">            SwingUtilities.invokeLater(() -&gt; progressBar.setValue(value));</span>
+        }
+
+<span class="nc" id="L1845">    }</span>
+
+    /**
+     * Sets the indeterminate status of the progress bar.
+     * &lt;p&gt;
+     * If not called on the event dispatch thread, this method uses
+     * SwingUtilities.invokeLater() to do the actual operation on the EDT.
+     */
+    public void setProgressBarIndeterminate(final boolean value) {
+<span class="nc bnc" id="L1854" title="All 2 branches missed.">        if (SwingUtilities.isEventDispatchThread()) {</span>
+<span class="nc" id="L1855">            progressBar.setIndeterminate(value);</span>
+<span class="nc" id="L1856">        } else {</span>
+<span class="nc" id="L1857">            SwingUtilities.invokeLater(() -&gt; progressBar.setIndeterminate(value));</span>
+        }
+
+<span class="nc" id="L1860">    }</span>
+
+    /**
+     * Sets the maximum value of the progress bar. Always call this method
+     * before using the progress bar, to set a maximum value appropriate to
+     * the task at hand.
+     * &lt;p&gt;
+     * If not called on the event dispatch thread, this method uses
+     * SwingUtilities.invokeLater() to do the actual operation on the EDT.
+     */
+    public void setProgressBarMaximum(final int value) {
+<span class="nc bnc" id="L1871" title="All 2 branches missed.">        if (SwingUtilities.isEventDispatchThread()) {</span>
+<span class="nc" id="L1872">            progressBar.setMaximum(value);</span>
+<span class="nc" id="L1873">        } else {</span>
+<span class="nc" id="L1874">            SwingUtilities.invokeLater(() -&gt; progressBar.setMaximum(value));</span>
+        }
+
+<span class="nc" id="L1877">    }</span>
+
+    private class ChangeTabAction extends MnemonicAwareAction {
+
+        private final boolean next;
+
+<span class="fc" id="L1883">        public ChangeTabAction(boolean next) {</span>
+<span class="fc bfc" id="L1884" title="All 2 branches covered.">            putValue(Action.NAME, next ? Localization.menuTitle(&quot;Next tab&quot;) :</span>
+<span class="fc" id="L1885">                    Localization.menuTitle(&quot;Previous tab&quot;));</span>
+<span class="fc" id="L1886">            this.next = next;</span>
+<span class="fc" id="L1887">            putValue(Action.ACCELERATOR_KEY,</span>
+<span class="fc bfc" id="L1888" title="All 2 branches covered.">                    next ? Globals.getKeyPrefs().getKey(KeyBinding.NEXT_TAB) : Globals.getKeyPrefs().getKey(KeyBinding.PREVIOUS_TAB));</span>
+<span class="fc" id="L1889">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1893">            int i = tabbedPane.getSelectedIndex();</span>
+<span class="nc bnc" id="L1894" title="All 2 branches missed.">            int newI = next ? i + 1 : i - 1;</span>
+<span class="nc bnc" id="L1895" title="All 2 branches missed.">            if (newI &lt; 0) {</span>
+<span class="nc" id="L1896">                newI = tabbedPane.getTabCount() - 1;</span>
+            }
+<span class="nc bnc" id="L1898" title="All 2 branches missed.">            if (newI == tabbedPane.getTabCount()) {</span>
+<span class="nc" id="L1899">                newI = 0;</span>
+            }
+<span class="nc" id="L1901">            tabbedPane.setSelectedIndex(newI);</span>
+<span class="nc" id="L1902">        }</span>
+    }
+
+    /**
+     * Class for handling general actions; cut, copy and paste. The focused component is
+     * kept track of by Globals.focusListener, and we call the action stored under the
+     * relevant name in its action map.
+     */
+    private class EditAction extends MnemonicAwareAction {
+
+        private final String command;
+
+<span class="fc" id="L1914">        public EditAction(String command, String menuTitle, String description, KeyStroke key, Icon icon) {</span>
+<span class="fc" id="L1915">            super(icon);</span>
+<span class="fc" id="L1916">            this.command = command;</span>
+<span class="fc" id="L1917">            putValue(Action.NAME, menuTitle);</span>
+<span class="fc" id="L1918">            putValue(Action.ACCELERATOR_KEY, key);</span>
+<span class="fc" id="L1919">            putValue(Action.SHORT_DESCRIPTION, description);</span>
+<span class="fc" id="L1920">        }</span>
+
+        @Override public void actionPerformed(ActionEvent e) {
+
+<span class="nc" id="L1924">            LOGGER.debug(Globals.focusListener.getFocused().toString());</span>
+<span class="nc" id="L1925">            JComponent source = Globals.focusListener.getFocused();</span>
+<span class="nc" id="L1926">            Action action = source.getActionMap().get(command);</span>
+<span class="nc bnc" id="L1927" title="All 2 branches missed.">            if (action != null) {</span>
+<span class="nc" id="L1928">                action.actionPerformed(new ActionEvent(source, 0, command));</span>
+            }
+<span class="nc" id="L1930">        }</span>
+    }
+
+    private class CustomizeExportsAction extends MnemonicAwareAction {
+
+<span class="fc" id="L1935">        public CustomizeExportsAction() {</span>
+<span class="fc" id="L1936">            putValue(Action.NAME, Localization.menuTitle(&quot;Manage custom exports&quot;));</span>
+<span class="fc" id="L1937">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1941">            ExportCustomizationDialog ecd = new ExportCustomizationDialog(JabRefFrame.this);</span>
+<span class="nc" id="L1942">            ecd.setVisible(true);</span>
+<span class="nc" id="L1943">        }</span>
+    }
+
+    private class CustomizeImportsAction extends MnemonicAwareAction {
+
+<span class="fc" id="L1948">        public CustomizeImportsAction() {</span>
+<span class="fc" id="L1949">            putValue(Action.NAME, Localization.menuTitle(&quot;Manage custom imports&quot;));</span>
+<span class="fc" id="L1950">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1954">            ImportCustomizationDialog ecd = new ImportCustomizationDialog(JabRefFrame.this);</span>
+<span class="nc" id="L1955">            ecd.setVisible(true);</span>
+<span class="nc" id="L1956">        }</span>
+    }
+
+    private class CustomizeEntryTypeAction extends MnemonicAwareAction {
+
+<span class="fc" id="L1961">        public CustomizeEntryTypeAction() {</span>
+<span class="fc" id="L1962">            putValue(Action.NAME, Localization.menuTitle(&quot;Customize entry types&quot;));</span>
+<span class="fc" id="L1963">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1967">            JDialog dl = new EntryCustomizationDialog(JabRefFrame.this);</span>
+<span class="nc" id="L1968">            dl.setLocationRelativeTo(JabRefFrame.this);</span>
+<span class="nc" id="L1969">            dl.setVisible(true);</span>
+<span class="nc" id="L1970">        }</span>
+    }
+
+    private class GenFieldsCustomizationAction extends MnemonicAwareAction {
+
+<span class="fc" id="L1975">        public GenFieldsCustomizationAction() {</span>
+<span class="fc" id="L1976">            putValue(Action.NAME, Localization.menuTitle(&quot;Set up general fields&quot;));</span>
+<span class="fc" id="L1977">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L1981">            GenFieldsCustomizer gf = new GenFieldsCustomizer(JabRefFrame.this);</span>
+<span class="nc" id="L1982">            gf.setLocationRelativeTo(JabRefFrame.this);</span>
+<span class="nc" id="L1983">            gf.setVisible(true);</span>
+
+<span class="nc" id="L1985">        }</span>
+    }
+
+    private class DatabasePropertiesAction extends MnemonicAwareAction {
+
+        private DatabasePropertiesDialog propertiesDialog;
+
+<span class="fc" id="L1992">        public DatabasePropertiesAction() {</span>
+<span class="fc" id="L1993">            putValue(Action.NAME, Localization.menuTitle(&quot;Database properties&quot;));</span>
+<span class="fc" id="L1994">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc bnc" id="L1998" title="All 2 branches missed.">            if (propertiesDialog == null) {</span>
+<span class="nc" id="L1999">                propertiesDialog = new DatabasePropertiesDialog(JabRefFrame.this);</span>
+            }
+<span class="nc" id="L2001">            propertiesDialog.setPanel(getCurrentBasePanel());</span>
+<span class="nc" id="L2002">            propertiesDialog.setLocationRelativeTo(JabRefFrame.this);</span>
+<span class="nc" id="L2003">            propertiesDialog.setVisible(true);</span>
+<span class="nc" id="L2004">        }</span>
+
+    }
+
+    private class BibtexKeyPatternAction extends MnemonicAwareAction {
+
+        private BibtexKeyPatternDialog bibtexKeyPatternDialog;
+
+<span class="fc" id="L2012">        public BibtexKeyPatternAction() {</span>
+<span class="fc" id="L2013">            putValue(Action.NAME, Localization.lang(&quot;BibTeX key patterns&quot;));</span>
+<span class="fc" id="L2014">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L2018">            JabRefPreferences.getInstance();</span>
+<span class="nc bnc" id="L2019" title="All 2 branches missed.">            if (bibtexKeyPatternDialog == null) {</span>
+                // if no instance of BibtexKeyPatternDialog exists, create new one
+<span class="nc" id="L2021">                bibtexKeyPatternDialog = new BibtexKeyPatternDialog(JabRefFrame.this, getCurrentBasePanel());</span>
+<span class="nc" id="L2022">            } else {</span>
+                // BibtexKeyPatternDialog allows for updating content based on currently selected panel
+<span class="nc" id="L2024">                bibtexKeyPatternDialog.setPanel(getCurrentBasePanel());</span>
+            }
+<span class="nc" id="L2026">            bibtexKeyPatternDialog.setLocationRelativeTo(JabRefFrame.this);</span>
+<span class="nc" id="L2027">            bibtexKeyPatternDialog.setVisible(true);</span>
+<span class="nc" id="L2028">        }</span>
+
+    }
+
+    private class IncreaseTableFontSizeAction extends MnemonicAwareAction {
+
+<span class="fc" id="L2034">        public IncreaseTableFontSizeAction() {</span>
+<span class="fc" id="L2035">            putValue(Action.NAME, Localization.menuTitle(&quot;Increase table font size&quot;));</span>
+<span class="fc" id="L2036">            putValue(Action.ACCELERATOR_KEY, Globals.getKeyPrefs().getKey(KeyBinding.INCREASE_TABLE_FONT_SIZE));</span>
+<span class="fc" id="L2037">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent event) {
+<span class="nc" id="L2041">            int currentSize = GUIGlobals.currentFont.getSize();</span>
+<span class="nc" id="L2042">            GUIGlobals.currentFont = new Font(GUIGlobals.currentFont.getFamily(), GUIGlobals.currentFont.getStyle(),</span>
+<span class="nc" id="L2043">                    currentSize + 1);</span>
+<span class="nc" id="L2044">            Globals.prefs.putInt(JabRefPreferences.FONT_SIZE, currentSize + 1);</span>
+<span class="nc bnc" id="L2045" title="All 2 branches missed.">            for (BasePanel basePanel : getBasePanelList()) {</span>
+<span class="nc" id="L2046">                basePanel.updateTableFont();</span>
+            }
+<span class="nc" id="L2048">            setStatus(Localization.lang(&quot;Table font size is %0&quot;, String.valueOf(GUIGlobals.currentFont.getSize())));</span>
+<span class="nc" id="L2049">        }</span>
+    }
+
+    private class DecreaseTableFontSizeAction extends MnemonicAwareAction {
+
+<span class="fc" id="L2054">        public DecreaseTableFontSizeAction() {</span>
+<span class="fc" id="L2055">            putValue(Action.NAME, Localization.menuTitle(&quot;Decrease table font size&quot;));</span>
+<span class="fc" id="L2056">            putValue(Action.ACCELERATOR_KEY, Globals.getKeyPrefs().getKey(KeyBinding.DECREASE_TABLE_FONT_SIZE));</span>
+<span class="fc" id="L2057">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent event) {
+<span class="nc" id="L2061">            int currentSize = GUIGlobals.currentFont.getSize();</span>
+<span class="nc bnc" id="L2062" title="All 2 branches missed.">            if (currentSize &lt; 2) {</span>
+<span class="nc" id="L2063">                return;</span>
+            }
+<span class="nc" id="L2065">            GUIGlobals.currentFont = new Font(GUIGlobals.currentFont.getFamily(), GUIGlobals.currentFont.getStyle(),</span>
+<span class="nc" id="L2066">                    currentSize - 1);</span>
+<span class="nc" id="L2067">            Globals.prefs.putInt(JabRefPreferences.FONT_SIZE, currentSize - 1);</span>
+<span class="nc bnc" id="L2068" title="All 2 branches missed.">            for (BasePanel basePanel : getBasePanelList()) {</span>
+<span class="nc" id="L2069">                basePanel.updateTableFont();</span>
+            }
+<span class="nc" id="L2071">            setStatus(Localization.lang(&quot;Table font size is %0&quot;, String.valueOf(GUIGlobals.currentFont.getSize())));</span>
+<span class="nc" id="L2072">        }</span>
+    }
+
+    private static class MyGlassPane extends JPanel {
+<span class="fc" id="L2076">        public MyGlassPane() {</span>
+<span class="fc" id="L2077">            addKeyListener(new KeyAdapter() {</span>
+                // Nothing
+            });
+<span class="fc" id="L2080">            addMouseListener(new MouseAdapter() {</span>
+                // Nothing
+            });
+            /*  infoLabel.setForeground(new Color(255, 100, 100, 124));
+
+              setLayout(new BorderLayout());
+              add(infoLabel, BorderLayout.CENTER);*/
+<span class="fc" id="L2087">            super.setCursor(</span>
+<span class="fc" id="L2088">                    Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));</span>
+<span class="fc" id="L2089">        }</span>
+
+        // Override isOpaque() to prevent the glasspane from hiding the window contents:
+        @Override
+        public boolean isOpaque() {
+<span class="nc" id="L2094">            return false;</span>
+        }
+    }
+
+    @Override
+    public void showMessage(Object message, String title, int msgType) {
+<span class="nc" id="L2100">        JOptionPane.showMessageDialog(this, message, title, msgType);</span>
+<span class="nc" id="L2101">    }</span>
+
+    @Override
+    public void setStatus(String s) {
+<span class="nc" id="L2105">        output(s);</span>
+<span class="nc" id="L2106">    }</span>
+
+    @Override
+    public void showMessage(String message) {
+<span class="nc" id="L2110">        JOptionPane.showMessageDialog(this, message);</span>
+<span class="nc" id="L2111">    }</span>
+
+    private int showSaveDialog(String filename) {
+<span class="fc" id="L2114">        Object[] options = {Localization.lang(&quot;Save changes&quot;),</span>
+<span class="fc" id="L2115">                Localization.lang(&quot;Discard changes&quot;),</span>
+<span class="fc" id="L2116">                Localization.lang(&quot;Return to JabRef&quot;)};</span>
+
+<span class="fc" id="L2118">        return JOptionPane.showOptionDialog(JabRefFrame.this,</span>
+<span class="fc" id="L2119">                Localization.lang(&quot;Database '%0' has changed.&quot;, filename),</span>
+<span class="fc" id="L2120">                Localization.lang(&quot;Save before closing&quot;), JOptionPane.YES_NO_CANCEL_OPTION,</span>
+<span class="fc" id="L2121">                JOptionPane.WARNING_MESSAGE, null, options, options[2]);</span>
+    }
+
+    private void closeTab(BasePanel panel) {
+        // empty tab without database
+<span class="nc bnc" id="L2126" title="All 2 branches missed.">        if (panel == null) {</span>
+<span class="nc" id="L2127">            return;</span>
+        }
+
+<span class="nc bnc" id="L2130" title="All 2 branches missed.">        if (panel.isModified()) {</span>
+<span class="nc bnc" id="L2131" title="All 2 branches missed.">            if (confirmClose(panel)) {</span>
+<span class="nc" id="L2132">                removeTab(panel);</span>
+            }
+<span class="nc" id="L2134">        } else {</span>
+<span class="nc" id="L2135">            removeTab(panel);</span>
+        }
+<span class="nc" id="L2137">    }</span>
+
+    // Ask if the user really wants to close, if the base has not been saved
+    private boolean confirmClose(BasePanel panel) {
+<span class="nc" id="L2141">        boolean close = false;</span>
+        String filename;
+
+<span class="nc bnc" id="L2144" title="All 2 branches missed.">        if (panel.getBibDatabaseContext().getDatabaseFile() == null) {</span>
+<span class="nc" id="L2145">            filename = GUIGlobals.UNTITLED_TITLE;</span>
+<span class="nc" id="L2146">        } else {</span>
+<span class="nc" id="L2147">            filename = panel.getBibDatabaseContext().getDatabaseFile().getAbsolutePath();</span>
+        }
+
+<span class="nc" id="L2150">        int answer = showSaveDialog(filename);</span>
+<span class="nc bnc" id="L2151" title="All 2 branches missed.">        if (answer == JOptionPane.YES_OPTION) {</span>
+            // The user wants to save.
+            try {
+<span class="nc" id="L2154">                SaveDatabaseAction saveAction = new SaveDatabaseAction(panel);</span>
+<span class="nc" id="L2155">                saveAction.runCommand();</span>
+<span class="nc bnc" id="L2156" title="All 2 branches missed.">                if (saveAction.isSuccess()) {</span>
+<span class="nc" id="L2157">                    close = true;</span>
+                }
+<span class="nc" id="L2159">            } catch (Throwable ex) {</span>
+                // do not close
+            }
+
+<span class="nc bnc" id="L2163" title="All 2 branches missed.">        } else if (answer == JOptionPane.NO_OPTION) {</span>
+            // discard changes
+<span class="nc" id="L2165">            close = true;</span>
+        }
+<span class="nc" id="L2167">        return close;</span>
+    }
+
+    private void removeTab(BasePanel panel) {
+<span class="nc" id="L2171">        panel.cleanUp();</span>
+<span class="nc" id="L2172">        AutoSaveManager.deleteAutoSaveFile(panel);</span>
+<span class="nc" id="L2173">        tabbedPane.remove(panel);</span>
+<span class="nc bnc" id="L2174" title="All 2 branches missed.">        if (tabbedPane.getTabCount() &gt; 0) {</span>
+<span class="nc" id="L2175">            markActiveBasePanel();</span>
+        }
+<span class="nc" id="L2177">        setWindowTitle();</span>
+<span class="nc" id="L2178">        updateEnabledState();</span>
+<span class="nc" id="L2179">        output(Localization.lang(&quot;Closed database&quot;) + '.');</span>
+        // update tab titles
+<span class="nc" id="L2181">        updateAllTabTitles();</span>
+<span class="nc" id="L2182">    }</span>
+
+    public ManageKeywordsAction getManageKeywords() {
+<span class="fc" id="L2185">        return manageKeywords;</span>
+    }
+
+    public MassSetFieldAction getMassSetField() {
+<span class="fc" id="L2189">        return massSetField;</span>
+    }
+
+    public OpenDatabaseAction getOpenDatabaseAction() {
+<span class="fc" id="L2193">        return open;</span>
+    }
+
+    private class CloseDatabaseAction extends MnemonicAwareAction {
+
+<span class="fc" id="L2198">        public CloseDatabaseAction() {</span>
+<span class="fc" id="L2199">            super(IconTheme.JabRefIcon.CLOSE.getSmallIcon());</span>
+<span class="fc" id="L2200">            putValue(Action.NAME, Localization.menuTitle(&quot;Close database&quot;));</span>
+<span class="fc" id="L2201">            putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Close the current database&quot;));</span>
+<span class="fc" id="L2202">            putValue(Action.ACCELERATOR_KEY, Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DATABASE));</span>
+<span class="fc" id="L2203">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L2207">            closeTab(getCurrentBasePanel());</span>
+<span class="nc" id="L2208">        }</span>
+    }
+
+<span class="fc" id="L2211">    private class CloseAllDatabasesAction extends MnemonicAwareAction {</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L2215">            final Component[] panels = tabbedPane.getComponents();</span>
+
+<span class="nc bnc" id="L2217" title="All 2 branches missed.">            for (Component p : panels) {</span>
+<span class="nc" id="L2218">                closeTab((BasePanel) p);</span>
+            }
+<span class="nc" id="L2220">        }</span>
+    }
+
+<span class="fc" id="L2223">    private class CloseOtherDatabasesAction extends MnemonicAwareAction {</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L2227">            final BasePanel active = getCurrentBasePanel();</span>
+<span class="nc" id="L2228">            final Component[] panels = tabbedPane.getComponents();</span>
+
+<span class="nc bnc" id="L2230" title="All 2 branches missed.">            for (Component p : panels) {</span>
+<span class="nc bnc" id="L2231" title="All 2 branches missed.">                if (!Objects.equals(p, active)) {</span>
+<span class="nc" id="L2232">                    closeTab((BasePanel) p);</span>
+                }
+            }
+<span class="nc" id="L2235">        }</span>
+    }
+
+<span class="fc" id="L2238">    private class ToolBar extends OSXCompatibleToolbar {</span>
+
+        public void addAction(Action a) {
+<span class="fc" id="L2241">            JButton b = new JButton(a);</span>
+<span class="fc" id="L2242">            b.setText(null);</span>
+<span class="pc bpc" id="L2243" title="1 of 2 branches missed.">            if (!OS.OS_X) {</span>
+<span class="fc" id="L2244">                b.setMargin(marg);</span>
+            }
+            // create a disabled Icon for FontBasedIcons as Swing does not automatically create one
+<span class="fc" id="L2247">            Object obj = a.getValue(Action.LARGE_ICON_KEY);</span>
+<span class="pc bpc" id="L2248" title="1 of 2 branches missed.">            if (obj instanceof IconTheme.FontBasedIcon) {</span>
+<span class="fc" id="L2249">                b.setDisabledIcon(((IconTheme.FontBasedIcon) obj).createDisabledIcon());</span>
+            }
+<span class="fc" id="L2251">            add(b);</span>
+<span class="fc" id="L2252">        }</span>
+
+        public void addJToogleButton(JToggleButton button) {
+<span class="fc" id="L2255">            button.setText(null);</span>
+<span class="pc bpc" id="L2256" title="1 of 2 branches missed.">            if (!OS.OS_X) {</span>
+<span class="fc" id="L2257">                button.setMargin(marg);</span>
+            }
+<span class="fc" id="L2259">            Object obj = button.getAction().getValue(Action.LARGE_ICON_KEY);</span>
+<span class="pc bpc" id="L2260" title="1 of 2 branches missed.">            if (obj instanceof IconTheme.FontBasedIcon) {</span>
+<span class="fc" id="L2261">                button.setDisabledIcon(((IconTheme.FontBasedIcon) obj).createDisabledIcon());</span>
+            }
+<span class="fc" id="L2263">            add(button);</span>
+<span class="fc" id="L2264">        }</span>
+    }
+
+
+    public String getStatusLineText() {
+<span class="fc" id="L2269">        return statusLine.getText();</span>
+    }
+
+    public AbstractAction getForwardAction() {
+<span class="fc" id="L2273">        return forward;</span>
+    }
+
+    public AbstractAction getBackAction() {
+<span class="fc" id="L2277">        return back;</span>
+    }
+
+    public AbstractAction getSwitchPreviewAction() {
+<span class="fc" id="L2281">        return switchPreview;</span>
+    }
+
+    public JSplitPane getSplitPane() {
+<span class="nc" id="L2285">        return splitPane;</span>
+    }
+
+    public SidePaneManager getSidePaneManager() {
+<span class="fc" id="L2289">        return sidePaneManager;</span>
+    }
+
+    public GroupSelector getGroupSelector() {
+<span class="fc" id="L2293">        return groupSelector;</span>
+    }
+
+    public void setFetcherToggle(boolean enabled) {
+<span class="nc" id="L2297">        fetcherToggle.setSelected(enabled);</span>
+<span class="nc" id="L2298">    }</span>
+
+    public void setPreviewToggle(boolean enabled) {
+<span class="nc" id="L2301">        previewToggle.setSelected(enabled);</span>
+<span class="nc" id="L2302">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

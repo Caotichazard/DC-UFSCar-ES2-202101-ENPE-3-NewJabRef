@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DatabaseImporter.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.sql.importer</a> &gt; <span class="el_source">DatabaseImporter.java</span></div><h1>DatabaseImporter.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General public static License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General public static License for more details.
+
+    You should have received a copy of the GNU General public static License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+package net.sf.jabref.sql.importer;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
+
+import net.sf.jabref.MetaData;
+import net.sf.jabref.importer.fileformat.ParseException;
+import net.sf.jabref.logic.groups.AbstractGroup;
+import net.sf.jabref.logic.groups.AllEntriesGroup;
+import net.sf.jabref.logic.groups.ExplicitGroup;
+import net.sf.jabref.logic.groups.GroupHierarchyType;
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.logic.groups.KeywordGroup;
+import net.sf.jabref.logic.groups.SearchGroup;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.EntryTypes;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.BibtexString;
+import net.sf.jabref.model.entry.EntryType;
+import net.sf.jabref.model.entry.IdGenerator;
+import net.sf.jabref.sql.DBStrings;
+import net.sf.jabref.sql.Database;
+import net.sf.jabref.sql.SQLUtil;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * @author ifsteinm.
+ *         &lt;p&gt;
+ *         Jan 20th Abstract Class to provide main features to import entries from a DB. To insert a new DB it is
+ *         necessary to extend this class and add the DB name the enum available at
+ *         net.sf.jabref.sql.DBImporterAndExporterFactory (and to the GUI). This class and its subclasses import
+ *         database, entries and related stuff from a DB to bib. Each exported database is imported as a new JabRef
+ *         (bib) database, presented on a new tab
+ */
+public class DatabaseImporter {
+
+<span class="nc" id="L69">    private static final Log LOGGER = LogFactory.getLog(DatabaseImporter.class);</span>
+
+<span class="nc" id="L71">    private static final List&lt;String&gt; COLUMNS_NOT_CONSIDERED_FOR_ENTRIES = Arrays.asList(</span>
+<span class="nc" id="L72">            &quot;cite_key&quot;,</span>
+<span class="nc" id="L73">            &quot;entry_types_id&quot;,</span>
+<span class="nc" id="L74">            &quot;database_id&quot;,</span>
+<span class="nc" id="L75">            &quot;jabref_eid&quot;,</span>
+<span class="nc" id="L76">            &quot;entries_id&quot;</span>
+<span class="nc" id="L77">    );</span>
+
+
+    private final Database database;
+
+<span class="nc" id="L82">    public DatabaseImporter(Database database) {</span>
+<span class="nc" id="L83">        this.database = database;</span>
+<span class="nc" id="L84">    }</span>
+
+    /**
+     * @param conn Connection object to the database
+     * @return A ResultSet with column name for the entries table
+     * @throws SQLException
+     */
+    private List&lt;String&gt; readColumnNames(Connection conn) throws SQLException {
+<span class="nc" id="L92">        String query = database.getReadColumnNamesQuery();</span>
+<span class="nc" id="L93">        try (Statement statement = conn.createStatement();</span>
+<span class="nc" id="L94">             ResultSet rsColumns = statement.executeQuery(query)) {</span>
+<span class="nc" id="L95">            List&lt;String&gt; colNames = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">            while (rsColumns.next()) {</span>
+<span class="nc" id="L97">                colNames.add(rsColumns.getString(1));</span>
+            }
+<span class="nc" id="L99">            return colNames;</span>
+        }
+    }
+
+    /**
+     * Worker method to perform the import from a database
+     *
+     * @param dbs  The necessary database connection information
+     * @param mode
+     * @return An ArrayList containing pairs of Objects. Each position of the ArrayList stores three Objects: a
+     * BibDatabase, a MetaData and a String with the bib database name stored in the DBMS
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws Exception
+     */
+    public List&lt;DBImporterResult&gt; performImport(DBStrings dbs, List&lt;String&gt; listOfDBs, BibDatabaseMode mode)
+            throws IllegalAccessException, InstantiationException, ClassNotFoundException, SQLException
+    {
+<span class="nc" id="L119">        List&lt;DBImporterResult&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L120">        try (Connection conn = this.connectToDB(dbs)) {</span>
+
+<span class="nc" id="L122">            Iterator&lt;String&gt; itLista = listOfDBs.iterator();</span>
+<span class="nc" id="L123">            StringJoiner stringJoiner = new StringJoiner(&quot;,&quot;, &quot;(&quot;, &quot;)&quot;);</span>
+
+<span class="nc bnc" id="L125" title="All 2 branches missed.">            while (itLista.hasNext()) {</span>
+<span class="nc" id="L126">                stringJoiner.add(&quot;'&quot; + itLista.next() + &quot;'&quot;);</span>
+            }
+
+<span class="nc" id="L129">            String query = SQLUtil.queryAllFromTable(</span>
+<span class="nc" id="L130">                    &quot;jabref_database WHERE database_name IN &quot; + stringJoiner.toString());</span>
+<span class="nc" id="L131">            try (Statement statement = conn.createStatement();</span>
+<span class="nc" id="L132">                 ResultSet rsDatabase = statement.executeQuery(query)) {</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">                while (rsDatabase.next()) {</span>
+<span class="nc" id="L134">                    BibDatabase database = new BibDatabase();</span>
+                    // Find entry type IDs and their mappings to type names:
+<span class="nc" id="L136">                    HashMap&lt;String, EntryType&gt; types = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L137">                    try (Statement entryTypes = conn.createStatement();</span>
+<span class="nc" id="L138">                            ResultSet rsEntryType = entryTypes.executeQuery(SQLUtil.queryAllFromTable(&quot;entry_types&quot;))) {</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">                        while (rsEntryType.next()) {</span>
+<span class="nc" id="L140">                            Optional&lt;EntryType&gt; entryType = EntryTypes.getType(rsEntryType.getString(&quot;label&quot;), mode);</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">                            if (entryType.isPresent()) {</span>
+<span class="nc" id="L142">                                types.put(rsEntryType.getString(&quot;entry_types_id&quot;), entryType.get());</span>
+                            }
+                        }
+                    }
+
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                    List&lt;String&gt; colNames = this.readColumnNames(conn).stream().filter(column -&gt; !COLUMNS_NOT_CONSIDERED_FOR_ENTRIES.contains(column)).collect(Collectors.toList());</span>
+
+<span class="nc" id="L149">                    final String database_id = rsDatabase.getString(&quot;database_id&quot;);</span>
+                    // Read the entries and create BibEntry instances:
+<span class="nc" id="L151">                    HashMap&lt;String, BibEntry&gt; entries = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L152">                    try (Statement entryStatement = conn.createStatement();</span>
+<span class="nc" id="L153">                            ResultSet rsEntries = entryStatement.executeQuery(SQLUtil.queryAllFromTable(</span>
+<span class="nc" id="L154">                                    &quot;entries WHERE database_id= '&quot; + database_id + &quot;';&quot;))) {</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">                        while (rsEntries.next()) {</span>
+<span class="nc" id="L156">                            String id = rsEntries.getString(&quot;entries_id&quot;);</span>
+<span class="nc" id="L157">                            BibEntry entry = new BibEntry(IdGenerator.next(), types.get(rsEntries.getString(&quot;entry_types_id&quot;)).getName());</span>
+<span class="nc" id="L158">                            entry.setCiteKey(rsEntries.getString(&quot;cite_key&quot;));</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">                            for (String col : colNames) {</span>
+<span class="nc" id="L160">                                String value = rsEntries.getString(col);</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">                                if (value != null) {</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                                    col = col.charAt(col.length() - 1) == '_' ? col.substring(0,</span>
+<span class="nc" id="L163">                                            col.length() - 1) : col;</span>
+<span class="nc" id="L164">                                    entry.setField(col, value);</span>
+                                }
+                            }
+<span class="nc" id="L167">                            entries.put(id, entry);</span>
+<span class="nc" id="L168">                            database.insertEntry(entry);</span>
+                        }
+                    }
+                    // Import strings and preamble:
+<span class="nc" id="L172">                    try (Statement stringStatement = conn.createStatement();</span>
+<span class="nc" id="L173">                            ResultSet rsStrings = stringStatement.executeQuery(SQLUtil.queryAllFromTable(</span>
+<span class="nc" id="L174">                                    &quot;strings WHERE database_id='&quot; + database_id + '\''))) {</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">                        while (rsStrings.next()) {</span>
+<span class="nc" id="L176">                            String label = rsStrings.getString(&quot;label&quot;);</span>
+<span class="nc" id="L177">                            String content = rsStrings.getString(&quot;content&quot;);</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                            if (&quot;@PREAMBLE&quot;.equals(label)) {</span>
+<span class="nc" id="L179">                                database.setPreamble(content);</span>
+<span class="nc" id="L180">                            } else {</span>
+<span class="nc" id="L181">                                BibtexString string = new BibtexString(IdGenerator.next(), label, content);</span>
+<span class="nc" id="L182">                                database.addString(string);</span>
+                            }
+                        }
+                    }
+<span class="nc" id="L186">                    MetaData metaData = new MetaData();</span>
+<span class="nc" id="L187">                    metaData.initializeNewDatabase();</span>
+                    // Read the groups tree:
+<span class="nc" id="L189">                    importGroupsTree(metaData, entries, conn, database_id);</span>
+<span class="nc" id="L190">                    result.add(new DBImporterResult(database, metaData, rsDatabase.getString(&quot;database_name&quot;)));</span>
+                }
+            }
+        }
+
+<span class="nc" id="L195">        return result;</span>
+    }
+
+    /**
+     * Look up the group type name from the type ID in the database.
+     *
+     * @param groupId The database's groups id
+     * @param conn    The database connection
+     * @return The name (JabRef type id) of the group type.
+     * @throws SQLException
+     */
+    private String findGroupTypeName(String groupId, Connection conn) throws SQLException {
+<span class="nc" id="L207">        return SQLUtil.processQueryWithSingleResult(conn,</span>
+<span class="nc" id="L208">                &quot;SELECT label FROM group_types WHERE group_types_id='&quot; + groupId + &quot;';&quot;);</span>
+    }
+
+    private void importGroupsTree(MetaData metaData, Map&lt;String, BibEntry&gt; entries, Connection conn,
+            final String database_id) throws SQLException {
+<span class="nc" id="L213">        Map&lt;String, GroupTreeNode&gt; groups = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L214">        LinkedHashMap&lt;GroupTreeNode, String&gt; parentIds = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L215">        GroupTreeNode rootNode = new GroupTreeNode(new AllEntriesGroup());</span>
+
+<span class="nc" id="L217">        String query = SQLUtil.queryAllFromTable(&quot;groups WHERE database_id='&quot; + database_id + &quot;' ORDER BY groups_id&quot;);</span>
+<span class="nc" id="L218">        try (Statement statement = conn.createStatement();</span>
+<span class="nc" id="L219">             ResultSet rsGroups = statement.executeQuery(query)) {</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">            while (rsGroups.next()) {</span>
+<span class="nc" id="L221">                AbstractGroup group = null;</span>
+<span class="nc" id="L222">                String typeId = findGroupTypeName(rsGroups.getString(&quot;group_types_id&quot;), conn);</span>
+                try {
+<span class="nc bnc" id="L224" title="All 5 branches missed.">                    switch (typeId) {</span>
+                    case AllEntriesGroup.ID:
+                        // register the id of the root node:
+<span class="nc" id="L227">                        groups.put(rsGroups.getString(&quot;groups_id&quot;), rootNode);</span>
+<span class="nc" id="L228">                        break;</span>
+                    case ExplicitGroup.ID:
+<span class="nc" id="L230">                        group = new ExplicitGroup(rsGroups.getString(&quot;label&quot;),</span>
+<span class="nc" id="L231">                                GroupHierarchyType.getByNumber(rsGroups.getInt(&quot;hierarchical_context&quot;)));</span>
+<span class="nc" id="L232">                        break;</span>
+                    case KeywordGroup.ID:
+<span class="nc" id="L234">                        LOGGER.debug(&quot;Keyw: &quot; + rsGroups.getBoolean(&quot;case_sensitive&quot;));</span>
+<span class="nc" id="L235">                        group = new KeywordGroup(rsGroups.getString(&quot;label&quot;),</span>
+<span class="nc" id="L236">                                StringUtil.unquote(rsGroups.getString(&quot;search_field&quot;), '\\'),</span>
+<span class="nc" id="L237">                                StringUtil.unquote(rsGroups.getString(&quot;search_expression&quot;), '\\'),</span>
+<span class="nc" id="L238">                                rsGroups.getBoolean(&quot;case_sensitive&quot;), rsGroups.getBoolean(&quot;reg_exp&quot;),</span>
+<span class="nc" id="L239">                                GroupHierarchyType.getByNumber(rsGroups.getInt(&quot;hierarchical_context&quot;)));</span>
+<span class="nc" id="L240">                        break;</span>
+                    case SearchGroup.ID:
+<span class="nc" id="L242">                        LOGGER.debug(&quot;Search: &quot; + rsGroups.getBoolean(&quot;case_sensitive&quot;));</span>
+<span class="nc" id="L243">                        group = new SearchGroup(rsGroups.getString(&quot;label&quot;),</span>
+<span class="nc" id="L244">                                StringUtil.unquote(rsGroups.getString(&quot;search_expression&quot;), '\\'),</span>
+<span class="nc" id="L245">                                rsGroups.getBoolean(&quot;case_sensitive&quot;), rsGroups.getBoolean(&quot;reg_exp&quot;),</span>
+<span class="nc" id="L246">                                GroupHierarchyType.getByNumber(rsGroups.getInt(&quot;hierarchical_context&quot;)));</span>
+                        break;
+                    }
+<span class="nc" id="L249">                } catch (ParseException e) {</span>
+<span class="nc" id="L250">                    LOGGER.error(e);</span>
+                }
+
+<span class="nc bnc" id="L253" title="All 2 branches missed.">                if (group != null) {</span>
+<span class="nc" id="L254">                    GroupTreeNode node = new GroupTreeNode(group);</span>
+<span class="nc" id="L255">                    parentIds.put(node, rsGroups.getString(&quot;parent_id&quot;));</span>
+<span class="nc" id="L256">                    groups.put(rsGroups.getString(&quot;groups_id&quot;), node);</span>
+                }
+
+                // Ok, we have collected a map of all groups and their parent IDs,
+                // and another map of all group IDs and their group nodes.
+                // Now we need to build the groups tree:
+<span class="nc bnc" id="L262" title="All 2 branches missed.">                for (Map.Entry&lt;GroupTreeNode, String&gt; groupTreeNodeStringEntry : parentIds.entrySet()) {</span>
+<span class="nc" id="L263">                    String parentId = groupTreeNodeStringEntry.getValue();</span>
+<span class="nc" id="L264">                    GroupTreeNode parent = groups.get(parentId);</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">                    if (parent == null) {</span>
+                        // TODO: missing parent
+                    } else {
+<span class="nc" id="L268">                        groupTreeNodeStringEntry.getKey().moveTo(parent);</span>
+                    }
+                }
+
+<span class="nc" id="L272">                try (Statement entryGroup = conn.createStatement();</span>
+<span class="nc" id="L273">                        ResultSet rsEntryGroup = entryGroup.executeQuery(SQLUtil.queryAllFromTable(&quot;entry_group&quot;))) {</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">                    while (rsEntryGroup.next()) {</span>
+<span class="nc" id="L275">                        String entryId = rsEntryGroup.getString(&quot;entries_id&quot;);</span>
+<span class="nc" id="L276">                        String groupId = rsEntryGroup.getString(&quot;groups_id&quot;);</span>
+<span class="nc" id="L277">                        GroupTreeNode node = groups.get(groupId);</span>
+<span class="nc bnc" id="L278" title="All 4 branches missed.">                        if ((node != null) &amp;&amp; (node.getGroup() instanceof ExplicitGroup)) {</span>
+<span class="nc" id="L279">                            ExplicitGroup expGroup = (ExplicitGroup) node.getGroup();</span>
+<span class="nc" id="L280">                            expGroup.add(entries.get(entryId));</span>
+                        }
+                    }
+                }
+<span class="nc" id="L284">                metaData.setGroups(rootNode);</span>
+            }
+        }
+<span class="nc" id="L287">    }</span>
+
+    /**
+     * Given a DBStrings it connects to the DB and returns the java.sql.Connection object
+     *
+     * @param dbstrings The DBStrings to use to make the connection
+     * @return java.sql.Connection to the DB chosen
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
+    public Connection connectToDB(DBStrings dbstrings)
+            throws IllegalAccessException, InstantiationException, ClassNotFoundException, SQLException {
+<span class="nc" id="L301">        String url = SQLUtil.createJDBCurl(dbstrings, true);</span>
+<span class="nc" id="L302">        return database.connect(url, dbstrings.getDbPreferences().getUsername(), dbstrings.getPassword());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

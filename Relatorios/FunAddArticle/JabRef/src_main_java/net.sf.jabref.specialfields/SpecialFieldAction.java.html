@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SpecialFieldAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.specialfields</a> &gt; <span class="el_source">SpecialFieldAction.java</span></div><h1>SpecialFieldAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.specialfields;
+
+import java.util.List;
+
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.actions.BaseAction;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+public class SpecialFieldAction implements BaseAction {
+
+    private final JabRefFrame frame;
+    private final String doneTextPattern;
+    private final SpecialField c;
+    private final String value;
+    private final boolean nullFieldIfValueIsTheSame;
+    private final String undoText;
+
+<span class="fc" id="L38">    private static final Log LOGGER = LogFactory.getLog(SpecialFieldAction.class);</span>
+
+
+    /**
+     *
+     * @param nullFieldIfValueIsTheSame - false also causes that doneTextPattern has two place holders %0 for the value and %1 for the sum of entries
+     * @param doneTextPattern - the pattern to use to update status information shown in MainFrame
+     */
+<span class="fc" id="L46">    public SpecialFieldAction(</span>
+            JabRefFrame frame,
+            SpecialField c,
+            String value,
+            boolean nullFieldIfValueIsTheSame,
+            String undoText,
+            String doneTextPattern) {
+<span class="fc" id="L53">        this.frame = frame;</span>
+<span class="fc" id="L54">        this.c = c;</span>
+<span class="fc" id="L55">        this.value = value;</span>
+<span class="fc" id="L56">        this.nullFieldIfValueIsTheSame = nullFieldIfValueIsTheSame;</span>
+<span class="fc" id="L57">        this.undoText = undoText;</span>
+<span class="fc" id="L58">        this.doneTextPattern = doneTextPattern;</span>
+<span class="fc" id="L59">    }</span>
+
+    @Override
+    public void action() {
+        try {
+<span class="nc" id="L64">            List&lt;BibEntry&gt; bes = frame.getCurrentBasePanel().getSelectedEntries();</span>
+<span class="nc bnc" id="L65" title="All 4 branches missed.">            if ((bes == null) || bes.isEmpty()) {</span>
+<span class="nc" id="L66">                return;</span>
+            }
+<span class="nc" id="L68">            NamedCompound ce = new NamedCompound(undoText);</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            for (BibEntry be : bes) {</span>
+                // if (value==null) and then call nullField has been omitted as updatefield also handles value==null
+<span class="nc" id="L71">                SpecialFieldsUtils.updateField(c, value, be, ce, nullFieldIfValueIsTheSame);</span>
+            }
+<span class="nc" id="L73">            ce.end();</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">            if (ce.hasEdits()) {</span>
+<span class="nc" id="L75">                frame.getCurrentBasePanel().undoManager.addEdit(ce);</span>
+<span class="nc" id="L76">                frame.getCurrentBasePanel().markBaseChanged();</span>
+<span class="nc" id="L77">                frame.getCurrentBasePanel().updateEntryEditorIfShowing();</span>
+                String outText;
+<span class="nc bnc" id="L79" title="All 2 branches missed.">                if (nullFieldIfValueIsTheSame) {</span>
+<span class="nc" id="L80">                    outText = Localization.lang(doneTextPattern, Integer.toString(bes.size()));</span>
+<span class="nc" id="L81">                } else {</span>
+<span class="nc" id="L82">                    outText = Localization.lang(doneTextPattern, value, Integer.toString(bes.size()));</span>
+                }
+<span class="nc" id="L84">                frame.output(outText);</span>
+            } else {
+                // if user does not change anything with his action, we do not do anything either
+                // even no output message
+            }
+<span class="nc" id="L89">        } catch (Throwable ex) {</span>
+<span class="nc" id="L90">            LOGGER.error(&quot;Problem setting special fields&quot;, ex);</span>
+        }
+<span class="nc" id="L92">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

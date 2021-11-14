@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>PreviewPanelTransferHandler.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.fieldeditors</a> &gt; <span class="el_source">PreviewPanelTransferHandler.java</span></div><h1>PreviewPanelTransferHandler.java</h1><pre class="source lang-java linenums">/* Copyright (C) 2012 JabRef contributors.
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.jabref.gui.fieldeditors;
+
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.dnd.DnDConstants;
+import java.io.IOException;
+import java.io.StringWriter;
+
+import javax.swing.JComponent;
+import javax.swing.JEditorPane;
+import javax.swing.TransferHandler;
+import javax.swing.text.BadLocationException;
+
+import net.sf.jabref.gui.EntryContainer;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.logic.l10n.Localization;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+public class PreviewPanelTransferHandler extends FileListEditorTransferHandler {
+
+<span class="fc" id="L39">    private static final Log LOGGER = LogFactory.getLog(PreviewPanelTransferHandler.class);</span>
+
+    public PreviewPanelTransferHandler(JabRefFrame frame, EntryContainer entryContainer, TransferHandler textTransferHandler) {
+<span class="fc" id="L42">        super(frame, entryContainer, textTransferHandler);</span>
+<span class="fc" id="L43">    }</span>
+
+    /**
+     * LINK is unsupported as dropping into into Microsoft Word then leads to a link instead to a copy
+     */
+    @Override
+    public int getSourceActions(JComponent component) {
+<span class="nc" id="L50">        return DnDConstants.ACTION_COPY;</span>
+    }
+
+    @Override
+    protected Transferable createTransferable(JComponent component) {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (component instanceof JEditorPane) {</span>
+            // this method should be called from the preview panel only
+
+            // the default TransferHandler implementation is aware of HTML
+            // and returns an appropriate Transferable
+            // as textTransferHandler.createTransferable() is not available and
+            // I don't know any other method, I do the HTML conversion by hand
+
+            // First, get the HTML of the selected text
+<span class="nc" id="L64">            JEditorPane editorPane = (JEditorPane) component;</span>
+<span class="nc" id="L65">            StringWriter stringWriter = new StringWriter();</span>
+            try {
+<span class="nc" id="L67">                editorPane.getEditorKit().write(stringWriter, editorPane.getDocument(), editorPane.getSelectionStart(), editorPane.getSelectionEnd());</span>
+<span class="nc" id="L68">            } catch (BadLocationException | IOException e) {</span>
+<span class="nc" id="L69">                LOGGER.warn(&quot;Cannot write preview&quot;, e);</span>
+            }
+
+            // Second, return the HTML (and text as fallback)
+<span class="nc" id="L73">            return new HtmlTransferable(stringWriter.toString(), editorPane.getSelectedText());</span>
+        } else {
+            // if not called from the preview panel, return an error string
+<span class="nc" id="L76">            return new StringSelection(Localization.lang(&quot;Operation not supported&quot;));</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

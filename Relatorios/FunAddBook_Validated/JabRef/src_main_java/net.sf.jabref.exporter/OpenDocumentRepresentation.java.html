@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>OpenDocumentRepresentation.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">OpenDocumentRepresentation.java</span></div><h1>OpenDocumentRepresentation.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.exporter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import net.sf.jabref.bibtex.comparator.FieldComparator;
+import net.sf.jabref.bibtex.comparator.FieldComparatorStack;
+import net.sf.jabref.logic.layout.format.GetOpenOfficeType;
+import net.sf.jabref.logic.layout.format.RemoveBrackets;
+import net.sf.jabref.logic.layout.format.RemoveWhitespace;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Text;
+
+/**
+ * @author Morten O. Alver.
+ * Based on net.sf.jabref.MODSDatabase by Michael Wrighton
+ *
+ */
+class OpenDocumentRepresentation {
+
+    private final List&lt;BibEntry&gt; entries;
+    private final BibDatabase database;
+
+<span class="nc" id="L49">    private static final Log LOGGER = LogFactory.getLog(OpenDocumentRepresentation.class);</span>
+
+
+<span class="nc" id="L52">    public OpenDocumentRepresentation(BibDatabase database, List&lt;BibEntry&gt; entries) {</span>
+<span class="nc" id="L53">        this.database = database;</span>
+        // Make a list of comparators for sorting the entries:
+<span class="nc" id="L55">        List&lt;FieldComparator&gt; comparators = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L56">        comparators.add(new FieldComparator(&quot;author&quot;));</span>
+<span class="nc" id="L57">        comparators.add(new FieldComparator(&quot;year&quot;));</span>
+<span class="nc" id="L58">        comparators.add(new FieldComparator(BibEntry.KEY_FIELD));</span>
+        // Use glazed lists to get a sorted view of the entries:
+<span class="nc" id="L60">        List&lt;BibEntry&gt; entryList = new ArrayList&lt;&gt;();</span>
+
+        // Set up a list of all entries, if entries==null, or the entries in the given list
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (entries == null) {</span>
+<span class="nc" id="L64">            entryList.addAll(database.getEntries());</span>
+<span class="nc" id="L65">        } else {</span>
+<span class="nc" id="L66">            entryList.addAll(entries);</span>
+        }
+
+<span class="nc" id="L69">        Collections.sort(entryList, new FieldComparatorStack&lt;&gt;(comparators));</span>
+<span class="nc" id="L70">        this.entries = entryList;</span>
+<span class="nc" id="L71">    }</span>
+
+    public Document getDOMrepresentation() {
+<span class="nc" id="L74">        Document result = null;</span>
+        try {
+<span class="nc" id="L76">            DocumentBuilder dbuild = DocumentBuilderFactory.newInstance().newDocumentBuilder();</span>
+<span class="nc" id="L77">            result = dbuild.newDocument();</span>
+<span class="nc" id="L78">            Element collection = result.createElement(&quot;office:document-content&quot;);</span>
+            //collection.setAttribute(&quot;xmlns&quot;, &quot;http://openoffice.org/2000/office&quot;);
+<span class="nc" id="L80">            collection.setAttribute(&quot;xmlns:office&quot;, &quot;urn:oasis:names:tc:opendocument:xmlns:office:1.0&quot;);</span>
+<span class="nc" id="L81">            collection.setAttribute(&quot;xmlns:style&quot;, &quot;urn:oasis:names:tc:opendocument:xmlns:style:1.0&quot;);</span>
+<span class="nc" id="L82">            collection.setAttribute(&quot;xmlns:text&quot;, &quot;urn:oasis:names:tc:opendocument:xmlns:text:1.0&quot;);</span>
+<span class="nc" id="L83">            collection.setAttribute(&quot;xmlns:table&quot;, &quot;urn:oasis:names:tc:opendocument:xmlns:table:1.0&quot;);</span>
+<span class="nc" id="L84">            collection.setAttribute(&quot;xmlns:meta&quot;, &quot;urn:oasis:names:tc:opendocument:xmlns:meta:1.0&quot;);</span>
+<span class="nc" id="L85">            collection.setAttribute(&quot;office:version&quot;, &quot;1.0&quot;);</span>
+<span class="nc" id="L86">            collection.setAttribute(&quot;xmlns:fo&quot;, &quot;urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0&quot;);</span>
+<span class="nc" id="L87">            collection.setAttribute(&quot;xmlns:xlink&quot;, &quot;http://www.w3.org/1999/xlink&quot;);</span>
+<span class="nc" id="L88">            Element el = result.createElement(&quot;office:scripts&quot;);</span>
+<span class="nc" id="L89">            collection.appendChild(el);</span>
+
+<span class="nc" id="L91">            el = result.createElement(&quot;office:automatic-styles&quot;);</span>
+<span class="nc" id="L92">            Element el2 = result.createElement(&quot;style:style&quot;);</span>
+<span class="nc" id="L93">            el2.setAttribute(&quot;style:name&quot;, &quot;ro1&quot;);</span>
+<span class="nc" id="L94">            el2.setAttribute(&quot;style:family&quot;, &quot;table-row&quot;);</span>
+<span class="nc" id="L95">            Element el3 = result.createElement(&quot;style.table-row-properties&quot;);</span>
+<span class="nc" id="L96">            el3.setAttribute(&quot;style:row-height&quot;, &quot;0.1681inch&quot;);</span>
+<span class="nc" id="L97">            el3.setAttribute(&quot;fo:break-before&quot;, &quot;auto&quot;);</span>
+<span class="nc" id="L98">            el3.setAttribute(&quot;style:use-optimal-row-height&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L99">            el2.appendChild(el3);</span>
+<span class="nc" id="L100">            el.appendChild(el2);</span>
+<span class="nc" id="L101">            el2 = result.createElement(&quot;style:style&quot;);</span>
+<span class="nc" id="L102">            el2.setAttribute(&quot;style:name&quot;, &quot;ta1&quot;);</span>
+<span class="nc" id="L103">            el2.setAttribute(&quot;style:family&quot;, &quot;table&quot;);</span>
+<span class="nc" id="L104">            el2.setAttribute(&quot;style:master-page-name&quot;, &quot;Default&quot;);</span>
+<span class="nc" id="L105">            el3 = result.createElement(&quot;style:properties&quot;);</span>
+<span class="nc" id="L106">            el3.setAttribute(&quot;table:display&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L107">            el2.appendChild(el3);</span>
+<span class="nc" id="L108">            el.appendChild(el2);</span>
+<span class="nc" id="L109">            collection.appendChild(el);</span>
+
+<span class="nc" id="L111">            Element body = result.createElement(&quot;office:body&quot;);</span>
+<span class="nc" id="L112">            Element spreadsheet = result.createElement(&quot;office:spreadsheet&quot;);</span>
+<span class="nc" id="L113">            Element table = result.createElement(&quot;table:table&quot;);</span>
+<span class="nc" id="L114">            table.setAttribute(&quot;table:name&quot;, &quot;biblio&quot;);</span>
+<span class="nc" id="L115">            table.setAttribute(&quot;table.style-name&quot;, &quot;ta1&quot;);</span>
+
+<span class="nc" id="L117">            Element row = result.createElement(&quot;table:table-row&quot;);</span>
+<span class="nc" id="L118">            row.setAttribute(&quot;table.style-name&quot;, &quot;ro1&quot;);</span>
+<span class="nc" id="L119">            addTableCell(result, row, &quot;Identifier&quot;);</span>
+<span class="nc" id="L120">            addTableCell(result, row, &quot;Type&quot;);</span>
+<span class="nc" id="L121">            addTableCell(result, row, &quot;Address&quot;);</span>
+<span class="nc" id="L122">            addTableCell(result, row, &quot;Assignee&quot;);</span>
+<span class="nc" id="L123">            addTableCell(result, row, &quot;Annote&quot;);</span>
+<span class="nc" id="L124">            addTableCell(result, row, &quot;Author&quot;);</span>
+<span class="nc" id="L125">            addTableCell(result, row, &quot;Booktitle&quot;);</span>
+<span class="nc" id="L126">            addTableCell(result, row, &quot;Chapter&quot;);</span>
+<span class="nc" id="L127">            addTableCell(result, row, &quot;Day&quot;);</span>
+<span class="nc" id="L128">            addTableCell(result, row, &quot;Dayfiled&quot;);</span>
+<span class="nc" id="L129">            addTableCell(result, row, &quot;Edition&quot;);</span>
+<span class="nc" id="L130">            addTableCell(result, row, &quot;Editor&quot;);</span>
+<span class="nc" id="L131">            addTableCell(result, row, &quot;Howpublish&quot;);</span>
+<span class="nc" id="L132">            addTableCell(result, row, &quot;Institution&quot;);</span>
+<span class="nc" id="L133">            addTableCell(result, row, &quot;Journal&quot;);</span>
+<span class="nc" id="L134">            addTableCell(result, row, &quot;Language&quot;);</span>
+<span class="nc" id="L135">            addTableCell(result, row, &quot;Month&quot;);</span>
+<span class="nc" id="L136">            addTableCell(result, row, &quot;Monthfiled&quot;);</span>
+<span class="nc" id="L137">            addTableCell(result, row, &quot;Nationality&quot;);</span>
+<span class="nc" id="L138">            addTableCell(result, row, &quot;Note&quot;);</span>
+<span class="nc" id="L139">            addTableCell(result, row, &quot;Number&quot;);</span>
+<span class="nc" id="L140">            addTableCell(result, row, &quot;Organization&quot;);</span>
+<span class="nc" id="L141">            addTableCell(result, row, &quot;Pages&quot;);</span>
+<span class="nc" id="L142">            addTableCell(result, row, &quot;Publisher&quot;);</span>
+<span class="nc" id="L143">            addTableCell(result, row, &quot;Revision&quot;);</span>
+<span class="nc" id="L144">            addTableCell(result, row, &quot;School&quot;);</span>
+<span class="nc" id="L145">            addTableCell(result, row, &quot;Series&quot;);</span>
+<span class="nc" id="L146">            addTableCell(result, row, &quot;Title&quot;);</span>
+<span class="nc" id="L147">            addTableCell(result, row, &quot;RepType&quot;);</span>
+<span class="nc" id="L148">            addTableCell(result, row, &quot;Volume&quot;);</span>
+<span class="nc" id="L149">            addTableCell(result, row, &quot;Year&quot;);</span>
+<span class="nc" id="L150">            addTableCell(result, row, &quot;Yearfiled&quot;);</span>
+<span class="nc" id="L151">            addTableCell(result, row, &quot;URL&quot;);</span>
+<span class="nc" id="L152">            addTableCell(result, row, &quot;Custom1&quot;);</span>
+<span class="nc" id="L153">            addTableCell(result, row, &quot;Custom2&quot;);</span>
+<span class="nc" id="L154">            addTableCell(result, row, &quot;Custom3&quot;);</span>
+<span class="nc" id="L155">            addTableCell(result, row, &quot;Custom4&quot;);</span>
+<span class="nc" id="L156">            addTableCell(result, row, &quot;Custom5&quot;);</span>
+<span class="nc" id="L157">            addTableCell(result, row, &quot;ISBN&quot;);</span>
+<span class="nc" id="L158">            table.appendChild(row);</span>
+
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            for (BibEntry e : entries) {</span>
+<span class="nc" id="L161">                row = result.createElement(&quot;table:table-row&quot;);</span>
+<span class="nc" id="L162">                addTableCell(result, row, getField(e, BibEntry.KEY_FIELD));</span>
+<span class="nc" id="L163">                addTableCell(result, row, new GetOpenOfficeType().format(e.getType()));</span>
+<span class="nc" id="L164">                addTableCell(result, row, getField(e, &quot;address&quot;));</span>
+<span class="nc" id="L165">                addTableCell(result, row, getField(e, &quot;assignee&quot;));</span>
+<span class="nc" id="L166">                addTableCell(result, row, getField(e, &quot;annote&quot;));</span>
+<span class="nc" id="L167">                addTableCell(result, row, getField(e, &quot;author&quot;));//new AuthorLastFirst().format(getField(e, &quot;author&quot;)));</span>
+<span class="nc" id="L168">                addTableCell(result, row, getField(e, &quot;booktitle&quot;));</span>
+<span class="nc" id="L169">                addTableCell(result, row, getField(e, &quot;chapter&quot;));</span>
+<span class="nc" id="L170">                addTableCell(result, row, getField(e, &quot;day&quot;));</span>
+<span class="nc" id="L171">                addTableCell(result, row, getField(e, &quot;dayfiled&quot;));</span>
+<span class="nc" id="L172">                addTableCell(result, row, getField(e, &quot;edition&quot;));</span>
+<span class="nc" id="L173">                addTableCell(result, row, getField(e, &quot;editor&quot;));//new AuthorLastFirst().format(getField(e, &quot;editor&quot;)));</span>
+<span class="nc" id="L174">                addTableCell(result, row, getField(e, &quot;howpublished&quot;));</span>
+<span class="nc" id="L175">                addTableCell(result, row, getField(e, &quot;institution&quot;));</span>
+<span class="nc" id="L176">                addTableCell(result, row, getField(e, &quot;journal&quot;));</span>
+<span class="nc" id="L177">                addTableCell(result, row, getField(e, &quot;language&quot;));</span>
+<span class="nc" id="L178">                addTableCell(result, row, getField(e, &quot;month&quot;));</span>
+<span class="nc" id="L179">                addTableCell(result, row, getField(e, &quot;monthfiled&quot;));</span>
+<span class="nc" id="L180">                addTableCell(result, row, getField(e, &quot;nationality&quot;));</span>
+<span class="nc" id="L181">                addTableCell(result, row, getField(e, &quot;note&quot;));</span>
+<span class="nc" id="L182">                addTableCell(result, row, getField(e, &quot;number&quot;));</span>
+<span class="nc" id="L183">                addTableCell(result, row, getField(e, &quot;organization&quot;));</span>
+<span class="nc" id="L184">                addTableCell(result, row, getField(e, &quot;pages&quot;));</span>
+<span class="nc" id="L185">                addTableCell(result, row, getField(e, &quot;publisher&quot;));</span>
+<span class="nc" id="L186">                addTableCell(result, row, getField(e, &quot;revision&quot;));</span>
+<span class="nc" id="L187">                addTableCell(result, row, getField(e, &quot;school&quot;));</span>
+<span class="nc" id="L188">                addTableCell(result, row, getField(e, &quot;series&quot;));</span>
+<span class="nc" id="L189">                addTableCell(result, row, new RemoveWhitespace().format(new RemoveBrackets().format(getField(e, &quot;title&quot;))));</span>
+<span class="nc" id="L190">                addTableCell(result, row, getField(e, &quot;reporttype&quot;));</span>
+<span class="nc" id="L191">                addTableCell(result, row, getField(e, &quot;volume&quot;));</span>
+<span class="nc" id="L192">                addTableCell(result, row, getField(e, &quot;year&quot;));</span>
+<span class="nc" id="L193">                addTableCell(result, row, getField(e, &quot;yearfiled&quot;));</span>
+<span class="nc" id="L194">                addTableCell(result, row, getField(e, &quot;url&quot;));</span>
+<span class="nc" id="L195">                addTableCell(result, row, &quot;&quot;);</span>
+<span class="nc" id="L196">                addTableCell(result, row, &quot;&quot;);</span>
+<span class="nc" id="L197">                addTableCell(result, row, &quot;&quot;);</span>
+<span class="nc" id="L198">                addTableCell(result, row, &quot;&quot;);</span>
+<span class="nc" id="L199">                addTableCell(result, row, &quot;&quot;);</span>
+<span class="nc" id="L200">                addTableCell(result, row, getField(e, &quot;isbn&quot;));</span>
+<span class="nc" id="L201">                table.appendChild(row);</span>
+            }
+
+<span class="nc" id="L204">            spreadsheet.appendChild(table);</span>
+<span class="nc" id="L205">            body.appendChild(spreadsheet);</span>
+<span class="nc" id="L206">            collection.appendChild(body);</span>
+
+<span class="nc" id="L208">            result.appendChild(collection);</span>
+<span class="nc" id="L209">        } catch (Exception e) {</span>
+<span class="nc" id="L210">            LOGGER.warn(&quot;Exception caught...&quot;, e);</span>
+        }
+<span class="nc" id="L212">        return result;</span>
+    }
+
+    private String getField(BibEntry e, String field) {
+<span class="nc" id="L216">        String s = BibDatabase.getResolvedField(field, e, database);</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        return s == null ? &quot;&quot; : s;</span>
+    }
+
+    private void addTableCell(Document doc, Element parent, String content) {
+<span class="nc" id="L221">        Element cell = doc.createElement(&quot;table:table-cell&quot;);</span>
+<span class="nc" id="L222">        Element text = doc.createElement(&quot;text:p&quot;);</span>
+<span class="nc" id="L223">        Text textNode = doc.createTextNode(content);</span>
+<span class="nc" id="L224">        text.appendChild(textNode);</span>
+        //text.setTextContent(content);
+<span class="nc" id="L226">        cell.appendChild(text);</span>
+<span class="nc" id="L227">        parent.appendChild(cell);</span>
+<span class="nc" id="L228">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>HTMLChars.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.layout.format</a> &gt; <span class="el_source">HTMLChars.java</span></div><h1>HTMLChars.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.layout.format;
+
+import java.util.Map;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.logic.layout.LayoutFormatter;
+import net.sf.jabref.logic.util.strings.HTMLUnicodeConversionMaps;
+import net.sf.jabref.logic.util.strings.StringUtil;
+
+/**
+ * This formatter escapes characters so they are suitable for HTML.
+ */
+<span class="fc" id="L28">public class HTMLChars implements LayoutFormatter {</span>
+
+<span class="fc" id="L30">    private static final Map&lt;String, String&gt; HTML_CHARS = HTMLUnicodeConversionMaps.LATEX_HTML_CONVERSION_MAP;</span>
+
+    @Override
+    public String format(String inField) {
+        int i;
+<span class="fc" id="L35">        String field = inField.replaceAll(&quot;&amp;|\\\\&amp;&quot;, &quot;&amp;amp;&quot;) // Replace &amp; and \&amp; with &amp;amp;</span>
+<span class="fc" id="L36">                .replaceAll(&quot;[\\n]{2,}&quot;, &quot;&lt;p&gt;&quot;) // Replace double line breaks with &lt;p&gt;</span>
+<span class="fc" id="L37">                .replace(&quot;\n&quot;, &quot;&lt;br&gt;&quot;) // Replace single line breaks with &lt;br&gt;</span>
+<span class="fc" id="L38">                .replace(&quot;\\$&quot;, &quot;&amp;dollar;&quot;) // Replace \$ with &amp;dollar;</span>
+<span class="fc" id="L39">                .replaceAll(&quot;\\$([^\\$]*)\\$&quot;, &quot;\\{$1\\}&quot;); // Replace $...$ with {...} to simplify conversion</span>
+
+<span class="fc" id="L41">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L42">        StringBuilder currentCommand = null;</span>
+
+        char c;
+<span class="fc" id="L45">        boolean escaped = false;</span>
+<span class="fc" id="L46">        boolean incommand = false;</span>
+
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        for (i = 0; i &lt; field.length(); i++) {</span>
+<span class="fc" id="L49">            c = field.charAt(i);</span>
+<span class="pc bpc" id="L50" title="3 of 4 branches missed.">            if (escaped &amp;&amp; (c == '\\')) {</span>
+<span class="nc" id="L51">                sb.append('\\');</span>
+<span class="nc" id="L52">                escaped = false;</span>
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">            } else if (c == '\\') {</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">                if (incommand) {</span>
+                    /* Close Command */
+<span class="nc" id="L56">                    String command = currentCommand.toString();</span>
+<span class="nc" id="L57">                    Object result = HTML_CHARS.get(command);</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">                    if (result == null) {</span>
+<span class="nc" id="L59">                        sb.append(command);</span>
+<span class="nc" id="L60">                    } else {</span>
+<span class="nc" id="L61">                        sb.append((String) result);</span>
+                    }
+                }
+<span class="nc" id="L64">                escaped = true;</span>
+<span class="nc" id="L65">                incommand = true;</span>
+<span class="nc" id="L66">                currentCommand = new StringBuilder();</span>
+<span class="pc bpc" id="L67" title="3 of 6 branches missed.">            } else if (!incommand &amp;&amp; ((c == '{') || (c == '}'))) {</span>
+                // Swallow the brace.
+<span class="pc bpc" id="L69" title="1 of 4 branches missed.">            } else if (Character.isLetter(c) || (c == '%')</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">                    || Globals.SPECIAL_COMMAND_CHARS.contains(String.valueOf(c))) {</span>
+<span class="fc" id="L71">                escaped = false;</span>
+
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">                if (!incommand) {</span>
+<span class="fc" id="L74">                    sb.append(c);</span>
+<span class="fc" id="L75">                } else {</span>
+<span class="nc" id="L76">                    currentCommand.append(c);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                    testCharCom: if ((currentCommand.length() == 1)</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">                            &amp;&amp; Globals.SPECIAL_COMMAND_CHARS.contains(currentCommand.toString())) {</span>
+                        // This indicates that we are in a command of the type
+                        // \^o or \~{n}
+<span class="nc bnc" id="L81" title="All 2 branches missed.">                        if (i &gt;= (field.length() - 1)) {</span>
+<span class="nc" id="L82">                            break testCharCom;</span>
+                        }
+
+<span class="nc" id="L85">                        String command = currentCommand.toString();</span>
+<span class="nc" id="L86">                        i++;</span>
+<span class="nc" id="L87">                        c = field.charAt(i);</span>
+                        String combody;
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                        if (c == '{') {</span>
+<span class="nc" id="L90">                            String part = StringUtil.getPart(field, i, false);</span>
+<span class="nc" id="L91">                            i += part.length();</span>
+<span class="nc" id="L92">                            combody = part;</span>
+<span class="nc" id="L93">                        } else {</span>
+<span class="nc" id="L94">                            combody = field.substring(i, i + 1);</span>
+                        }
+<span class="nc" id="L96">                        Object result = HTML_CHARS.get(command + combody);</span>
+
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                        if (result != null) {</span>
+<span class="nc" id="L99">                            sb.append((String) result);</span>
+                        }
+
+<span class="nc" id="L102">                        incommand = false;</span>
+<span class="nc" id="L103">                        escaped = false;</span>
+<span class="nc" id="L104">                    } else {</span>
+                        //	Are we already at the end of the string?
+<span class="nc bnc" id="L106" title="All 2 branches missed.">                        if ((i + 1) == field.length()) {</span>
+<span class="nc" id="L107">                            String command = currentCommand.toString();</span>
+<span class="nc" id="L108">                            Object result = HTML_CHARS.get(command);</span>
+                            /* If found, then use translated version. If not,
+                             * then keep
+                             * the text of the parameter intact.
+                             */
+<span class="nc bnc" id="L113" title="All 2 branches missed.">                            if (result == null) {</span>
+<span class="nc" id="L114">                                sb.append(command);</span>
+<span class="nc" id="L115">                            } else {</span>
+<span class="nc" id="L116">                                sb.append((String) result);</span>
+                            }
+
+                        }
+                    }
+                }
+<span class="nc" id="L122">            } else {</span>
+                String argument;
+
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">                if (!incommand) {</span>
+<span class="fc" id="L126">                    sb.append(c);</span>
+<span class="pc bnc" id="L127" title="All 6 branches missed.">                } else if (Character.isWhitespace(c) || (c == '{') || (c == '}')) {</span>
+<span class="nc" id="L128">                    String command = currentCommand.toString();</span>
+
+                    // Test if we are dealing with a formatting
+                    // command.
+                    // If so, handle.
+<span class="nc" id="L133">                    String tag = getHTMLTag(command);</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">                    if (!tag.isEmpty()) {</span>
+<span class="nc" id="L135">                        String part = StringUtil.getPart(field, i, true);</span>
+<span class="nc" id="L136">                        i += part.length();</span>
+<span class="nc" id="L137">                        sb.append('&lt;').append(tag).append('&gt;').append(part).append(&quot;&lt;/&quot;).append(tag).append('&gt;');</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                    } else if (c == '{') {</span>
+<span class="nc" id="L139">                        String part = StringUtil.getPart(field, i, true);</span>
+<span class="nc" id="L140">                        i += part.length();</span>
+<span class="nc" id="L141">                        argument = part;</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">                        if (argument != null) {</span>
+                            // handle common case of general latex command
+<span class="nc" id="L144">                            Object result = HTML_CHARS.get(command + argument);</span>
+                            // If found, then use translated version. If not, then keep
+                            // the
+                            // text of the parameter intact.
+<span class="nc bnc" id="L148" title="All 2 branches missed.">                            if (result == null) {</span>
+<span class="nc" id="L149">                                sb.append(argument);</span>
+<span class="nc" id="L150">                            } else {</span>
+<span class="nc" id="L151">                                sb.append((String) result);</span>
+                            }
+                        }
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                    } else if (c == '}') {</span>
+                        // This end brace terminates a command. This can be the case in
+                        // constructs like {\aa}. The correct behaviour should be to
+                        // substitute the evaluated command and swallow the brace:
+<span class="nc" id="L158">                        Object result = HTML_CHARS.get(command);</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">                        if (result == null) {</span>
+                            // If the command is unknown, just print it:
+<span class="nc" id="L161">                            sb.append(command);</span>
+<span class="nc" id="L162">                        } else {</span>
+<span class="nc" id="L163">                            sb.append((String) result);</span>
+                        }
+<span class="nc" id="L165">                    } else {</span>
+<span class="nc" id="L166">                        Object result = HTML_CHARS.get(command);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">                        if (result == null) {</span>
+<span class="nc" id="L168">                            sb.append(command);</span>
+<span class="nc" id="L169">                        } else {</span>
+<span class="nc" id="L170">                            sb.append((String) result);</span>
+                        }
+<span class="nc" id="L172">                        sb.append(' ');</span>
+                    }
+                }/* else if (c == '}') {
+                    System.out.printf(&quot;com term by }: '%s'\n&quot;, currentCommand.toString());
+
+                    argument = &quot;&quot;;
+                 }*/else {
+                    /*
+                     * TODO: this point is reached, apparently, if a command is
+                     * terminated in a strange way, such as with &quot;$\omega$&quot;.
+                     * Also, the command &quot;\&amp;&quot; causes us to get here. The former
+                     * issue is maybe a little difficult to address, since it
+                     * involves the LaTeX math mode. We don't have a complete
+                     * LaTeX parser, so maybe it's better to ignore these
+                     * commands?
+                     */
+                }
+
+<span class="fc" id="L190">                incommand = false;</span>
+<span class="fc" id="L191">                escaped = false;</span>
+            }
+        }
+
+<span class="fc" id="L195">        return sb.toString().replace(&quot;~&quot;, &quot;&amp;nbsp;&quot;); // Replace any remaining ~ with &amp;nbsp; (non-breaking spaces)</span>
+    }
+
+    private String getHTMLTag(String latexCommand) {
+<span class="nc" id="L199">        String result = &quot;&quot;;</span>
+<span class="nc bnc" id="L200" title="All 9 branches missed.">        switch (latexCommand) {</span>
+        // Italic
+        case &quot;textit&quot;:
+        case &quot;it&quot;:
+<span class="nc" id="L204">            result = &quot;i&quot;;</span>
+<span class="nc" id="L205">            break;</span>
+        // Emphasize
+        case &quot;emph&quot;:
+        case &quot;em&quot;:
+<span class="nc" id="L209">            result = &quot;em&quot;;</span>
+<span class="nc" id="L210">            break;</span>
+        // Bold font
+        case &quot;textbf&quot;:
+        case &quot;bf&quot;:
+<span class="nc" id="L214">            result = &quot;b&quot;;</span>
+<span class="nc" id="L215">            break;</span>
+        // Underline
+        case &quot;underline&quot;:
+<span class="nc" id="L218">            result = &quot;u&quot;;</span>
+<span class="nc" id="L219">            break;</span>
+        // Strikeout, sout is the &quot;standard&quot; command, although it is actually based on the package ulem
+        case &quot;sout&quot;:
+<span class="nc" id="L222">            result = &quot;s&quot;;</span>
+<span class="nc" id="L223">            break;</span>
+        // Monospace font
+        case &quot;texttt&quot;:
+<span class="nc" id="L226">            result = &quot;tt&quot;;</span>
+<span class="nc" id="L227">            break;</span>
+        // Superscript
+        case &quot;textsuperscript&quot;:
+<span class="nc" id="L230">            result = &quot;sup&quot;;</span>
+<span class="nc" id="L231">            break;</span>
+        // Subscript
+        case &quot;textsubscript&quot;:
+<span class="nc" id="L234">            result = &quot;sub&quot;;</span>
+<span class="nc" id="L235">            break;</span>
+        default:
+            break;
+        }
+<span class="nc" id="L239">        return result;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

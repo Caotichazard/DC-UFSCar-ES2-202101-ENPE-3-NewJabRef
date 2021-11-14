@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>KeyBindingRepository.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.keyboard</a> &gt; <span class="el_source">KeyBindingRepository.java</span></div><h1>KeyBindingRepository.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.keyboard;
+
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+public class KeyBindingRepository {
+
+    /**
+     * sorted by localization
+     */
+    private final SortedMap&lt;KeyBinding, String&gt; bindings;
+
+<span class="fc" id="L30">    public KeyBindingRepository() {</span>
+<span class="fc" id="L31">        bindings = new TreeMap&lt;&gt;((k1, k2) -&gt; k1.getLocalization().compareTo(k2.getLocalization()));</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        for (KeyBinding keyBinding : KeyBinding.values()) {</span>
+<span class="fc" id="L33">            bindings.put(keyBinding, keyBinding.getDefaultBinding());</span>
+        }
+<span class="fc" id="L35">    }</span>
+
+<span class="nc" id="L37">    public KeyBindingRepository(SortedMap&lt;KeyBinding, String&gt; bindings) {</span>
+<span class="nc" id="L38">        this.bindings = bindings;</span>
+<span class="nc" id="L39">    }</span>
+
+    public Optional&lt;String&gt; get(KeyBinding key) {
+<span class="nc" id="L42">        return getKeyBinding(key).flatMap(k -&gt; Optional.ofNullable(bindings.get(k)));</span>
+    }
+
+    public String get(String key) {
+<span class="fc" id="L46">        Optional&lt;KeyBinding&gt; keyBinding = getKeyBinding(key);</span>
+<span class="fc" id="L47">        Optional&lt;String&gt; result  = keyBinding.flatMap(k -&gt; Optional.ofNullable(bindings.get(k)));</span>
+
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">        if(result.isPresent()) {</span>
+<span class="fc" id="L50">            return result.get();</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        } else if(keyBinding.isPresent()){</span>
+<span class="nc" id="L52">            return keyBinding.get().getDefaultBinding();</span>
+        } else {
+<span class="nc" id="L54">            return &quot;Not associated&quot;;</span>
+        }
+    }
+
+    public SortedMap&lt;KeyBinding, String&gt; getKeyBindings() {
+<span class="nc" id="L59">        return new TreeMap&lt;&gt;(bindings);</span>
+    }
+
+    public void overwriteBindings(SortedMap&lt;KeyBinding, String&gt; newBindings) {
+<span class="nc" id="L63">        bindings.clear();</span>
+<span class="nc" id="L64">        newBindings.forEach(this::put);</span>
+<span class="nc" id="L65">    }</span>
+
+    public void put(KeyBinding key, String value) {
+<span class="nc" id="L68">        getKeyBinding(key).ifPresent(binding -&gt; bindings.put(binding, value));</span>
+<span class="nc" id="L69">    }</span>
+
+    public void put(String key, String value) {
+<span class="nc" id="L72">        getKeyBinding(key).ifPresent(binding -&gt; bindings.put(binding, value));</span>
+<span class="nc" id="L73">    }</span>
+
+    private Optional&lt;KeyBinding&gt; getKeyBinding(String key) {
+<span class="fc" id="L76">        return Arrays.stream(KeyBinding.values()).filter(b -&gt; b.getKey().equals(key)).findFirst();</span>
+    }
+
+    private Optional&lt;KeyBinding&gt; getKeyBinding(KeyBinding key) {
+<span class="nc" id="L80">        return Arrays.stream(KeyBinding.values()).filter(b -&gt; b.equals(key)).findFirst();</span>
+    }
+
+    public void resetToDefault(String key) {
+<span class="nc" id="L84">        getKeyBinding(key).ifPresent(b -&gt; bindings.put(b, b.getDefaultBinding()));</span>
+<span class="nc" id="L85">    }</span>
+
+    public void resetToDefault() {
+<span class="nc" id="L88">        bindings.forEach((b, s) -&gt; bindings.put(b, b.getDefaultBinding()));</span>
+<span class="nc" id="L89">    }</span>
+
+    public int size() {
+<span class="nc" id="L92">        return this.bindings.size();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

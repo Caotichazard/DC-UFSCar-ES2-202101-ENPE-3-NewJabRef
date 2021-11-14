@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ConvertLegacyExplicitGroups.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer</a> &gt; <span class="el_source">ConvertLegacyExplicitGroups.java</span></div><h1>ConvertLegacyExplicitGroups.java</h1><pre class="source lang-java linenums">package net.sf.jabref.importer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.logic.groups.ExplicitGroup;
+import net.sf.jabref.logic.groups.GroupTreeNode;
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Converts legacy explicit groups, where the group contained a list of assigned entries, to the new format,
+ * where the entry stores a list of groups it belongs to.
+ */
+<span class="fc" id="L16">public class ConvertLegacyExplicitGroups implements PostOpenAction {</span>
+
+    @Override
+    public boolean isActionNecessary(ParserResult pr) {
+<span class="pc bpc" id="L20" title="1 of 2 branches missed.">        if(pr.getMetaData().getGroups() == null) {</span>
+<span class="fc" id="L21">            return false;</span>
+        }
+<span class="nc bnc" id="L23" title="All 2 branches missed.">        return !getExplicitGroupsWithLegacyKeys(pr.getMetaData().getGroups()).isEmpty();</span>
+    }
+
+    @Override
+    public void performAction(BasePanel panel, ParserResult pr) {
+<span class="nc" id="L28">        Objects.requireNonNull(pr);</span>
+<span class="nc bnc" id="L29" title="All 2 branches missed.">        if(pr.getMetaData().getGroups() == null) {</span>
+<span class="nc" id="L30">            return;</span>
+        }
+
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        for (ExplicitGroup group : getExplicitGroupsWithLegacyKeys(pr.getMetaData().getGroups())) {</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">            for (String entryKey : group.getLegacyEntryKeys()) {</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">                for (BibEntry entry : pr.getDatabase().getEntriesByKey(entryKey)) {</span>
+<span class="nc" id="L36">                    group.add(entry);</span>
+                }
+            }
+<span class="nc" id="L39">            group.clearLegacyEntryKeys();</span>
+        }
+<span class="nc" id="L41">    }</span>
+
+    private List&lt;ExplicitGroup&gt; getExplicitGroupsWithLegacyKeys(GroupTreeNode node) {
+<span class="nc" id="L44">        Objects.requireNonNull(node);</span>
+<span class="nc" id="L45">        List&lt;ExplicitGroup&gt; findings = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (node.getGroup() instanceof ExplicitGroup) {</span>
+<span class="nc" id="L48">            ExplicitGroup group = (ExplicitGroup) node.getGroup();</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            if (!group.getLegacyEntryKeys().isEmpty()) {</span>
+<span class="nc" id="L50">                findings.add(group);</span>
+            }
+        }
+
+<span class="nc" id="L54">        node.getChildren().forEach(child -&gt; findings.addAll(getExplicitGroupsWithLegacyKeys(child)));</span>
+
+<span class="nc" id="L56">        return findings;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

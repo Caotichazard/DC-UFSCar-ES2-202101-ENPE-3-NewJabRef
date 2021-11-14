@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ConversionMenu.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.fieldeditors.contextmenu</a> &gt; <span class="el_source">ConversionMenu.java</span></div><h1>ConversionMenu.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2015-2016 JabRef contributors.
+    Copyright (C) 2015-2016 Oscar Gustafsson.
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.fieldeditors.contextmenu;
+
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.text.JTextComponent;
+
+import net.sf.jabref.logic.formatter.Formatter;
+import net.sf.jabref.logic.formatter.Formatters;
+import net.sf.jabref.logic.l10n.Localization;
+
+/**
+ * @author Oscar Gustafsson
+ *
+ * Menu to show up on right-click in a text field for converting text formats
+ */
+public class ConversionMenu extends JMenu {
+
+    public ConversionMenu(JTextComponent opener) {
+<span class="fc" id="L36">        super(Localization.lang(&quot;Convert&quot;));</span>
+        // create menu items, one for each case changer
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        for (Formatter converter : Formatters.CONVERTERS) {</span>
+<span class="fc" id="L39">            JMenuItem menuItem = new JMenuItem(converter.getName());</span>
+<span class="pc" id="L40">            menuItem.addActionListener(e -&gt; opener.setText(converter.format(opener.getText())));</span>
+<span class="fc" id="L41">            this.add(menuItem);</span>
+        }
+<span class="fc" id="L43">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

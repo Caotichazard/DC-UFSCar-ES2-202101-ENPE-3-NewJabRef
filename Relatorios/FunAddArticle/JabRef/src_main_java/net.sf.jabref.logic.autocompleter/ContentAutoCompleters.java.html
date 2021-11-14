@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ContentAutoCompleters.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.autocompleter</a> &gt; <span class="el_source">ContentAutoCompleters.java</span></div><h1>ContentAutoCompleters.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.autocompleter;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import net.sf.jabref.MetaData;
+import net.sf.jabref.logic.journals.Abbreviation;
+import net.sf.jabref.logic.journals.JournalAbbreviationLoader;
+import net.sf.jabref.model.database.BibDatabase;
+
+public class ContentAutoCompleters extends AutoCompleters {
+
+    private final JournalAbbreviationLoader abbreviationLoader;
+
+
+<span class="fc" id="L17">    public ContentAutoCompleters(JournalAbbreviationLoader abbreviationLoader) {</span>
+<span class="fc" id="L18">        this.abbreviationLoader = Objects.requireNonNull(abbreviationLoader);</span>
+<span class="fc" id="L19">    }</span>
+
+    public ContentAutoCompleters(BibDatabase database, MetaData metaData, AutoCompletePreferences preferences,
+            JournalAbbreviationLoader abbreviationLoader) {
+<span class="fc" id="L23">        this(abbreviationLoader);</span>
+<span class="fc" id="L24">        Objects.requireNonNull(preferences);</span>
+
+<span class="fc" id="L26">        AutoCompleterFactory autoCompleterFactory = new AutoCompleterFactory(preferences);</span>
+<span class="fc" id="L27">        List&lt;String&gt; completeFields = preferences.getCompleteNames();</span>
+<span class="fc bfc" id="L28" title="All 2 branches covered.">        for (String field : completeFields) {</span>
+<span class="fc" id="L29">            AutoCompleter&lt;String&gt; autoCompleter = autoCompleterFactory.getFor(field);</span>
+<span class="fc" id="L30">            put(field, autoCompleter);</span>
+        }
+
+<span class="fc" id="L33">        addDatabase(database);</span>
+
+<span class="fc" id="L35">        addJournalListToAutoCompleter();</span>
+<span class="fc" id="L36">        addContentSelectorValuesToAutoCompleters(metaData);</span>
+<span class="fc" id="L37">    }</span>
+
+    /**
+     * For all fields with both autocompletion and content selector, add content selector
+     * values to the autocompleter list:
+     */
+    public void addContentSelectorValuesToAutoCompleters(MetaData metaData) {
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        for (Map.Entry&lt;String, AutoCompleter&lt;String&gt;&gt; entry : this.autoCompleters.entrySet()) {</span>
+<span class="fc" id="L45">            AutoCompleter&lt;String&gt; ac = entry.getValue();</span>
+<span class="fc" id="L46">            metaData.getContentSelectors(entry.getKey()).forEach(ac::addItemToIndex);</span>
+        }
+<span class="fc" id="L48">    }</span>
+
+    /**
+     * If an autocompleter exists for the &quot;journal&quot; field, add all
+     * journal names in the journal abbreviation list to this autocompleter.
+     */
+    public void addJournalListToAutoCompleter() {
+<span class="fc" id="L55">        AutoCompleter&lt;String&gt; autoCompleter = get(&quot;journal&quot;);</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if(autoCompleter != null) {</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">            for (Abbreviation abbreviation : abbreviationLoader.getRepository().getAbbreviations()) {</span>
+<span class="fc" id="L58">                autoCompleter.addItemToIndex(abbreviation.getName());</span>
+            }
+        }
+<span class="fc" id="L61">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

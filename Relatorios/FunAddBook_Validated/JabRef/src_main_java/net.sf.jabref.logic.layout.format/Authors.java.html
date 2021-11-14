@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>Authors.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.layout.format</a> &gt; <span class="el_source">Authors.java</span></div><h1>Authors.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.logic.layout.format;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.logic.layout.AbstractParamLayoutFormatter;
+import net.sf.jabref.model.entry.Author;
+import net.sf.jabref.model.entry.AuthorList;
+
+/**
+ * Versatile author name formatter that takes arguments to control the formatting style.
+ */
+<span class="fc" id="L29">public class Authors extends AbstractParamLayoutFormatter {</span>
+
+    /*
+    AuthorSort = [FirstFirst | LastFirst | LastFirstFirstFirst]
+    AuthorAbbr = [FullName | Initials | FirstInitial | MiddleInitial | InitialsNoSpace | LastName]
+    AuthorSep = [Comma | And | Colon | Semicolon | Sep=&lt;string&gt;]
+    AuthorLastSep = [And | Comma | Colon | Semicolon | Amp | Oxford | LastSep=&lt;string&gt;]
+    AuthorPunc = [FullPunc | NoPunc | NoComma | NoPeriod]
+    AuthorNumber = [inf | &lt;number&gt;]
+    AuthorNumberEtAl = [ {1} | &lt;number&gt;]
+    EtAlString = [ et al. | EtAl=&lt;string&gt;]
+     */
+
+<span class="fc" id="L42">    private static final List&lt;String&gt; AUTHOR_ORDER = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L43">    private static final List&lt;String&gt; AUTHOR_ABRV = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L44">    private static final List&lt;String&gt; AUTHOR_PUNC = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L45">    private static final List&lt;String&gt; SEPARATORS = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L46">    private static final List&lt;String&gt; LAST_SEPARATORS = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L48">    private static final Pattern NUMBER_PATTERN = Pattern.compile(&quot;[0-9]+&quot;);</span>
+
+    static {
+<span class="fc" id="L51">        Authors.AUTHOR_ORDER.add(&quot;firstfirst&quot;);</span>
+<span class="fc" id="L52">        Authors.AUTHOR_ORDER.add(&quot;lastfirst&quot;);</span>
+<span class="fc" id="L53">        Authors.AUTHOR_ORDER.add(&quot;lastfirstfirstfirst&quot;);</span>
+
+<span class="fc" id="L55">        Authors.AUTHOR_ABRV.add(&quot;fullname&quot;);</span>
+<span class="fc" id="L56">        Authors.AUTHOR_ABRV.add(&quot;initials&quot;);</span>
+<span class="fc" id="L57">        Authors.AUTHOR_ABRV.add(&quot;firstinitial&quot;);</span>
+<span class="fc" id="L58">        Authors.AUTHOR_ABRV.add(&quot;middleinitial&quot;);</span>
+<span class="fc" id="L59">        Authors.AUTHOR_ABRV.add(&quot;lastname&quot;);</span>
+<span class="fc" id="L60">        Authors.AUTHOR_ABRV.add(&quot;initialsnospace&quot;);</span>
+
+<span class="fc" id="L62">        Authors.AUTHOR_PUNC.add(&quot;fullpunc&quot;);</span>
+<span class="fc" id="L63">        Authors.AUTHOR_PUNC.add(&quot;nopunc&quot;);</span>
+<span class="fc" id="L64">        Authors.AUTHOR_PUNC.add(&quot;nocomma&quot;);</span>
+<span class="fc" id="L65">        Authors.AUTHOR_PUNC.add(&quot;noperiod&quot;);</span>
+
+<span class="fc" id="L67">        Authors.SEPARATORS.add(&quot;comma&quot;);</span>
+<span class="fc" id="L68">        Authors.SEPARATORS.add(&quot;and&quot;);</span>
+<span class="fc" id="L69">        Authors.SEPARATORS.add(&quot;colon&quot;);</span>
+<span class="fc" id="L70">        Authors.SEPARATORS.add(&quot;semicolon&quot;);</span>
+<span class="fc" id="L71">        Authors.SEPARATORS.add(&quot;sep&quot;);</span>
+
+<span class="fc" id="L73">        Authors.LAST_SEPARATORS.add(&quot;and&quot;);</span>
+<span class="fc" id="L74">        Authors.LAST_SEPARATORS.add(&quot;colon&quot;);</span>
+<span class="fc" id="L75">        Authors.LAST_SEPARATORS.add(&quot;semicolon&quot;);</span>
+<span class="fc" id="L76">        Authors.LAST_SEPARATORS.add(&quot;amp&quot;);</span>
+<span class="fc" id="L77">        Authors.LAST_SEPARATORS.add(&quot;oxford&quot;);</span>
+<span class="fc" id="L78">        Authors.LAST_SEPARATORS.add(&quot;lastsep&quot;);</span>
+
+    }
+
+    private static final int
+    FIRST_FIRST = 0;
+    private static final int LAST_FIRST = 1;
+    private static final int LF_FF = 2;
+
+    private static final String
+    COMMA = &quot;, &quot;;
+    private static final String AMP = &quot; &amp; &quot;;
+    private static final String COLON = &quot;: &quot;;
+    private static final String SEMICOLON = &quot;; &quot;;
+    private static final String AND = &quot; and &quot;;
+<span class="fc" id="L93">    private static final String OXFORD = &quot;, and &quot;;</span>
+
+    private int flMode;
+
+    private boolean
+<span class="fc" id="L98">    abbreviate = true;</span>
+    private boolean firstInitialOnly;
+    private boolean middleInitial;
+    private boolean lastNameOnly;
+<span class="fc" id="L102">    private boolean abbrDots = true;</span>
+<span class="fc" id="L103">    private boolean abbrSpaces = true;</span>
+
+    private boolean setSep;
+    private boolean setMaxAuthors;
+<span class="fc" id="L107">    private int maxAuthors = -1;</span>
+<span class="fc" id="L108">    private int authorNumberEtAl = 1;</span>
+
+<span class="fc" id="L110">    private String lastFirstSeparator = &quot;, &quot;;</span>
+<span class="fc" id="L111">    private String separator = Authors.COMMA;</span>
+<span class="fc" id="L112">    private String lastSeparator = Authors.AND;</span>
+<span class="fc" id="L113">    private String etAlString = &quot; et al.&quot;;</span>
+
+
+    @Override
+    public void setArgument(String arg) {
+<span class="fc" id="L118">        String[] parts = AbstractParamLayoutFormatter.parseArgument(arg);</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        for (String part : parts) {</span>
+<span class="fc" id="L120">            int index = part.indexOf('=');</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">            if (index &gt; 0) {</span>
+<span class="nc" id="L122">                String key = part.substring(0, index);</span>
+<span class="nc" id="L123">                String value = part.substring(index + 1);</span>
+<span class="nc" id="L124">                handleArgument(key, value);</span>
+<span class="nc" id="L125">            } else {</span>
+<span class="fc" id="L126">                handleArgument(part, &quot;&quot;);</span>
+            }
+
+        }
+<span class="fc" id="L130">    }</span>
+
+    private void handleArgument(String key, String value) {
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (Authors.AUTHOR_ORDER.contains(key.trim().toLowerCase())) {</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">            if (comp(key, &quot;FirstFirst&quot;)) {</span>
+<span class="nc" id="L135">                flMode = Authors.FIRST_FIRST;</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">            } else if (comp(key, &quot;LastFirst&quot;)) {</span>
+<span class="fc" id="L137">                flMode = Authors.LAST_FIRST;</span>
+<span class="pc bnc" id="L138" title="All 2 branches missed.">            } else if (comp(key, &quot;LastFirstFirstFirst&quot;)) {</span>
+<span class="nc" id="L139">                flMode = Authors.LF_FF;</span>
+            }
+<span class="pc bfc" id="L141" title="All 2 branches covered.">        } else if (Authors.AUTHOR_ABRV.contains(key.trim().toLowerCase())) {</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">            if (comp(key, &quot;FullName&quot;)) {</span>
+<span class="nc" id="L143">                abbreviate = false;</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">            } else if (comp(key, &quot;Initials&quot;)) {</span>
+<span class="fc" id="L145">                abbreviate = true;</span>
+<span class="fc" id="L146">                firstInitialOnly = false;</span>
+<span class="pc bnc" id="L147" title="All 2 branches missed.">            } else if (comp(key, &quot;FirstInitial&quot;)) {</span>
+<span class="nc" id="L148">                abbreviate = true;</span>
+<span class="nc" id="L149">                firstInitialOnly = true;</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            } else if (comp(key, &quot;MiddleInitial&quot;)) {</span>
+<span class="nc" id="L151">                abbreviate = true;</span>
+<span class="nc" id="L152">                middleInitial = true;</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">            } else if (comp(key, &quot;LastName&quot;)) {</span>
+<span class="nc" id="L154">                lastNameOnly = true;</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">            } else if (comp(key, &quot;InitialsNoSpace&quot;)) {</span>
+<span class="nc" id="L156">                abbreviate = true;</span>
+<span class="nc" id="L157">                abbrSpaces = false;</span>
+            }
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">        } else if (Authors.AUTHOR_PUNC.contains(key.trim().toLowerCase())) {</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            if (comp(key, &quot;FullPunc&quot;)) {</span>
+<span class="nc" id="L161">                abbrDots = true;</span>
+<span class="nc" id="L162">                lastFirstSeparator = &quot;, &quot;;</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">            } else if (comp(key, &quot;NoPunc&quot;)) {</span>
+<span class="nc" id="L164">                abbrDots = false;</span>
+<span class="nc" id="L165">                lastFirstSeparator = &quot; &quot;;</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            } else if (comp(key, &quot;NoComma&quot;)) {</span>
+<span class="nc" id="L167">                abbrDots = true;</span>
+<span class="nc" id="L168">                lastFirstSeparator = &quot; &quot;;</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">            } else if (comp(key, &quot;NoPeriod&quot;)) {</span>
+<span class="nc" id="L170">                abbrDots = false;</span>
+<span class="nc" id="L171">                lastFirstSeparator = &quot;, &quot;;</span>
+            }
+<span class="nc" id="L173">        }</span>
+
+        // AuthorSep = [Comma | And | Colon | Semicolon | sep=&lt;string&gt;]
+        // AuthorLastSep = [And | Comma | Colon | Semicolon | Amp | Oxford | lastsep=&lt;string&gt;]
+<span class="pc bpc" id="L177" title="1 of 4 branches missed.">        else if (Authors.SEPARATORS.contains(key.trim().toLowerCase()) || Authors.LAST_SEPARATORS.contains(key.trim().toLowerCase())) {</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">            if (comp(key, &quot;Comma&quot;)) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">                if (setSep) {</span>
+<span class="nc" id="L180">                    lastSeparator = Authors.COMMA;</span>
+<span class="nc" id="L181">                } else {</span>
+<span class="nc" id="L182">                    separator = Authors.COMMA;</span>
+<span class="nc" id="L183">                    setSep = true;</span>
+                }
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">            } else if (comp(key, &quot;And&quot;)) {</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">                if (setSep) {</span>
+<span class="nc" id="L187">                    lastSeparator = Authors.AND;</span>
+<span class="nc" id="L188">                } else {</span>
+<span class="nc" id="L189">                    separator = Authors.AND;</span>
+<span class="nc" id="L190">                    setSep = true;</span>
+                }
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">            } else if (comp(key, &quot;Colon&quot;)) {</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                if (setSep) {</span>
+<span class="nc" id="L194">                    lastSeparator = Authors.COLON;</span>
+<span class="nc" id="L195">                } else {</span>
+<span class="nc" id="L196">                    separator = Authors.COLON;</span>
+<span class="nc" id="L197">                    setSep = true;</span>
+                }
+<span class="pc bfc" id="L199" title="All 2 branches covered.">            } else if (comp(key, &quot;Semicolon&quot;)) {</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">                if (setSep) {</span>
+<span class="nc" id="L201">                    lastSeparator = Authors.SEMICOLON;</span>
+<span class="nc" id="L202">                } else {</span>
+<span class="fc" id="L203">                    separator = Authors.SEMICOLON;</span>
+<span class="fc" id="L204">                    setSep = true;</span>
+                }
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">            } else if (comp(key, &quot;Oxford&quot;)) {</span>
+<span class="nc" id="L207">                lastSeparator = Authors.OXFORD;</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">            } else if (comp(key, &quot;Amp&quot;)) {</span>
+<span class="fc" id="L209">                lastSeparator = Authors.AMP;</span>
+<span class="pc bnc" id="L210" title="All 4 branches missed.">            } else if (comp(key, &quot;Sep&quot;) &amp;&amp; !value.isEmpty()) {</span>
+<span class="nc" id="L211">                separator = value;</span>
+<span class="nc" id="L212">                setSep = true;</span>
+<span class="nc bnc" id="L213" title="All 4 branches missed.">            } else if (comp(key, &quot;LastSep&quot;) &amp;&amp; !value.isEmpty()) {</span>
+<span class="nc" id="L214">                lastSeparator = value;</span>
+            }
+<span class="nc bnc" id="L216" title="All 4 branches missed.">        } else if (&quot;etal&quot;.equalsIgnoreCase(key.trim()) &amp;&amp; !value.isEmpty()) {</span>
+<span class="nc" id="L217">            etAlString = value;</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        } else if (Authors.NUMBER_PATTERN.matcher(key.trim()).matches()) {</span>
+            // Just a number:
+<span class="nc" id="L220">            int num = Integer.parseInt(key.trim());</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">            if (setMaxAuthors) {</span>
+<span class="nc" id="L222">                authorNumberEtAl = num;</span>
+<span class="nc" id="L223">            } else {</span>
+<span class="nc" id="L224">                maxAuthors = num;</span>
+<span class="nc" id="L225">                setMaxAuthors = true;</span>
+            }
+        }
+<span class="fc" id="L228">    }</span>
+
+    /**
+     * Check for case-insensitive equality between two strings after removing
+     * white space at the beginning and end of the first string.
+     * @param one The first string - whitespace is trimmed
+     * @param two The second string
+     * @return true if the strings are deemed equal
+     */
+    private static boolean comp(String one, String two) {
+<span class="fc" id="L238">        return one.trim().equalsIgnoreCase(two);</span>
+    }
+
+    @Override
+    public String format(String fieldText) {
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">        if (fieldText == null) {</span>
+<span class="nc" id="L244">            return &quot;&quot;;</span>
+        }
+
+<span class="fc" id="L247">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L248">        AuthorList al = AuthorList.parse(fieldText);</span>
+
+<span class="pc bpc" id="L250" title="3 of 4 branches missed.">        if ((maxAuthors &lt; 0) || (al.getNumberOfAuthors() &lt;= maxAuthors)) {</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">            for (int i = 0; i &lt; al.getNumberOfAuthors(); i++) {</span>
+<span class="fc" id="L252">                Author a = al.getAuthor(i);</span>
+
+<span class="pc bpc" id="L254" title="4 of 6 branches missed.">                addSingleName(sb, a, (flMode == Authors.FIRST_FIRST) || ((flMode == Authors.LF_FF) &amp;&amp; (i &gt; 0)));</span>
+
+<span class="pc bpc" id="L256" title="1 of 2 branches missed.">                if (i &lt; (al.getNumberOfAuthors() - 2)) {</span>
+<span class="nc" id="L257">                    sb.append(separator);</span>
+<span class="pc bpc" id="L258" title="1 of 2 branches missed.">                } else if (i &lt; (al.getNumberOfAuthors() - 1)) {</span>
+<span class="nc" id="L259">                    sb.append(lastSeparator);</span>
+                }
+            }
+<span class="fc" id="L262">        } else {</span>
+<span class="nc bnc" id="L263" title="All 2 branches missed.">            for (int i = 0; i &lt; Math.min(al.getNumberOfAuthors() - 1, authorNumberEtAl); i++) {</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">                if (i &gt; 0) {</span>
+<span class="nc" id="L265">                    sb.append(separator);</span>
+                }
+<span class="nc bnc" id="L267" title="All 2 branches missed.">                addSingleName(sb, al.getAuthor(i), flMode == Authors.FIRST_FIRST);</span>
+            }
+<span class="nc" id="L269">            sb.append(etAlString);</span>
+        }
+
+<span class="fc" id="L272">        return sb.toString();</span>
+    }
+
+    private void addSingleName(StringBuilder sb, Author a, boolean firstFirst) {
+<span class="fc" id="L276">        String firstNamePart = a.getFirst();</span>
+<span class="fc" id="L277">        String lastNamePart = a.getLast();</span>
+<span class="fc" id="L278">        String von = a.getVon();</span>
+<span class="pc bpc" id="L279" title="3 of 4 branches missed.">        if ((von != null) &amp;&amp; !von.isEmpty()) {</span>
+<span class="nc" id="L280">            lastNamePart = von + ' ' + lastNamePart;</span>
+        }
+<span class="fc" id="L282">        String jr = a.getJr();</span>
+<span class="pc bpc" id="L283" title="3 of 4 branches missed.">        if ((jr != null) &amp;&amp; !jr.isEmpty()) {</span>
+<span class="nc" id="L284">            String jrSeparator = &quot; &quot;;</span>
+<span class="nc" id="L285">            lastNamePart = lastNamePart + jrSeparator + jr;</span>
+        }
+
+<span class="pc bpc" id="L288" title="2 of 4 branches missed.">        if (abbreviate &amp;&amp; (firstNamePart != null)) {</span>
+<span class="nc" id="L289">            firstNamePart = a.getFirstAbbr();</span>
+
+<span class="nc bnc" id="L291" title="All 4 branches missed.">            if (firstInitialOnly &amp;&amp; (firstNamePart.length() &gt; 2)) {</span>
+<span class="nc" id="L292">                firstNamePart = firstNamePart.substring(0, 2);</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">            } else if (middleInitial) {</span>
+<span class="nc" id="L294">                String abbr = firstNamePart;</span>
+<span class="nc" id="L295">                firstNamePart = a.getFirst();</span>
+<span class="nc" id="L296">                int index = firstNamePart.indexOf(' ');</span>
+                //System.out.println(firstNamePart);
+                //System.out.println(index);
+<span class="nc bnc" id="L299" title="All 2 branches missed.">                if (index &gt;= 0) {</span>
+<span class="nc" id="L300">                    firstNamePart = firstNamePart.substring(0, index + 1);</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">                    if (abbr.length() &gt; 3) {</span>
+<span class="nc" id="L302">                        firstNamePart = firstNamePart + abbr.substring(3);</span>
+                    }
+                }
+            }
+<span class="nc bnc" id="L306" title="All 2 branches missed.">            if (!abbrDots) {</span>
+<span class="nc" id="L307">                firstNamePart = firstNamePart.replace(&quot;.&quot;, &quot;&quot;);</span>
+            }
+<span class="nc bnc" id="L309" title="All 2 branches missed.">            if (!abbrSpaces) {</span>
+<span class="nc" id="L310">                firstNamePart = firstNamePart.replace(&quot; &quot;, &quot;&quot;);</span>
+            }
+        }
+
+<span class="pc bpc" id="L314" title="2 of 4 branches missed.">        if (lastNameOnly || (firstNamePart == null)) {</span>
+<span class="fc" id="L315">            sb.append(lastNamePart);</span>
+<span class="pc bnc" id="L316" title="All 2 branches missed.">        } else if (firstFirst) {</span>
+<span class="nc" id="L317">            String firstFirstSeparator = &quot; &quot;;</span>
+<span class="nc" id="L318">            sb.append(firstNamePart).append(firstFirstSeparator);</span>
+<span class="nc" id="L319">            sb.append(lastNamePart);</span>
+<span class="nc" id="L320">        } else {</span>
+<span class="nc" id="L321">            sb.append(lastNamePart).append(lastFirstSeparator).append(firstNamePart);</span>
+        }
+
+<span class="fc" id="L324">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

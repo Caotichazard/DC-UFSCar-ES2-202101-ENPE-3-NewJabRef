@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FieldContentSelector.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">FieldContentSelector.java</span></div><h1>FieldContentSelector.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui;
+
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+
+import javax.swing.AbstractAction;
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.KeyStroke;
+
+import net.sf.jabref.MetaData;
+import net.sf.jabref.gui.fieldeditors.FieldEditor;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.layout.Sizes;
+import com.jgoodies.looks.Options;
+
+/**
+ * A combo-box and a manage button that will add selected strings to an
+ * associated entry editor.
+ *
+ * Used to manage keywords and authors for instance.
+ */
+public class FieldContentSelector extends JComponent {
+
+    private final JComboBox&lt;String&gt; comboBox;
+
+    private final FieldEditor editor;
+
+    private final MetaData metaData;
+
+    private final AbstractAction action;
+    private final String delimiter;
+
+
+    /**
+     *
+     * Create a new FieldContentSelector.
+     *
+     * @param frame
+     *            The one JabRef-Frame.
+     * @param panel
+     *            The basepanel the entry-editor is on.
+     * @param owner
+     *            The window/frame/dialog which should be the owner of the
+     *            content selector dialog.
+     * @param editor
+     *            The entry editor which will be appended by the text selected
+     *            by the user from the combobox.
+     * @param metaData
+     *            The metadata that contains the list of items to display in the
+     *            combobox under the key Globals.SELECTOR_META_PREFIX +
+     *            editor.getFieldName().
+     * @param action
+     *            The action that will be performed to after an item from the
+     *            combobox has been appended to the text in the entryeditor.
+     * @param horizontalLayout
+     *            Whether to put a 2 pixel horizontal strut between combobox and
+     *            button.
+     */
+<span class="nc" id="L81">    public FieldContentSelector(JabRefFrame frame, final BasePanel panel,</span>
+            Window owner, final FieldEditor editor, final MetaData metaData,
+            final AbstractAction action, boolean horizontalLayout, String delimiter) {
+
+
+<span class="nc" id="L86">        this.editor = editor;</span>
+<span class="nc" id="L87">        this.metaData = metaData;</span>
+<span class="nc" id="L88">        this.action = action;</span>
+<span class="nc" id="L89">        this.delimiter = delimiter;</span>
+
+<span class="nc" id="L91">        comboBox = new JComboBox&lt;String&gt;() {</span>
+
+            @Override
+            public Dimension getPreferredSize() {
+<span class="nc" id="L95">                Dimension parents = super.getPreferredSize();</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                if (parents.width &gt; GUIGlobals.MAX_CONTENT_SELECTOR_WIDTH) {</span>
+<span class="nc" id="L97">                    parents.width = GUIGlobals.MAX_CONTENT_SELECTOR_WIDTH;</span>
+                }
+<span class="nc" id="L99">                return parents;</span>
+            }
+        };
+
+<span class="nc" id="L103">        GridBagLayout gbl = new GridBagLayout();</span>
+<span class="nc" id="L104">        GridBagConstraints con = new GridBagConstraints();</span>
+
+<span class="nc" id="L106">        setLayout(gbl);</span>
+
+        // comboBox.setEditable(true);
+
+<span class="nc" id="L110">        comboBox.setMaximumRowCount(35);</span>
+
+        // Set the width of the popup independent of the size of th box itself:
+<span class="nc" id="L113">        comboBox.putClientProperty(Options.COMBO_POPUP_PROTOTYPE_DISPLAY_VALUE_KEY,</span>
+<span class="nc" id="L114">                &quot;The longest text in the combo popup menu. And even longer.&quot;);</span>
+
+<span class="nc" id="L116">        rebuildComboBox();</span>
+
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        con.gridwidth = horizontalLayout ? 3 : GridBagConstraints.REMAINDER;</span>
+<span class="nc" id="L119">        con.fill = GridBagConstraints.HORIZONTAL;</span>
+<span class="nc" id="L120">        con.weightx = 1;</span>
+<span class="nc" id="L121">        gbl.setConstraints(comboBox, con);</span>
+
+<span class="nc" id="L123">        comboBox.addActionListener(e -&gt; {</span>
+            /*
+             * These conditions signify arrow key navigation in the dropdown
+             * list, so we should not react to it. I'm not sure if this is
+             * well defined enough to be guaranteed to work everywhere.
+             */
+<span class="nc bnc" id="L129" title="All 4 branches missed.">            if (&quot;comboBoxChanged&quot;.equals(e.getActionCommand()) &amp;&amp; (e.getModifiers() == 0)) {</span>
+<span class="nc" id="L130">                return;</span>
+            }
+
+<span class="nc" id="L133">            selectionMade();</span>
+<span class="nc" id="L134">        });</span>
+        // Add an action for the Enter key that signals a selection:
+<span class="nc" id="L136">        comboBox.getInputMap().put(KeyStroke.getKeyStroke(&quot;ENTER&quot;), &quot;enter&quot;);</span>
+<span class="nc" id="L137">        comboBox.getActionMap().put(&quot;enter&quot;, new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+<span class="nc" id="L141">                selectionMade();</span>
+<span class="nc" id="L142">                comboBox.setPopupVisible(false);</span>
+<span class="nc" id="L143">            }</span>
+        });
+
+<span class="nc" id="L146">        add(comboBox);</span>
+
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (horizontalLayout) {</span>
+<span class="nc" id="L149">            add(Box.createHorizontalStrut(Sizes.dialogUnitXAsPixel(2, this)));</span>
+        }
+
+<span class="nc" id="L152">        JButton manage = new JButton(Localization.lang(&quot;Manage&quot;));</span>
+<span class="nc" id="L153">        gbl.setConstraints(manage, con);</span>
+<span class="nc" id="L154">        add(manage);</span>
+
+<span class="nc" id="L156">        manage.addActionListener(e -&gt; {</span>
+<span class="nc" id="L157">            ContentSelectorDialog2 csd = new ContentSelectorDialog2(owner, frame, panel, true, metaData,</span>
+<span class="nc" id="L158">                    editor.getFieldName());</span>
+<span class="nc" id="L159">            csd.setLocationRelativeTo(frame);</span>
+
+            // Calling setVisible(true) will open the modal dialog and block
+            // for the dialog to close.
+<span class="nc" id="L163">            csd.setVisible(true);</span>
+
+            // So we need to rebuild the ComboBox afterwards
+<span class="nc" id="L166">            rebuildComboBox();</span>
+<span class="nc" id="L167">        });</span>
+<span class="nc" id="L168">    }</span>
+
+    private void selectionMade() {
+        // The first element is only for show.
+        // CO: Why?
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (comboBox.getSelectedIndex() == 0) {</span>
+<span class="nc" id="L174">            return;</span>
+        }
+
+<span class="nc" id="L177">        String chosen = (String) comboBox.getSelectedItem();</span>
+<span class="nc bnc" id="L178" title="All 4 branches missed.">        if ((chosen == null) || chosen.isEmpty()) {</span>
+<span class="nc" id="L179">            return;</span>
+        }
+
+        // The following is not possible at the moment since the
+        // combobox cannot be edited!
+
+        // User edited in a new word. Add it.
+        // if (comboBox.getSelectedIndex() == -1)
+        // addWord(chosen);
+
+        // TODO: could improve checking as not do add the same item twice
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (!&quot;&quot;.equals(editor.getText())) {</span>
+<span class="nc" id="L191">            editor.append(FieldContentSelector.this.delimiter);</span>
+        }
+
+<span class="nc" id="L194">        editor.append(chosen);</span>
+
+<span class="nc" id="L196">        comboBox.setSelectedIndex(0);</span>
+
+        // Fire event that we changed the editor
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        if (action != null) {</span>
+<span class="nc" id="L200">            action.actionPerformed(new ActionEvent(editor, 0, &quot;&quot;));</span>
+        }
+
+        // Transfer focus to the editor.
+<span class="nc" id="L204">        editor.requestFocus();</span>
+<span class="nc" id="L205">    }</span>
+
+    public void rebuildComboBox() {
+<span class="nc" id="L208">        comboBox.removeAllItems();</span>
+
+        // TODO: CO - What for?
+<span class="nc" id="L211">        comboBox.addItem(&quot;&quot;);</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">        for (String item : metaData.getContentSelectors(editor.getFieldName())) {</span>
+<span class="nc" id="L213">            comboBox.addItem(item);</span>
+        }
+<span class="nc" id="L215">    }</span>
+    // Not used since the comboBox is not editable
+
+    //	/**
+    //	 * Adds a word to the selector (to the JList and to the MetaData), unless it
+    //	 * is already there
+    //	 *
+    //	 * @param newWord
+    //	 *            String Word to add
+    //	 */
+    //	public void addWord(String newWord) {
+    //
+    //		Vector items = metaData.getData(Globals.SELECTOR_META_PREFIX + editor.getFieldName());
+    //		boolean exists = false;
+    //		int pos = -1;
+    //		for (int i = 0; i &lt; items.size(); i++) {
+    //			String s = (String) items.elementAt(i);
+    //			if (s.equals(newWord)) {
+    //				exists = true;
+    //				break;
+    //			}
+    //			if (s.toLowerCase().compareTo(newWord.toLowerCase()) &lt; 0)
+    //				pos = i + 1;
+    //		}
+    //		if (!exists) {
+    //			items.add(Math.max(0, pos), newWord);
+    //			// TODO CO: Why is this non-undoable?
+    //			panel.markNonUndoableBaseChanged();
+    //			panel.updateAllContentSelectors();
+    //		}
+    //	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

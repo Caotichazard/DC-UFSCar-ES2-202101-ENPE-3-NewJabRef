@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>IEEEXploreFetcher.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">IEEEXploreFetcher.java</span></div><h1>IEEEXploreFetcher.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer.fetcher;
+
+import java.awt.BorderLayout;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.JCheckBox;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.importer.ImportInspector;
+import net.sf.jabref.importer.OutputPrinter;
+import net.sf.jabref.importer.fileformat.BibtexParser;
+import net.sf.jabref.logic.formatter.bibtexfields.HtmlToLatexFormatter;
+import net.sf.jabref.logic.formatter.bibtexfields.UnitsToLatexFormatter;
+import net.sf.jabref.logic.formatter.casechanger.ProtectTermsFormatter;
+import net.sf.jabref.logic.journals.JournalAbbreviationLoader;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.net.URLDownload;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class IEEEXploreFetcher implements EntryFetcher {
+
+<span class="fc" id="L61">    private static final Log LOGGER = LogFactory.getLog(IEEEXploreFetcher.class);</span>
+    private static final String URL_SEARCH = &quot;http://ieeexplore.ieee.org/rest/search?reload=true&quot;;
+    private static final String URL_BIBTEX_START = &quot;http://ieeexplore.ieee.org/xpl/downloadCitations?reload=true&amp;recordIds=&quot;;
+    private static final String URL_BIBTEX_END = &quot;&amp;download-format=download-bibtex&amp;x=0&amp;y=0&quot;;
+<span class="fc" id="L65">    private static final String DIALOG_TITLE = Localization.lang(&quot;Search %0&quot;, &quot;IEEEXplore&quot;);</span>
+    private static final int MAX_FETCH = 100;
+
+<span class="fc" id="L68">    private static final Pattern PUBLICATION_PATTERN = Pattern.compile(&quot;(.*), \\d*\\.*\\s?(.*)&quot;);</span>
+<span class="fc" id="L69">    private static final Pattern PROCEEDINGS_PATTERN = Pattern.compile(&quot;(.*?)\\.?\\s?Proceedings\\s?(.*)&quot;);</span>
+<span class="fc" id="L70">    private static final Pattern MONTH_PATTERN = Pattern.compile(&quot;(\\d*+)\\s*([a-z]*+)-*(\\d*+)\\s*([a-z]*+)&quot;);</span>
+
+<span class="fc" id="L72">    private static final Pattern PREPROCESSING_PATTERN = Pattern.compile(&quot;(?&lt;!&amp;)(#[x]*[0]*\\p{XDigit}+;)&quot;);</span>
+
+<span class="fc" id="L74">    private static final Pattern SUB_DETECTION_1 = Pattern.compile(&quot;/sub ([^/]+)/&quot;);</span>
+<span class="fc" id="L75">    private static final Pattern SUB_DETECTION_2 = Pattern.compile(&quot;\\(sub\\)([^(]+)\\(/sub\\)&quot;);</span>
+    private static final String SUB_TEXT_RESULT = &quot;\\\\textsubscript\\{$1\\}&quot;;
+    private static final String SUB_EQ_RESULT = &quot;\\$_\\{$1\\}\\$&quot;;
+<span class="fc" id="L78">    private static final Pattern SUPER_DETECTION_1 = Pattern.compile(&quot;/sup ([^/]+)/&quot;);</span>
+<span class="fc" id="L79">    private static final Pattern SUPER_DETECTION_2 = Pattern.compile(&quot;\\(sup\\)([^(]+)\\(/sup\\)&quot;);</span>
+    private static final String SUPER_TEXT_RESULT = &quot;\\\\textsuperscript\\{$1\\}&quot;;
+<span class="fc" id="L81">    private static final String SUPER_EQ_RESULT = &quot;\\$\\^\\{$1\\}\\$&quot;;</span>
+
+<span class="fc" id="L83">    private final ProtectTermsFormatter protectTermsFormatter = new ProtectTermsFormatter();</span>
+<span class="fc" id="L84">    private final UnitsToLatexFormatter unitsToLatexFormatter = new UnitsToLatexFormatter();</span>
+<span class="fc" id="L85">    private final HtmlToLatexFormatter htmlToLatexFormatter = new HtmlToLatexFormatter();</span>
+<span class="fc" id="L86">    private final JCheckBox absCheckBox = new JCheckBox(Localization.lang(&quot;Include abstracts&quot;), false);</span>
+
+    private boolean shouldContinue;
+    private final JournalAbbreviationLoader abbreviationLoader;
+
+
+    public IEEEXploreFetcher(JournalAbbreviationLoader abbreviationLoader) {
+<span class="fc" id="L93">        super();</span>
+<span class="fc" id="L94">        this.abbreviationLoader = Objects.requireNonNull(abbreviationLoader);</span>
+<span class="fc" id="L95">        CookieHandler.setDefault(new CookieManager());</span>
+<span class="fc" id="L96">    }</span>
+
+    @Override
+    public JPanel getOptionsPanel() {
+<span class="nc" id="L100">        JPanel pan = new JPanel();</span>
+<span class="nc" id="L101">        pan.setLayout(new BorderLayout());</span>
+<span class="nc" id="L102">        pan.add(absCheckBox, BorderLayout.NORTH);</span>
+
+<span class="nc" id="L104">        return pan;</span>
+    }
+
+    @Override
+    public boolean processQuery(String query, ImportInspector dialog, OutputPrinter status) {
+        //IEEE API seems to use .QT. as a marker for the quotes for exact phrase searching
+<span class="nc" id="L110">        String terms = query.replaceAll(&quot;\&quot;&quot;, &quot;\\.QT\\.&quot;);</span>
+
+<span class="nc" id="L112">        shouldContinue = true;</span>
+<span class="nc" id="L113">        int parsed = 0;</span>
+<span class="nc" id="L114">        int pageNumber = 1;</span>
+
+<span class="nc" id="L116">        String postData = makeSearchPostRequestPayload(pageNumber, terms);</span>
+
+        try {
+            //open the search URL
+<span class="nc" id="L120">            URL url = new URL(IEEEXploreFetcher.URL_SEARCH);</span>
+
+<span class="nc" id="L122">            URLDownload dl = new URLDownload(url);</span>
+
+            //add request header
+<span class="nc" id="L125">            dl.addParameters(&quot;Accept&quot;, &quot;application/json&quot;);</span>
+<span class="nc" id="L126">            dl.addParameters(&quot;Content-Type&quot;, &quot;application/json&quot;);</span>
+
+            // set post data
+<span class="nc" id="L129">            dl.setPostData(postData);</span>
+
+            //retrieve the search results
+<span class="nc" id="L132">            String page = dl.downloadToString(StandardCharsets.UTF_8);</span>
+
+            //the page can be blank if the search did not work (not sure the exact conditions that lead to this, but declaring it an invalid search for now)
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            if (page.isEmpty()) {</span>
+<span class="nc" id="L136">                status.showMessage(Localization.lang(&quot;You have entered an invalid search '%0'.&quot;, query),</span>
+<span class="nc" id="L137">                        DIALOG_TITLE, JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L138">                return false;</span>
+            }
+
+            //parses the JSON data returned by the query
+            //TODO: a faster way would be to parse the JSON tokens one at a time just to extract the article number, but this seems to be fast enough...
+<span class="nc" id="L143">            JSONObject searchResultsJson = new JSONObject(page);</span>
+<span class="nc" id="L144">            int hits = searchResultsJson.getInt(&quot;totalRecords&quot;);</span>
+
+            //if no search results were found
+<span class="nc bnc" id="L147" title="All 2 branches missed.">            if (hits == 0) {</span>
+<span class="nc" id="L148">                status.showMessage(Localization.lang(&quot;No entries found for the search string '%0'&quot;, query),</span>
+<span class="nc" id="L149">                        DIALOG_TITLE, JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L150">                return false;</span>
+            }
+
+            //if max hits were exceeded, display the warning
+<span class="nc bnc" id="L154" title="All 2 branches missed.">            if (hits &gt; IEEEXploreFetcher.MAX_FETCH) {</span>
+<span class="nc" id="L155">                status.showMessage(</span>
+<span class="nc" id="L156">                        Localization.lang(&quot;%0 entries found. To reduce server load, only %1 will be downloaded.&quot;,</span>
+<span class="nc" id="L157">                                String.valueOf(hits), String.valueOf(IEEEXploreFetcher.MAX_FETCH)),</span>
+<span class="nc" id="L158">                        DIALOG_TITLE, JOptionPane.INFORMATION_MESSAGE);</span>
+            }
+
+            //fetch the raw Bibtex results from IEEEXplore
+<span class="nc" id="L162">            URL bibtexURL = new URL(createBibtexQueryURL(searchResultsJson));</span>
+<span class="nc" id="L163">            String bibtexPage = new URLDownload(bibtexURL).downloadToString();</span>
+
+            //preprocess the result (eg. convert HTML escaped characters to latex and do other formatting not performed by BibtexParser)
+<span class="nc" id="L166">            bibtexPage = preprocessBibtexResultsPage(bibtexPage);</span>
+
+            //parse the page into Bibtex entries
+<span class="nc" id="L169">            Collection&lt;BibEntry&gt; parsedBibtexCollection = BibtexParser.fromString(bibtexPage);</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            if (parsedBibtexCollection == null) {</span>
+<span class="nc" id="L171">                status.showMessage(Localization.lang(&quot;Error while fetching from %0&quot;, getTitle()),</span>
+<span class="nc" id="L172">                        DIALOG_TITLE, JOptionPane.INFORMATION_MESSAGE);</span>
+<span class="nc" id="L173">                return false;</span>
+            }
+<span class="nc" id="L175">            int nEntries = parsedBibtexCollection.size();</span>
+<span class="nc" id="L176">            Iterator&lt;BibEntry&gt; parsedBibtexCollectionIterator = parsedBibtexCollection.iterator();</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">            while (parsedBibtexCollectionIterator.hasNext() &amp;&amp; shouldContinue) {</span>
+<span class="nc" id="L178">                dialog.addEntry(cleanup(parsedBibtexCollectionIterator.next()));</span>
+<span class="nc" id="L179">                dialog.setProgress(parsed, nEntries);</span>
+<span class="nc" id="L180">                parsed++;</span>
+            }
+
+<span class="nc" id="L183">            return true;</span>
+
+<span class="nc" id="L185">        } catch (MalformedURLException e) {</span>
+<span class="nc" id="L186">            LOGGER.warn(&quot;Bad URL&quot;, e);</span>
+<span class="nc" id="L187">        } catch (ConnectException | UnknownHostException e) {</span>
+<span class="nc" id="L188">            status.showMessage(Localization.lang(&quot;Could not connect to %0&quot;, getTitle()), DIALOG_TITLE,</span>
+<span class="nc" id="L189">                    JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L190">        } catch (IOException | JSONException e) {</span>
+<span class="nc" id="L191">            status.showMessage(e.getMessage(), DIALOG_TITLE, JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L192">            LOGGER.warn(&quot;Search IEEEXplore: &quot; + e.getMessage(), e);</span>
+        }
+
+<span class="nc" id="L195">        return false;</span>
+    }
+
+
+    @Override
+    public String getTitle() {
+<span class="fc" id="L201">        return &quot;IEEEXplore&quot;;</span>
+    }
+
+    @Override
+    public HelpFiles getHelpPage() {
+<span class="nc" id="L206">        return HelpFiles.FETCHER_IEEEXPLORE;</span>
+    }
+
+    /**
+     * This method is called by the dialog when the user has canceled the import.
+     */
+    @Override
+    public void stopFetching() {
+<span class="nc" id="L214">        shouldContinue = false;</span>
+<span class="nc" id="L215">    }</span>
+
+    private String makeSearchPostRequestPayload(int startIndex, String terms) {
+<span class="nc" id="L218">        return &quot;{\&quot;queryText\&quot;:&quot; + JSONObject.quote(terms) + &quot;,\&quot;refinements\&quot;:[],\&quot;pageNumber\&quot;:\&quot;&quot; + startIndex</span>
+<span class="nc" id="L219">                + &quot;\&quot;,\&quot;searchWithin\&quot;:[],\&quot;newsearch\&quot;:\&quot;true\&quot;,\&quot;searchField\&quot;:\&quot;Search_All\&quot;,\&quot;rowsPerPage\&quot;:\&quot;100\&quot;}&quot;;</span>
+    }
+
+    private String createBibtexQueryURL(JSONObject searchResultsJson) {
+
+        //buffer to use for building the URL for fetching the bibtex data from IEEEXplore
+<span class="nc" id="L225">        StringBuilder bibtexQueryURLStringBuf = new StringBuilder();</span>
+<span class="nc" id="L226">        bibtexQueryURLStringBuf.append(URL_BIBTEX_START);</span>
+
+        //loop over each record and create a comma-separate list of article numbers which will be used to download the raw Bibtex
+<span class="nc" id="L229">        JSONArray recordsJsonArray = searchResultsJson.getJSONArray(&quot;records&quot;);</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">        for (int n = 0; n &lt; recordsJsonArray.length(); n++) {</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">            if (!recordsJsonArray.getJSONObject(n).isNull(&quot;articleNumber&quot;)) {</span>
+<span class="nc" id="L232">                bibtexQueryURLStringBuf.append(recordsJsonArray.getJSONObject(n).getString(&quot;articleNumber&quot;))</span>
+<span class="nc" id="L233">                        .append(',');</span>
+            }
+        }
+        //delete the last comma
+<span class="nc" id="L237">        bibtexQueryURLStringBuf.deleteCharAt(bibtexQueryURLStringBuf.length() - 1);</span>
+
+        //add the abstract setting
+<span class="nc" id="L240">        boolean includeAbstract = absCheckBox.isSelected();</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        if (includeAbstract) {</span>
+<span class="nc" id="L242">            bibtexQueryURLStringBuf.append(&quot;&amp;citations-format=citation-abstract&quot;);</span>
+<span class="nc" id="L243">        } else {</span>
+<span class="nc" id="L244">            bibtexQueryURLStringBuf.append(&quot;&amp;citations-format=citation-only&quot;);</span>
+        }
+
+        //append the remaining URL
+<span class="nc" id="L248">        bibtexQueryURLStringBuf.append(URL_BIBTEX_END);</span>
+
+<span class="nc" id="L250">        return bibtexQueryURLStringBuf.toString();</span>
+    }
+
+    private String preprocessBibtexResultsPage(String bibtexPage) {
+        //for some reason, the escaped HTML characters in the titles are in the format &quot;#xNNNN&quot; (they are missing the ampersand)
+        //add the ampersands back in before passing to the HTML formatter so they can be properly converted
+        //TODO: Maybe edit the HTMLconverter to also recognize escaped characters even when the &amp; is missing?
+<span class="nc" id="L257">        String result = PREPROCESSING_PATTERN.matcher(bibtexPage).replaceAll(&quot;&amp;$1&quot;);</span>
+
+        //Also, percent signs are not escaped by the IEEEXplore Bibtex output nor, it would appear, the subsequent processing in JabRef
+        //TODO: Maybe find a better spot for this if it applies more universally
+<span class="nc" id="L261">        result = result.replaceAll(&quot;(?&lt;!\\\\)%&quot;, &quot;\\\\%&quot;);</span>
+
+        //Format the bibtexResults using the HTML formatter (clears up numerical and text escaped characters and remaining HTML tags)
+<span class="nc" id="L264">        result = htmlToLatexFormatter.format(result);</span>
+
+<span class="nc" id="L266">        return result;</span>
+    }
+
+    private BibEntry cleanup(BibEntry entry) {
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (entry == null) {</span>
+<span class="nc" id="L271">            return null;</span>
+        }
+
+        // clean up title
+<span class="nc bnc" id="L275" title="All 2 branches missed.">        if (entry.hasField(&quot;title&quot;)) {</span>
+<span class="nc" id="L276">            String title = entry.getField(&quot;title&quot;);</span>
+            // USe the alt-text and replace image links
+<span class="nc" id="L278">            title = title.replaceAll(&quot;[ ]?img src=[^ ]+ alt=\&quot;([^\&quot;]+)\&quot;&gt;[ ]?&quot;, &quot;\\$$1\\$&quot;);</span>
+            // Try to sort out most of the /spl / conversions
+            // Deal with this specific nested type first
+<span class="nc" id="L281">            title = title.replaceAll(&quot;/sub /spl infin//&quot;, &quot;\\$_\\\\infty\\$&quot;);</span>
+<span class="nc" id="L282">            title = title.replaceAll(&quot;/sup /spl infin//&quot;, &quot;\\$\\^\\\\infty\\$&quot;);</span>
+            // Replace general expressions
+<span class="nc" id="L284">            title = title.replaceAll(&quot;/[sS]pl ([^/]+)/&quot;, &quot;\\$\\\\$1\\$&quot;);</span>
+            // Deal with subscripts and superscripts
+<span class="nc bnc" id="L286" title="All 2 branches missed.">            if (Globals.prefs.getBoolean(JabRefPreferences.USE_CONVERT_TO_EQUATION)) {</span>
+<span class="nc" id="L287">                title = SUPER_DETECTION_1.matcher(title).replaceAll(SUPER_EQ_RESULT);</span>
+<span class="nc" id="L288">                title = SUB_DETECTION_1.matcher(title).replaceAll(SUB_EQ_RESULT);</span>
+<span class="nc" id="L289">                title = SUPER_DETECTION_2.matcher(title).replaceAll(SUPER_EQ_RESULT);</span>
+<span class="nc" id="L290">                title = SUB_DETECTION_2.matcher(title).replaceAll(SUB_EQ_RESULT);</span>
+<span class="nc" id="L291">            } else {</span>
+<span class="nc" id="L292">                title = SUPER_DETECTION_1.matcher(title).replaceAll(SUPER_TEXT_RESULT);</span>
+<span class="nc" id="L293">                title = SUB_DETECTION_1.matcher(title).replaceAll(SUB_TEXT_RESULT);</span>
+<span class="nc" id="L294">                title = SUPER_DETECTION_2.matcher(title).replaceAll(SUPER_TEXT_RESULT);</span>
+<span class="nc" id="L295">                title = SUB_DETECTION_2.matcher(title).replaceAll(SUB_TEXT_RESULT);</span>
+            }
+
+            // Replace \infin with \infty
+<span class="nc" id="L299">            title = title.replaceAll(&quot;\\\\infin&quot;, &quot;\\\\infty&quot;);</span>
+
+            // Unit formatting
+<span class="nc bnc" id="L302" title="All 2 branches missed.">            if (Globals.prefs.getBoolean(JabRefPreferences.USE_UNIT_FORMATTER_ON_SEARCH)) {</span>
+<span class="nc" id="L303">                title = unitsToLatexFormatter.format(title);</span>
+            }
+
+            // Automatic case keeping
+<span class="nc bnc" id="L307" title="All 2 branches missed.">            if (Globals.prefs.getBoolean(JabRefPreferences.USE_CASE_KEEPER_ON_SEARCH)) {</span>
+<span class="nc" id="L308">                title = protectTermsFormatter.format(title);</span>
+            }
+            // Write back
+<span class="nc" id="L311">            entry.setField(&quot;title&quot;, title);</span>
+        }
+
+        // clean up author
+<span class="nc bnc" id="L315" title="All 2 branches missed.">        if (entry.hasField(&quot;author&quot;)) {</span>
+<span class="nc" id="L316">            String author = entry.getField(&quot;author&quot;);</span>
+<span class="nc" id="L317">            author = author.replaceAll(&quot;\\s+&quot;, &quot; &quot;);</span>
+
+            //reorder the &quot;Jr.&quot; &quot;Sr.&quot; etc to the correct ordering
+<span class="nc" id="L320">            String[] authorSplit = author.split(&quot;(^\\s*|\\s*$|\\s+and\\s+)&quot;);</span>
+<span class="nc" id="L321">            List&lt;String&gt; authorResult = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">            for (String authorSplitPart : authorSplit) {</span>
+<span class="nc" id="L323">                authorResult.add(authorSplitPart.replaceAll(&quot;(.+?),(.+?),(.+)&quot;, &quot;$1,$3,$2&quot;));</span>
+            }
+<span class="nc" id="L325">            author = String.join(&quot; and &quot;, authorResult);</span>
+
+<span class="nc" id="L327">            author = author.replace(&quot;.&quot;, &quot;. &quot;).replace(&quot;  &quot;, &quot; &quot;).replace(&quot;. -&quot;, &quot;.-&quot;).replace(&quot;; &quot;, &quot; and &quot;)</span>
+<span class="nc" id="L328">                    .replace(&quot; ,&quot;, &quot;,&quot;).replace(&quot;  &quot;, &quot; &quot;);</span>
+<span class="nc" id="L329">            author = author.replaceAll(&quot;[ ,;]+$&quot;, &quot;&quot;);</span>
+            //TODO: remove trailing commas
+<span class="nc" id="L331">            entry.setField(&quot;author&quot;, author);</span>
+        }
+
+        // clean up month
+<span class="nc" id="L335">        String month = entry.getField(&quot;month&quot;);</span>
+<span class="nc bnc" id="L336" title="All 4 branches missed.">        if ((month != null) &amp;&amp; !month.isEmpty()) {</span>
+<span class="nc" id="L337">            month = month.replace(&quot;.&quot;, &quot;&quot;);</span>
+<span class="nc" id="L338">            month = month.toLowerCase();</span>
+
+<span class="nc" id="L340">            Matcher mm = MONTH_PATTERN.matcher(month);</span>
+<span class="nc" id="L341">            StringBuilder date = new StringBuilder(month);</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">            if (mm.find()) {</span>
+<span class="nc bnc" id="L343" title="All 2 branches missed.">                if (mm.group(3).isEmpty()) {</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">                    if (mm.group(2).isEmpty()) {</span>
+<span class="nc" id="L345">                        date = new StringBuilder().append(mm.group(1)).append(',');</span>
+<span class="nc" id="L346">                    } else {</span>
+<span class="nc" id="L347">                        date = new StringBuilder().append('#').append(mm.group(2).substring(0, 3)).append('#');</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">                        if (!mm.group(1).isEmpty()) {</span>
+<span class="nc" id="L349">                            date.append(' ').append(mm.group(1)).append(',');</span>
+                        }
+                    }
+<span class="nc bnc" id="L352" title="All 2 branches missed.">                } else if (mm.group(2).isEmpty()) {</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">                    if (mm.group(4).isEmpty()) {</span>
+<span class="nc" id="L354">                        date.append(',');</span>
+<span class="nc" id="L355">                    } else {</span>
+<span class="nc" id="L356">                        date = new StringBuilder().append('#').append(mm.group(4).substring(0, 3)).append('#')</span>
+<span class="nc" id="L357">                                .append(mm.group(1)).append(&quot;--&quot;).append(mm.group(3)).append(',');</span>
+                    }
+<span class="nc" id="L359">                } else {</span>
+<span class="nc" id="L360">                    date = new StringBuilder().append('#').append(mm.group(2).substring(0, 3)).append('#')</span>
+<span class="nc" id="L361">                            .append(mm.group(1)).append(&quot;--#&quot;).append(mm.group(4).substring(0, 3)).append('#')</span>
+<span class="nc" id="L362">                            .append(mm.group(3)).append(',');</span>
+                }
+            }
+<span class="nc" id="L365">            entry.setField(&quot;month&quot;, date.toString());</span>
+        }
+
+        // clean up pages
+<span class="nc bnc" id="L369" title="All 2 branches missed.">        if (entry.hasField(&quot;pages&quot;)) {</span>
+<span class="nc" id="L370">            String pages = entry.getField(&quot;pages&quot;);</span>
+<span class="nc" id="L371">            String[] pageNumbers = pages.split(&quot;-&quot;);</span>
+<span class="nc bnc" id="L372" title="All 2 branches missed.">            if (pageNumbers.length == 2) {</span>
+<span class="nc bnc" id="L373" title="All 2 branches missed.">                if (pageNumbers[0].equals(pageNumbers[1])) {// single page</span>
+<span class="nc" id="L374">                    entry.setField(&quot;pages&quot;, pageNumbers[0]);</span>
+<span class="nc" id="L375">                } else {</span>
+<span class="nc" id="L376">                    entry.setField(&quot;pages&quot;, pages.replace(&quot;-&quot;, &quot;--&quot;));</span>
+                }
+            }
+        }
+
+        // clean up publication field
+<span class="nc" id="L382">        String type = entry.getType();</span>
+<span class="nc" id="L383">        String sourceField = &quot;&quot;;</span>
+<span class="nc bnc" id="L384" title="All 2 branches missed.">        if (&quot;article&quot;.equals(type)) {</span>
+<span class="nc" id="L385">            sourceField = &quot;journal&quot;;</span>
+<span class="nc" id="L386">            entry.clearField(&quot;booktitle&quot;);</span>
+<span class="nc bnc" id="L387" title="All 2 branches missed.">        } else if (&quot;inproceedings&quot;.equals(type)) {</span>
+<span class="nc" id="L388">            sourceField = &quot;booktitle&quot;;</span>
+        }
+<span class="nc bnc" id="L390" title="All 2 branches missed.">        if (entry.hasField(sourceField)) {</span>
+<span class="nc" id="L391">            String fullName = entry.getField(sourceField);</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">            if (&quot;article&quot;.equals(type)) {</span>
+<span class="nc" id="L393">                int ind = fullName.indexOf(&quot;: Accepted for future publication&quot;);</span>
+<span class="nc bnc" id="L394" title="All 2 branches missed.">                if (ind &gt; 0) {</span>
+<span class="nc" id="L395">                    fullName = fullName.substring(0, ind);</span>
+<span class="nc" id="L396">                    entry.setField(&quot;year&quot;, &quot;to be published&quot;);</span>
+<span class="nc" id="L397">                    entry.clearField(&quot;month&quot;);</span>
+<span class="nc" id="L398">                    entry.clearField(&quot;pages&quot;);</span>
+<span class="nc" id="L399">                    entry.clearField(&quot;number&quot;);</span>
+                }
+<span class="nc" id="L401">                String[] parts = fullName.split(&quot;[\\[\\]]&quot;); //[see also...], [legacy...]</span>
+<span class="nc" id="L402">                fullName = parts[0];</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">                if (parts.length == 3) {</span>
+<span class="nc" id="L404">                    fullName += parts[2];</span>
+                }
+<span class="nc" id="L406">                String note = entry.getField(&quot;note&quot;);</span>
+<span class="nc bnc" id="L407" title="All 2 branches missed.">                if (&quot;Early Access&quot;.equals(note)) {</span>
+<span class="nc" id="L408">                    entry.setField(&quot;year&quot;, &quot;to be published&quot;);</span>
+<span class="nc" id="L409">                    entry.clearField(&quot;month&quot;);</span>
+<span class="nc" id="L410">                    entry.clearField(&quot;pages&quot;);</span>
+<span class="nc" id="L411">                    entry.clearField(&quot;number&quot;);</span>
+                }
+<span class="nc" id="L413">            } else {</span>
+<span class="nc" id="L414">                fullName = fullName.replace(&quot;Conference Proceedings&quot;, &quot;Proceedings&quot;)</span>
+<span class="nc" id="L415">                        .replace(&quot;Proceedings of&quot;, &quot;Proceedings&quot;).replace(&quot;Proceedings.&quot;, &quot;Proceedings&quot;);</span>
+<span class="nc" id="L416">                fullName = fullName.replace(&quot;International&quot;, &quot;Int.&quot;);</span>
+<span class="nc" id="L417">                fullName = fullName.replace(&quot;Symposium&quot;, &quot;Symp.&quot;);</span>
+<span class="nc" id="L418">                fullName = fullName.replace(&quot;Conference&quot;, &quot;Conf.&quot;);</span>
+<span class="nc" id="L419">                fullName = fullName.replace(&quot; on&quot;, &quot; &quot;).replace(&quot;  &quot;, &quot; &quot;);</span>
+            }
+
+<span class="nc" id="L422">            Matcher m1 = PUBLICATION_PATTERN.matcher(fullName);</span>
+<span class="nc" id="L423">            String abrvPattern = &quot;.*[^,] '?\\d+\\)?&quot;;</span>
+<span class="nc bnc" id="L424" title="All 2 branches missed.">            if (m1.find()) {</span>
+<span class="nc" id="L425">                String prefix = m1.group(2).trim();</span>
+<span class="nc" id="L426">                String postfix = m1.group(1).trim();</span>
+<span class="nc" id="L427">                String abrv = &quot;&quot;;</span>
+<span class="nc" id="L428">                String[] parts = prefix.split(&quot;\\. &quot;, 2);</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">                if (parts.length == 2) {</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">                    if (parts[0].matches(abrvPattern)) {</span>
+<span class="nc" id="L431">                        prefix = parts[1];</span>
+<span class="nc" id="L432">                        abrv = parts[0];</span>
+<span class="nc" id="L433">                    } else {</span>
+<span class="nc" id="L434">                        prefix = parts[0];</span>
+<span class="nc" id="L435">                        abrv = parts[1];</span>
+                    }
+                }
+<span class="nc bnc" id="L438" title="All 2 branches missed.">                if (prefix.matches(abrvPattern)) {</span>
+<span class="nc" id="L439">                    fullName = postfix + &quot; &quot; + prefix;</span>
+<span class="nc" id="L440">                } else {</span>
+<span class="nc" id="L441">                    fullName = prefix + &quot; &quot; + postfix + &quot; &quot; + abrv;</span>
+<span class="nc" id="L442">                    fullName = fullName.trim();</span>
+                }
+            }
+<span class="nc bnc" id="L445" title="All 2 branches missed.">            if (&quot;article&quot;.equals(type)) {</span>
+<span class="nc" id="L446">                fullName = fullName.replace(&quot; - &quot;, &quot;-&quot;); //IEE Proceedings-</span>
+
+<span class="nc" id="L448">                fullName = fullName.trim();</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">                if (Globals.prefs.getBoolean(JabRefPreferences.USE_IEEE_ABRV)) {</span>
+<span class="nc" id="L450">                    fullName = abbreviationLoader.getRepository().getMedlineAbbreviation(fullName).orElse(fullName);</span>
+                }
+            }
+<span class="nc bnc" id="L453" title="All 2 branches missed.">            if (&quot;inproceedings&quot;.equals(type)) {</span>
+<span class="nc" id="L454">                Matcher m2 = PROCEEDINGS_PATTERN.matcher(fullName);</span>
+<span class="nc bnc" id="L455" title="All 2 branches missed.">                if (m2.find()) {</span>
+<span class="nc" id="L456">                    String prefix = m2.group(2);</span>
+<span class="nc" id="L457">                    String postfix = m2.group(1).replaceAll(&quot;\\.$&quot;, &quot;&quot;);</span>
+<span class="nc bnc" id="L458" title="All 2 branches missed.">                    if (prefix.matches(abrvPattern)) {</span>
+<span class="nc" id="L459">                        fullName = postfix.trim() + &quot; &quot; + prefix.trim();</span>
+<span class="nc" id="L460">                    } else {</span>
+<span class="nc" id="L461">                        String abrv = &quot;&quot;;</span>
+
+<span class="nc" id="L463">                        String[] parts = postfix.split(&quot;\\. &quot;, 2);</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">                        if (parts.length == 2) {</span>
+<span class="nc bnc" id="L465" title="All 2 branches missed.">                            if (parts[0].matches(abrvPattern)) {</span>
+<span class="nc" id="L466">                                postfix = parts[1];</span>
+<span class="nc" id="L467">                                abrv = parts[0];</span>
+<span class="nc" id="L468">                            } else {</span>
+<span class="nc" id="L469">                                postfix = parts[0];</span>
+<span class="nc" id="L470">                                abrv = parts[1];</span>
+                            }
+                        }
+<span class="nc" id="L473">                        fullName = prefix.trim() + &quot; &quot; + postfix.trim() + &quot; &quot; + abrv;</span>
+
+                    }
+
+                }
+
+<span class="nc" id="L479">                fullName = fullName.trim();</span>
+
+<span class="nc" id="L481">                fullName = fullName.replaceAll(&quot;^[tT]he &quot;, &quot;&quot;).replaceAll(&quot;^\\d{4} &quot;, &quot;&quot;).replaceAll(&quot;[,.]$&quot;, &quot;&quot;);</span>
+<span class="nc" id="L482">                String year = entry.getField(&quot;year&quot;);</span>
+<span class="nc bnc" id="L483" title="All 2 branches missed.">                if (year != null) {</span>
+<span class="nc" id="L484">                    fullName = fullName.replaceAll(&quot;, &quot; + year + &quot;\\.?&quot;, &quot;&quot;);</span>
+                }
+
+<span class="nc bnc" id="L487" title="All 4 branches missed.">                if (!fullName.contains(&quot;Abstract&quot;) &amp;&amp; !fullName.contains(&quot;Summaries&quot;)</span>
+<span class="nc bnc" id="L488" title="All 2 branches missed.">                        &amp;&amp; !fullName.contains(&quot;Conference Record&quot;)) {</span>
+<span class="nc" id="L489">                    fullName = &quot;Proc. &quot; + fullName;</span>
+                }
+            }
+<span class="nc" id="L492">            entry.setField(sourceField, fullName);</span>
+        }
+
+        // clean up abstract
+<span class="nc bnc" id="L496" title="All 2 branches missed.">        if (entry.hasField(&quot;abstract&quot;)) {</span>
+<span class="nc" id="L497">            String abstr = entry.getField(&quot;abstract&quot;);</span>
+            // Try to sort out most of the /spl / conversions
+            // Deal with this specific nested type first
+<span class="nc" id="L500">            abstr = abstr.replaceAll(&quot;/sub /spl infin//&quot;, &quot;\\$_\\\\infty\\$&quot;);</span>
+<span class="nc" id="L501">            abstr = abstr.replaceAll(&quot;/sup /spl infin//&quot;, &quot;\\$\\^\\\\infty\\$&quot;);</span>
+            // Replace general expressions
+<span class="nc" id="L503">            abstr = abstr.replaceAll(&quot;/[sS]pl ([^/]+)/&quot;, &quot;\\$\\\\$1\\$&quot;);</span>
+            // Deal with subscripts and superscripts
+<span class="nc bnc" id="L505" title="All 2 branches missed.">            if (Globals.prefs.getBoolean(JabRefPreferences.USE_CONVERT_TO_EQUATION)) {</span>
+<span class="nc" id="L506">                abstr = SUPER_DETECTION_1.matcher(abstr).replaceAll(SUPER_EQ_RESULT);</span>
+<span class="nc" id="L507">                abstr = SUB_DETECTION_1.matcher(abstr).replaceAll(SUB_EQ_RESULT);</span>
+<span class="nc" id="L508">                abstr = SUPER_DETECTION_2.matcher(abstr).replaceAll(SUPER_EQ_RESULT);</span>
+<span class="nc" id="L509">                abstr = SUB_DETECTION_2.matcher(abstr).replaceAll(SUB_EQ_RESULT);</span>
+<span class="nc" id="L510">            } else {</span>
+<span class="nc" id="L511">                abstr = SUPER_DETECTION_1.matcher(abstr).replaceAll(SUPER_TEXT_RESULT);</span>
+<span class="nc" id="L512">                abstr = SUB_DETECTION_1.matcher(abstr).replaceAll(SUB_TEXT_RESULT);</span>
+<span class="nc" id="L513">                abstr = SUPER_DETECTION_2.matcher(abstr).replaceAll(SUPER_TEXT_RESULT);</span>
+<span class="nc" id="L514">                abstr = SUB_DETECTION_2.matcher(abstr).replaceAll(SUB_TEXT_RESULT);</span>
+            }
+            // Replace \infin with \infty
+<span class="nc" id="L517">            abstr = abstr.replace(&quot;\\infin&quot;, &quot;\\infty&quot;);</span>
+            // Write back
+<span class="nc" id="L519">            entry.setField(&quot;abstract&quot;, abstr);</span>
+        }
+
+        // Clean up url
+<span class="nc" id="L523">        entry.getFieldOptional(&quot;url&quot;)</span>
+<span class="nc" id="L524">                .ifPresent(url -&gt; entry.setField(&quot;url&quot;, &quot;http://ieeexplore.ieee.org&quot; + url.replace(&quot;tp=&amp;&quot;, &quot;&quot;)));</span>
+
+        // Replace ; as keyword separator
+<span class="nc" id="L527">        entry.getFieldOptional(&quot;keywords&quot;).ifPresent(keys -&gt; entry.setField(&quot;keywords&quot;,</span>
+<span class="nc" id="L528">                keys.replace(&quot;;&quot;, Globals.prefs.get(JabRefPreferences.GROUP_KEYWORD_SEPARATOR))));</span>
+<span class="nc" id="L529">        return entry;</span>
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

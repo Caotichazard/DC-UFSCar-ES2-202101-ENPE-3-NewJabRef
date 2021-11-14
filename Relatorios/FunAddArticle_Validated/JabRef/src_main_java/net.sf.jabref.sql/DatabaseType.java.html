@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DatabaseType.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.sql</a> &gt; <span class="el_source">DatabaseType.java</span></div><h1>DatabaseType.java</h1><pre class="source lang-java linenums">package net.sf.jabref.sql;
+
+import java.util.Optional;
+
+/**
+ * All DBTypes must appear here. The enum items must be the
+ * names that appear in the combobox used to select the DB,
+ * because this text is used to choose which DatabaseImporter/Exporter
+ * will be sent back to the requester
+ */
+<span class="fc" id="L11">public enum DatabaseType {</span>
+<span class="fc" id="L12">    MYSQL(&quot;MySQL&quot;), POSTGRESQL(&quot;PostgreSQL&quot;);</span>
+
+    private final String formattedName;
+
+<span class="fc" id="L16">    DatabaseType(String formattedName) {</span>
+<span class="fc" id="L17">        this.formattedName = formattedName;</span>
+<span class="fc" id="L18">    }</span>
+
+    public String getFormattedName() {
+<span class="fc" id="L21">        return formattedName;</span>
+    }
+
+    public static Optional&lt;DatabaseType&gt; build(String serverType) {
+<span class="fc bfc" id="L25" title="All 2 branches covered.">        for (DatabaseType type : values()) {</span>
+<span class="pc bpc" id="L26" title="1 of 2 branches missed.">            if (type.getFormattedName().equalsIgnoreCase(serverType)) {</span>
+<span class="nc" id="L27">                return Optional.of(type);</span>
+            }
+        }
+<span class="fc" id="L30">        return Optional.empty();</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L35">        return formattedName;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

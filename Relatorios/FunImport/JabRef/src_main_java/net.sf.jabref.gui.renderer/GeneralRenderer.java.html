@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GeneralRenderer.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.renderer</a> &gt; <span class="el_source">GeneralRenderer.java</span></div><h1>GeneralRenderer.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.renderer;
+
+import java.awt.Color;
+import java.awt.Component;
+
+import javax.swing.Icon;
+import javax.swing.JLabel;
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableCellRenderer;
+
+/**
+ * Renderer for table cells, which supports both Icons, JLabels and plain text.
+ */
+public class GeneralRenderer extends DefaultTableCellRenderer {
+
+    private final Color rendererBackground;
+    private Color selBackground;
+
+    public GeneralRenderer(Color c) {
+<span class="fc" id="L35">        super();</span>
+<span class="fc" id="L36">        this.rendererBackground = c;</span>
+<span class="fc" id="L37">        setBackground(c);</span>
+<span class="fc" id="L38">    }</span>
+
+    /**
+     * Renderer with specified foreground and background colors, and default selected
+     * background color.
+     * @param c Foreground color
+     * @param fg Background color
+     */
+    public GeneralRenderer(Color c, Color fg) {
+<span class="fc" id="L47">        this(c);</span>
+<span class="fc" id="L48">        setForeground(fg);</span>
+<span class="fc" id="L49">    }</span>
+
+    /**
+     * Renderer with specified foreground, background and selected background colors
+     * @param c Foreground color
+     * @param fg Unselected background color
+     * @param sel Selected background color
+     */
+    public GeneralRenderer(Color c, Color fg, Color sel) {
+<span class="fc" id="L58">        this(c, fg);</span>
+<span class="fc" id="L59">        this.selBackground = sel;</span>
+<span class="fc" id="L60">    }</span>
+
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object o, boolean isSelected,
+            boolean hasFocus, int row, int column) {
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">        if (selBackground == null) {</span>
+<span class="fc" id="L66">            return super.getTableCellRendererComponent(table, o, isSelected, hasFocus, row, column);</span>
+        } else {
+<span class="nc" id="L68">            Component c = super.getTableCellRendererComponent(table, o, isSelected, hasFocus, row, column);</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            if (isSelected) {</span>
+<span class="nc" id="L70">                c.setBackground(selBackground);</span>
+<span class="nc" id="L71">            } else {</span>
+<span class="nc" id="L72">                c.setBackground(rendererBackground);</span>
+            }
+<span class="nc" id="L74">            return c;</span>
+        }
+    }
+
+    @Override
+    public void firePropertyChange(String propertyName, Object old, Object newV) {
+        // disable super.firePropertyChange
+<span class="fc" id="L81">    }</span>
+
+    /* For enabling the renderer to handle icons. */
+    @Override
+    protected void setValue(Object value) {
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (value instanceof Icon) {</span>
+<span class="nc" id="L87">            setIcon((Icon) value);</span>
+<span class="nc" id="L88">            setText(null);</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        } else if (value instanceof JLabel) {</span>
+<span class="nc" id="L90">            JLabel lab = (JLabel) value;</span>
+<span class="nc" id="L91">            setIcon(lab.getIcon());</span>
+<span class="nc" id="L92">            setToolTipText(lab.getToolTipText());</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">            if (lab.getIcon() != null) {</span>
+<span class="nc" id="L94">                setText(null);</span>
+            }
+<span class="nc" id="L96">        } else {</span>
+            // this is plain text
+<span class="fc" id="L98">            setIcon(null);</span>
+<span class="fc" id="L99">            setToolTipText(null);</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">            if (value == null) {</span>
+<span class="fc" id="L101">                setText(null);</span>
+<span class="fc" id="L102">            } else {</span>
+<span class="fc" id="L103">                setText(value.toString());</span>
+            }
+        }
+<span class="fc" id="L106">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

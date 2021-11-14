@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DragDropPane.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">DragDropPane.java</span></div><h1>DragDropPane.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+package net.sf.jabref.gui;
+
+import java.awt.AlphaComposite;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
+
+/**
+ * Extends the JTabbedPane class to support Drag&amp;Drop of Tabs.
+ *
+ * @author kleinms, strassfn
+ */
+class DragDropPane extends JTabbedPane {
+
+    private boolean draggingState; // State var if we are at dragging or not
+    private int indexDraggedTab; // The index of the tab we drag at the moment
+    private final MarkerPane markerPane; // The glass panel for painting the position marker
+
+
+    DragDropPane() {
+<span class="fc" id="L47">        super();</span>
+<span class="fc" id="L48">        indexDraggedTab = -1;</span>
+<span class="fc" id="L49">        markerPane = new MarkerPane();</span>
+<span class="fc" id="L50">        markerPane.setVisible(false);</span>
+
+        // -------------------------------------------
+        // Adding listeners for Drag&amp;Drop Actions
+        // -------------------------------------------
+<span class="fc" id="L55">        addMouseMotionListener(new MouseMotionAdapter() {</span>
+
+            @Override
+            public void mouseDragged(MouseEvent e) { // Mouse is dragging
+                // Calculates the tab index based on the mouse position
+<span class="nc" id="L60">                int indexActTab = getUI().tabForCoordinate(DragDropPane.this,</span>
+<span class="nc" id="L61">                        e.getX(), e.getY());</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                if (draggingState) { // We are at tab dragging</span>
+<span class="nc bnc" id="L63" title="All 4 branches missed.">                    if ((indexDraggedTab &gt;= 0) &amp;&amp; (indexActTab &gt;= 0)) { //Is it a valid scenario?</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">                        boolean toTheLeft = e.getX() &lt;= getUI().getTabBounds(DragDropPane.this, indexActTab).getCenterX(); //Go to the left or to the right of the actual Tab</span>
+<span class="nc" id="L65">                        DragDropPane.this.getRootPane().setGlassPane(markerPane); //Set the MarkerPane as glass Pane</span>
+<span class="nc" id="L66">                        Rectangle actTabRect = SwingUtilities.convertRectangle(DragDropPane.this, getBoundsAt(indexActTab),</span>
+<span class="nc" id="L67">                                DragDropPane.this.markerPane); //Rectangle with the same dimensions as the tab at the mouse position</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">                        if (toTheLeft) {</span>
+<span class="nc" id="L69">                            markerPane.setPicLocation(new Point(actTabRect.x, actTabRect.y</span>
+<span class="nc" id="L70">                                    + actTabRect.height)); //Set pic to the left of the tab at the mouse position</span>
+<span class="nc" id="L71">                        }</span>
+                        else {
+<span class="nc" id="L73">                            markerPane.setPicLocation(new Point(actTabRect.x + actTabRect.width, actTabRect.y</span>
+<span class="nc" id="L74">                                    + actTabRect.height)); //Set pic to the right of the tab at the mouse position</span>
+                        }
+
+<span class="nc" id="L77">                        markerPane.setVisible(true);</span>
+<span class="nc" id="L78">                        markerPane.repaint();</span>
+<span class="nc" id="L79">                        repaint();</span>
+<span class="nc" id="L80">                    } else { //We have no valid tab tragging scenario</span>
+<span class="nc" id="L81">                        markerPane.setVisible(false);</span>
+<span class="nc" id="L82">                        markerPane.repaint();</span>
+                    }
+
+<span class="nc" id="L85">                } else { //We are not at tab dragging</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">                    if (indexActTab &gt;= 0) { // Mouse is above a tab, otherwise tabNumber would be -1</span>
+                        // --&gt;Now we are at tab tragging
+<span class="nc" id="L88">                        draggingState = true; // Mark now we are at dragging</span>
+<span class="nc" id="L89">                        indexDraggedTab = indexActTab; // Set draggedTabIndex to the tabNumber where we are now</span>
+<span class="nc" id="L90">                        repaint();</span>
+                    }
+                }
+<span class="nc" id="L93">                super.mouseDragged(e);</span>
+<span class="nc" id="L94">            }</span>
+        });
+
+<span class="fc" id="L97">        addMouseListener(new MouseAdapter() {</span>
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+<span class="nc" id="L101">                DragDropPane.this.markerPane.setVisible(false); //Set MarkerPane invisible</span>
+<span class="nc" id="L102">                int indexActTab = getUI().tabForCoordinate(DragDropPane.this,</span>
+<span class="nc" id="L103">                        e.getX(), e.getY());</span>
+<span class="nc bnc" id="L104" title="All 6 branches missed.">                if ((indexDraggedTab &gt;= 0) &amp;&amp; (indexActTab &gt;= 0) &amp;&amp; (indexDraggedTab != indexActTab)) { //Is it a valid scenario?</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                    if (draggingState) { //We are at tab dragging</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">                        boolean toTheLeft = e.getX() &lt;= getUI().getTabBounds(DragDropPane.this, indexActTab).getCenterX(); //Go to the left or to the right of the actual Tab</span>
+<span class="nc" id="L107">                        DragDropPane.this.markerPane.setVisible(false);</span>
+
+<span class="nc" id="L109">                        Component actTab = getComponentAt(indexDraggedTab); //Save dragged tab</span>
+<span class="nc" id="L110">                        String actTabTitle = getTitleAt(indexDraggedTab); //Save Title of the dragged tab</span>
+<span class="nc" id="L111">                        removeTabAt(indexDraggedTab); //Remove dragged tab</span>
+                        int newTabPos;
+<span class="nc bnc" id="L113" title="All 2 branches missed.">                        if (indexActTab &lt; indexDraggedTab) { //We are dragging the tab to the left of its the position</span>
+<span class="nc bnc" id="L114" title="All 4 branches missed.">                            if (toTheLeft &amp;&amp; (indexActTab &lt; (DragDropPane.this.getTabCount()))) {</span>
+<span class="nc" id="L115">                                newTabPos = indexActTab;</span>
+<span class="nc" id="L116">                            } else {</span>
+<span class="nc" id="L117">                                newTabPos = indexActTab + 1;</span>
+                            }
+<span class="nc" id="L119">                        } else { //We are dragging the tab to the right of the old position</span>
+<span class="nc bnc" id="L120" title="All 4 branches missed.">                            if (toTheLeft &amp;&amp; (indexActTab &gt; 0)) {</span>
+<span class="nc" id="L121">                                newTabPos = indexActTab - 1;</span>
+<span class="nc" id="L122">                            } else {</span>
+<span class="nc" id="L123">                                newTabPos = indexActTab;</span>
+                            }
+                        }
+<span class="nc" id="L126">                        insertTab(actTabTitle, null, actTab, null, newTabPos); //Insert dragged tab at new position</span>
+<span class="nc" id="L127">                        DragDropPane.this.setSelectedIndex(newTabPos); //Set selection back to the tab (at the new tab position</span>
+                    }
+                }
+<span class="nc" id="L130">                draggingState = false;</span>
+<span class="nc" id="L131">            }</span>
+        });
+<span class="fc" id="L133">    }</span>
+
+
+    /**
+     * A glass panel which sets the marker for Dragging of Tabs.
+     *
+     */
+    static class MarkerPane extends JPanel {
+
+        private Point locationP;
+        private final IconTheme.JabRefIcon moveTabArrow;
+
+
+<span class="fc" id="L146">        public MarkerPane() {</span>
+<span class="fc" id="L147">            setOpaque(false);</span>
+
+            // Sets the marker fontIcon
+<span class="fc" id="L150">            moveTabArrow = IconTheme.JabRefIcon.MOVE_TAB_ARROW;</span>
+<span class="fc" id="L151">        }</span>
+
+        @Override
+        public void paintComponent(Graphics g) {
+<span class="nc" id="L155">            Graphics2D g2 = (Graphics2D) g;</span>
+<span class="nc" id="L156">            g2.setComposite(AlphaComposite.getInstance(</span>
+<span class="nc" id="L157">                    AlphaComposite.SRC_OVER, 0.9f)); // Set transparency</span>
+<span class="nc" id="L158">            g.setFont(IconTheme.FONT.deriveFont(Font.BOLD, 24f));</span>
+<span class="nc" id="L159">            g.drawString(moveTabArrow.getCode(), locationP.x - (moveTabArrow.getIcon().getIconWidth() / 2),</span>
+<span class="nc" id="L160">                    locationP.y + (moveTabArrow.getIcon().getIconHeight() / 2));</span>
+
+<span class="nc" id="L162">        }</span>
+
+        /**
+         * Sets the new location, where the marker should be placed.
+         *
+         * @param pt the point for the marker
+         */
+        public void setPicLocation(Point pt) {
+<span class="nc" id="L170">            this.locationP = pt;</span>
+<span class="nc" id="L171">        }</span>
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

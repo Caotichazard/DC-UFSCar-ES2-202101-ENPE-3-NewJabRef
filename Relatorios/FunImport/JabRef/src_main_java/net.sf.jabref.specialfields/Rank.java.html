@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>Rank.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.specialfields</a> &gt; <span class="el_source">Rank.java</span></div><h1>Rank.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.specialfields;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.Icon;
+
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.logic.l10n.Localization;
+
+public class Rank extends SpecialField {
+
+    private static Rank INSTANCE;
+
+<span class="fc" id="L30">    private Rank() {</span>
+<span class="fc" id="L31">        TEXT_DONE_PATTERN = &quot;Set rank to '%0' for %1 entries&quot;;</span>
+
+<span class="fc" id="L33">        List&lt;SpecialFieldValue&gt; values = new ArrayList&lt;&gt;();</span>
+        // lab.setName(&quot;i&quot;);
+<span class="fc" id="L35">        values.add(new SpecialFieldValue(this, null, &quot;clearRank&quot;, Localization.lang(&quot;Clear rank&quot;), null,</span>
+<span class="fc" id="L36">                Localization.lang(&quot;No rank information&quot;)));</span>
+        // DO NOT TRANSLATE &quot;rank1&quot; etc. as this makes the .bib files non portable
+<span class="fc" id="L38">        values.add(new SpecialFieldValue(this, &quot;rank1&quot;, &quot;setRank1&quot;, &quot;&quot;, IconTheme.JabRefIcon.RANK1.getSmallIcon(), Localization.lang(&quot;One star&quot;)));</span>
+<span class="fc" id="L39">        values.add(new SpecialFieldValue(this, &quot;rank2&quot;, &quot;setRank2&quot;, &quot;&quot;, IconTheme.JabRefIcon.RANK2.getSmallIcon(), Localization.lang(&quot;Two stars&quot;)));</span>
+<span class="fc" id="L40">        values.add(new SpecialFieldValue(this, &quot;rank3&quot;, &quot;setRank3&quot;, &quot;&quot;, IconTheme.JabRefIcon.RANK3.getSmallIcon(), Localization.lang(&quot;Three stars&quot;)));</span>
+<span class="fc" id="L41">        values.add(new SpecialFieldValue(this, &quot;rank4&quot;, &quot;setRank4&quot;, &quot;&quot;, IconTheme.JabRefIcon.RANK4.getSmallIcon(), Localization.lang(&quot;Four stars&quot;)));</span>
+<span class="fc" id="L42">        values.add(new SpecialFieldValue(this, &quot;rank5&quot;, &quot;setRank5&quot;, &quot;&quot;, IconTheme.JabRefIcon.RANK5.getSmallIcon(), Localization.lang(&quot;Five stars&quot;)));</span>
+<span class="fc" id="L43">        this.setValues(values);</span>
+<span class="fc" id="L44">    }</span>
+
+    public static Rank getInstance() {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (Rank.INSTANCE == null) {</span>
+<span class="fc" id="L48">            Rank.INSTANCE = new Rank();</span>
+        }
+<span class="fc" id="L50">        return Rank.INSTANCE;</span>
+    }
+
+    @Override
+    public Icon getRepresentingIcon() {
+<span class="fc" id="L55">        return IconTheme.JabRefIcon.RANKING.getIcon();</span>
+    }
+
+    @Override
+    public String getFieldName() {
+<span class="nc" id="L60">        return SpecialFieldsUtils.FIELDNAME_RANKING;</span>
+    }
+
+    @Override
+    public String getToolTip() {
+<span class="fc" id="L65">        return Localization.lang(&quot;Rank&quot;);</span>
+    }
+
+    @Override
+    public String getMenuString() {
+<span class="fc" id="L70">        return Localization.lang(&quot;Rank&quot;);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

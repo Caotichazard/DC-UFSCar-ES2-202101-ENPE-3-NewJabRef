@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FieldFormatterCleanups.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">FieldFormatterCleanups.java</span></div><h1>FieldFormatterCleanups.java</h1><pre class="source lang-java linenums">package net.sf.jabref.exporter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.StringJoiner;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.logic.cleanup.FieldFormatterCleanup;
+import net.sf.jabref.logic.formatter.Formatter;
+import net.sf.jabref.logic.formatter.Formatters;
+import net.sf.jabref.logic.formatter.IdentityFormatter;
+import net.sf.jabref.logic.formatter.bibtexfields.NormalizeMonthFormatter;
+import net.sf.jabref.logic.formatter.bibtexfields.NormalizePagesFormatter;
+import net.sf.jabref.logic.formatter.bibtexfields.OrdinalsToSuperscriptFormatter;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.entry.BibEntry;
+
+public class FieldFormatterCleanups {
+
+    private final List&lt;FieldFormatterCleanup&gt; actions;
+
+    private static List&lt;Formatter&gt; availableFormatters;
+
+    private boolean enabled;
+
+    public static final FieldFormatterCleanups DEFAULT_SAVE_ACTIONS;
+
+    static {
+<span class="fc" id="L34">        availableFormatters = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L35">        availableFormatters.addAll(Formatters.ALL);</span>
+
+<span class="fc" id="L37">        List&lt;FieldFormatterCleanup&gt; defaultFormatters = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L38">        defaultFormatters.add(new FieldFormatterCleanup(&quot;pages&quot;, new NormalizePagesFormatter()));</span>
+<span class="fc" id="L39">        defaultFormatters.add(new FieldFormatterCleanup(&quot;month&quot;, new NormalizeMonthFormatter()));</span>
+<span class="fc" id="L40">        defaultFormatters.add(new FieldFormatterCleanup(&quot;booktitle&quot;, new OrdinalsToSuperscriptFormatter()));</span>
+<span class="fc" id="L41">        DEFAULT_SAVE_ACTIONS = new FieldFormatterCleanups(false, defaultFormatters);</span>
+<span class="fc" id="L42">    }</span>
+
+    public FieldFormatterCleanups(boolean enabled, String formatterString) {
+<span class="nc" id="L45">        this(enabled, parse(formatterString));</span>
+<span class="nc" id="L46">    }</span>
+
+<span class="fc" id="L48">    public FieldFormatterCleanups(boolean enabled, List&lt;FieldFormatterCleanup&gt; actions) {</span>
+<span class="fc" id="L49">        this.enabled = enabled;</span>
+<span class="fc" id="L50">        this.actions = Objects.requireNonNull(actions);</span>
+<span class="fc" id="L51">    }</span>
+
+    public boolean isEnabled() {
+<span class="nc" id="L54">        return enabled;</span>
+    }
+
+    public List&lt;FieldFormatterCleanup&gt; getConfiguredActions() {
+<span class="nc" id="L58">        return Collections.unmodifiableList(actions);</span>
+    }
+
+    public List&lt;Formatter&gt; getAvailableFormatters() {
+<span class="nc" id="L62">        return Collections.unmodifiableList(availableFormatters);</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (this == o) {</span>
+<span class="nc" id="L68">            return true;</span>
+        }
+<span class="nc bnc" id="L70" title="All 4 branches missed.">        if ((o == null) || (getClass() != o.getClass())) {</span>
+<span class="nc" id="L71">            return false;</span>
+        }
+
+<span class="nc" id="L74">        FieldFormatterCleanups that = (FieldFormatterCleanups) o;</span>
+
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (enabled != that.enabled) {</span>
+<span class="nc" id="L77">            return false;</span>
+        }
+<span class="nc" id="L79">        return actions.equals(that.actions);</span>
+
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L85">        return Objects.hash(actions, enabled);</span>
+    }
+
+    private static List&lt;FieldFormatterCleanup&gt; parse(String formatterString) {
+
+<span class="nc bnc" id="L90" title="All 4 branches missed.">        if ((formatterString == null) || formatterString.isEmpty()) {</span>
+            // no save actions defined in the meta data
+<span class="nc" id="L92">            return new ArrayList&lt;&gt;();</span>
+        }
+
+<span class="nc" id="L95">        List&lt;FieldFormatterCleanup&gt; actions = new ArrayList&lt;&gt;();</span>
+
+        //read concrete actions
+<span class="nc" id="L98">        int startIndex = 0;</span>
+
+        // first remove all newlines for easier parsing
+<span class="nc" id="L101">        String remainingString = formatterString;</span>
+
+<span class="nc" id="L103">        remainingString = StringUtil.unifyLineBreaksToConfiguredLineBreaks(remainingString).replaceAll(Globals.NEWLINE, &quot;&quot;);</span>
+        try {
+<span class="nc bnc" id="L105" title="All 2 branches missed.">            while (startIndex &lt; formatterString.length()) {</span>
+                // read the field name
+<span class="nc" id="L107">                int currentIndex = remainingString.indexOf('[');</span>
+<span class="nc" id="L108">                        String fieldKey = remainingString.substring(0, currentIndex);</span>
+<span class="nc" id="L109">                int endIndex = remainingString.indexOf(']');</span>
+<span class="nc" id="L110">                startIndex += endIndex + 1;</span>
+
+                //read each formatter
+<span class="nc" id="L113">                int tokenIndex = remainingString.indexOf(',');</span>
+                do {
+<span class="nc" id="L115">                    boolean doBreak = false;</span>
+<span class="nc bnc" id="L116" title="All 4 branches missed.">                    if ((tokenIndex == -1) || (tokenIndex &gt; endIndex)) {</span>
+<span class="nc" id="L117">                        tokenIndex = remainingString.indexOf(']');</span>
+<span class="nc" id="L118">                        doBreak = true;</span>
+                    }
+
+<span class="nc" id="L121">                    String formatterKey = remainingString.substring(currentIndex + 1, tokenIndex);</span>
+<span class="nc" id="L122">                    actions.add(new FieldFormatterCleanup(fieldKey, getFormatterFromString(formatterKey)));</span>
+
+<span class="nc" id="L124">                    remainingString = remainingString.substring(tokenIndex + 1);</span>
+<span class="nc bnc" id="L125" title="All 4 branches missed.">                    if (remainingString.startsWith(&quot;]&quot;) || doBreak) {</span>
+<span class="nc" id="L126">                        break;</span>
+                    }
+<span class="nc" id="L128">                    tokenIndex = remainingString.indexOf(',');</span>
+
+<span class="nc" id="L130">                    currentIndex = -1;</span>
+<span class="nc" id="L131">                } while (true);</span>
+
+
+            }
+<span class="nc" id="L135">        } catch (StringIndexOutOfBoundsException ignore) {</span>
+            // if this exception occurs, the remaining part of the save actions string is invalid.
+            // Thus we stop parsing and take what we have parsed until now
+<span class="nc" id="L138">            return actions;</span>
+        }
+<span class="nc" id="L140">        return actions;</span>
+    }
+
+    public List&lt;FieldChange&gt; applySaveActions(BibEntry entry) {
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        if (enabled) {</span>
+<span class="nc" id="L145">            return applyAllActions(entry);</span>
+        } else {
+<span class="nc" id="L147">            return new ArrayList&lt;&gt;();</span>
+        }
+    }
+
+    private List&lt;FieldChange&gt; applyAllActions(BibEntry entry) {
+<span class="nc" id="L152">        List&lt;FieldChange&gt; result = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        for (FieldFormatterCleanup action : actions) {</span>
+<span class="nc" id="L155">            result.addAll(action.cleanup(entry));</span>
+        }
+
+<span class="nc" id="L158">        return result;</span>
+    }
+
+    private static Formatter getFormatterFromString(String formatterName) {
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        for (Formatter formatter : availableFormatters) {</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">            if (formatterName.equals(formatter.getKey())) {</span>
+<span class="nc" id="L164">                return formatter;</span>
+            }
+        }
+<span class="nc" id="L167">        return new IdentityFormatter();</span>
+    }
+
+    private static String getMetaDataString(List&lt;FieldFormatterCleanup&gt; actionList) {
+        //first, group all formatters by the field for which they apply
+<span class="fc" id="L172">        Map&lt;String, List&lt;String&gt;&gt; groupedByField = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        for (FieldFormatterCleanup cleanup : actionList) {</span>
+<span class="fc" id="L174">            String key = cleanup.getField();</span>
+
+            // add new list into the hashmap if needed
+<span class="fc bfc" id="L177" title="All 2 branches covered.">            if (!groupedByField.containsKey(key)) {</span>
+<span class="fc" id="L178">                groupedByField.put(key, new ArrayList&lt;&gt;());</span>
+            }
+
+            //add the formatter to the map if it is not already there
+<span class="fc" id="L182">            List&lt;String&gt; formattersForKey = groupedByField.get(key);</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">            if (!formattersForKey.contains(cleanup.getFormatter().getKey())) {</span>
+<span class="fc" id="L184">                formattersForKey.add(cleanup.getFormatter().getKey());</span>
+            }
+        }
+
+        // convert the contents of the hashmap into the correct serialization
+<span class="fc" id="L189">        StringBuilder result = new StringBuilder();</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        for (Map.Entry&lt;String, List&lt;String&gt;&gt; entry : groupedByField.entrySet()) {</span>
+<span class="fc" id="L191">            result.append(entry.getKey());</span>
+
+<span class="fc" id="L193">            StringJoiner joiner = new StringJoiner(&quot;,&quot;, &quot;[&quot;, &quot;]&quot; + Globals.NEWLINE);</span>
+<span class="fc" id="L194">            entry.getValue().forEach(joiner::add);</span>
+<span class="fc" id="L195">            result.append(joiner.toString());</span>
+        }
+
+<span class="fc" id="L198">        return result.toString();</span>
+    }
+
+    public List&lt;String&gt; convertToString() {
+<span class="fc" id="L202">        List&lt;String&gt; stringRepresentation = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">        if (enabled) {</span>
+<span class="fc" id="L205">            stringRepresentation.add(&quot;enabled&quot;);</span>
+<span class="fc" id="L206">        } else {</span>
+<span class="nc" id="L207">            stringRepresentation.add(&quot;disabled&quot;);</span>
+        }
+
+<span class="fc" id="L210">        String formatterString = FieldFormatterCleanups.getMetaDataString(actions);</span>
+<span class="fc" id="L211">        stringRepresentation.add(formatterString);</span>
+<span class="fc" id="L212">        return stringRepresentation;</span>
+    }
+
+    public static FieldFormatterCleanups parseFromString(List&lt;String&gt; formatterMetaList) {
+
+<span class="nc bnc" id="L217" title="All 4 branches missed.">        if (formatterMetaList != null &amp;&amp; formatterMetaList.size() &gt;= 2) {</span>
+<span class="nc" id="L218">            boolean enablementStatus = &quot;enabled&quot;.equals(formatterMetaList.get(0));</span>
+<span class="nc" id="L219">            String formatterString = formatterMetaList.get(1);</span>
+<span class="nc" id="L220">            return new FieldFormatterCleanups(enablementStatus, formatterString);</span>
+        } else {
+            // return default actions
+<span class="nc" id="L223">            return FieldFormatterCleanups.DEFAULT_SAVE_ACTIONS;</span>
+        }
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

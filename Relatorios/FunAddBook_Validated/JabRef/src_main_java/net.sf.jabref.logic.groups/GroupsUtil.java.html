@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GroupsUtil.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.groups</a> &gt; <span class="el_source">GroupsUtil.java</span></div><h1>GroupsUtil.java</h1><pre class="source lang-java linenums">package net.sf.jabref.logic.groups;
+
+import java.util.List;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.AuthorList;
+import net.sf.jabref.model.entry.BibEntry;
+
+<span class="nc" id="L13">public class GroupsUtil {</span>
+
+    public static Set&lt;String&gt; findDeliminatedWordsInField(BibDatabase db, String field, String deliminator) {
+<span class="nc" id="L16">        Set&lt;String&gt; res = new TreeSet&lt;&gt;();</span>
+
+<span class="nc bnc" id="L18" title="All 2 branches missed.">        for (BibEntry be : db.getEntries()) {</span>
+<span class="nc bnc" id="L19" title="All 2 branches missed.">            if (be.hasField(field)) {</span>
+<span class="nc" id="L20">                String fieldValue = be.getField(field).trim();</span>
+<span class="nc" id="L21">                StringTokenizer tok = new StringTokenizer(fieldValue, deliminator);</span>
+<span class="nc bnc" id="L22" title="All 2 branches missed.">                while (tok.hasMoreTokens()) {</span>
+<span class="nc" id="L23">                    res.add(net.sf.jabref.model.entry.EntryUtil.capitalizeFirst(tok.nextToken().trim()));</span>
+                }
+            }
+        }
+<span class="nc" id="L27">        return res;</span>
+    }
+
+    /**
+     * Returns a Set containing all words used in the database in the given field type. Characters in
+     * &lt;code&gt;remove&lt;/code&gt; are not included.
+     *
+     * @param db a &lt;code&gt;BibDatabase&lt;/code&gt; value
+     * @param field a &lt;code&gt;String&lt;/code&gt; value
+     * @param remove a &lt;code&gt;String&lt;/code&gt; value
+     * @return a &lt;code&gt;Set&lt;/code&gt; value
+     */
+    public static Set&lt;String&gt; findAllWordsInField(BibDatabase db, String field, String remove) {
+<span class="nc" id="L40">        Set&lt;String&gt; res = new TreeSet&lt;&gt;();</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        for (BibEntry be : db.getEntries()) {</span>
+<span class="nc" id="L42">            be.getFieldOptional(field).ifPresent(o -&gt; {</span>
+<span class="nc" id="L43">                StringTokenizer tok = new StringTokenizer(o.toString(), remove, false);</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">                while (tok.hasMoreTokens()) {</span>
+<span class="nc" id="L45">                    res.add(net.sf.jabref.model.entry.EntryUtil.capitalizeFirst(tok.nextToken().trim()));</span>
+                }
+<span class="nc" id="L47">            });</span>
+        }
+<span class="nc" id="L49">        return res;</span>
+    }
+
+    /**
+     * Finds all authors' last names in all the given fields for the given database.
+     *
+     * @param db The database.
+     * @param fields The fields to look in.
+     * @return a set containing the names.
+     */
+    public static Set&lt;String&gt; findAuthorLastNames(BibDatabase db, List&lt;String&gt; fields) {
+<span class="nc" id="L60">        Set&lt;String&gt; res = new TreeSet&lt;&gt;();</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        for (BibEntry be : db.getEntries()) {</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            for (String field : fields) {</span>
+<span class="nc" id="L63">                String val = be.getField(field);</span>
+<span class="nc bnc" id="L64" title="All 4 branches missed.">                if ((val != null) &amp;&amp; !val.isEmpty()) {</span>
+<span class="nc" id="L65">                    AuthorList al = AuthorList.parse(val);</span>
+<span class="nc" id="L66">                    res.addAll(al.getAuthors().stream().map(author -&gt; author.getLast())</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">                            .filter(lastName -&gt; ((lastName != null) &amp;&amp; !lastName.isEmpty()))</span>
+<span class="nc" id="L68">                            .collect(Collectors.toList()));</span>
+                }
+
+            }
+        }
+
+<span class="nc" id="L74">        return res;</span>
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

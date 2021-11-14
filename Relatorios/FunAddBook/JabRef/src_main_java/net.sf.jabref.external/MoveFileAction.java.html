@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MoveFileAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.external</a> &gt; <span class="el_source">MoveFileAction.java</span></div><h1>MoveFileAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.external;
+
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
+import javax.swing.AbstractAction;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.FileDialogs;
+import net.sf.jabref.gui.FileListEntry;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.entryeditor.EntryEditor;
+import net.sf.jabref.gui.fieldeditors.FileListEditor;
+import net.sf.jabref.gui.util.component.CheckBoxMessage;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.io.FileUtil;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Action for moving or renaming a file that is linked to from an entry in JabRef.
+ */
+public class MoveFileAction extends AbstractAction {
+<span class="fc" id="L46">    private static final Log LOGGER = LogFactory.getLog(MoveFileAction.class);</span>
+
+    private final JabRefFrame frame;
+    private final EntryEditor eEditor;
+    private final FileListEditor editor;
+
+    private final boolean toFileDir;
+
+<span class="fc" id="L54">    private static final String MOVE_RENAME = Localization.lang(&quot;Move/Rename file&quot;);</span>
+
+<span class="fc" id="L56">    public MoveFileAction(JabRefFrame frame, EntryEditor eEditor, FileListEditor editor, boolean toFileDir) {</span>
+<span class="fc" id="L57">        this.frame = frame;</span>
+<span class="fc" id="L58">        this.eEditor = eEditor;</span>
+<span class="fc" id="L59">        this.editor = editor;</span>
+<span class="fc" id="L60">        this.toFileDir = toFileDir;</span>
+<span class="fc" id="L61">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent event) {
+<span class="nc" id="L65">        int selected = editor.getSelectedRow();</span>
+
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (selected == -1) {</span>
+<span class="nc" id="L68">            return;</span>
+        }
+
+<span class="nc" id="L71">        FileListEntry entry = editor.getTableModel().getEntry(selected);</span>
+
+        // Check if the current file exists:
+<span class="nc" id="L74">        String ln = entry.link;</span>
+<span class="nc" id="L75">        boolean httpLink = ln.toLowerCase(Locale.ENGLISH).startsWith(&quot;http&quot;);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (httpLink) {</span>
+            // TODO: notify that this operation cannot be done on remote links
+<span class="nc" id="L78">            return;</span>
+        }
+
+        // Get an absolute path representation:
+<span class="nc" id="L82">        List&lt;String&gt; dirs = frame.getCurrentBasePanel().getBibDatabaseContext().getFileDirectory();</span>
+<span class="nc" id="L83">        int found = -1;</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        for (int i = 0; i &lt; dirs.size(); i++) {</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">            if (new File(dirs.get(i)).exists()) {</span>
+<span class="nc" id="L86">                found = i;</span>
+<span class="nc" id="L87">                break;</span>
+            }
+        }
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (found &lt; 0) {</span>
+<span class="nc" id="L91">            JOptionPane.showMessageDialog(frame, Localization.lang(&quot;File_directory_is_not_set_or_does_not_exist!&quot;), MOVE_RENAME, JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L92">            return;</span>
+        }
+<span class="nc" id="L94">        File file = new File(ln);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (!file.isAbsolute()) {</span>
+<span class="nc" id="L96">            file = FileUtil.expandFilename(ln, dirs).orElse(null);</span>
+        }
+<span class="nc bnc" id="L98" title="All 4 branches missed.">        if ((file != null) &amp;&amp; file.exists()) {</span>
+            // Ok, we found the file. Now get a new name:
+<span class="nc" id="L100">            String extension = null;</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">            if (entry.type.isPresent()) {</span>
+<span class="nc" id="L102">                extension = &quot;.&quot; + entry.type.get().getExtension();</span>
+            }
+
+<span class="nc" id="L105">            File newFile = null;</span>
+<span class="nc" id="L106">            boolean repeat = true;</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">            while (repeat) {</span>
+<span class="nc" id="L108">                repeat = false;</span>
+                String chosenFile;
+<span class="nc bnc" id="L110" title="All 2 branches missed.">                if (toFileDir) {</span>
+                    // Determine which name to suggest:
+<span class="nc" id="L112">                    String suggName = FileUtil</span>
+<span class="nc" id="L113">                            .getLinkedFileName(eEditor.getDatabase(), eEditor.getEntry(),</span>
+<span class="nc" id="L114">                                    Globals.journalAbbreviationLoader.getRepository())</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">                            .concat(entry.type.isPresent() ? &quot;.&quot; + entry.type.get().getExtension() : &quot;&quot;);</span>
+<span class="nc" id="L116">                    CheckBoxMessage cbm = new CheckBoxMessage(Localization.lang(&quot;Move file to file directory?&quot;),</span>
+<span class="nc" id="L117">                            Localization.lang(&quot;Rename to '%0'&quot;, suggName),</span>
+<span class="nc" id="L118">                            Globals.prefs.getBoolean(JabRefPreferences.RENAME_ON_MOVE_FILE_TO_FILE_DIR));</span>
+                    int answer;
+                    // Only ask about renaming file if the file doesn't have the proper name already:
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                    if (suggName.equals(file.getName())) {</span>
+<span class="nc" id="L122">                        answer = JOptionPane.showConfirmDialog(frame, Localization.lang(&quot;Move file to file directory?&quot;),</span>
+<span class="nc" id="L123">                                MOVE_RENAME, JOptionPane.YES_NO_OPTION);</span>
+<span class="nc" id="L124">                    } else {</span>
+<span class="nc" id="L125">                        answer = JOptionPane.showConfirmDialog(frame, cbm, MOVE_RENAME,</span>
+<span class="nc" id="L126">                                JOptionPane.YES_NO_OPTION);</span>
+                    }
+<span class="nc bnc" id="L128" title="All 2 branches missed.">                    if (answer != JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L129">                        return;</span>
+                    }
+<span class="nc" id="L131">                    Globals.prefs.putBoolean(JabRefPreferences.RENAME_ON_MOVE_FILE_TO_FILE_DIR, cbm.isSelected());</span>
+<span class="nc" id="L132">                    StringBuilder sb = new StringBuilder(dirs.get(found));</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">                    if (!dirs.get(found).endsWith(File.separator)) {</span>
+<span class="nc" id="L134">                        sb.append(File.separator);</span>
+                    }
+<span class="nc bnc" id="L136" title="All 2 branches missed.">                    if (cbm.isSelected()) {</span>
+                        // Rename:
+<span class="nc" id="L138">                        sb.append(suggName);</span>
+<span class="nc" id="L139">                    } else {</span>
+                        // Do not rename:
+<span class="nc" id="L141">                        sb.append(file.getName());</span>
+                    }
+<span class="nc" id="L143">                    chosenFile = sb.toString();</span>
+<span class="nc" id="L144">                } else {</span>
+<span class="nc" id="L145">                    chosenFile = FileDialogs.getNewFile(frame, file, extension, JFileChooser.SAVE_DIALOG, false);</span>
+                }
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                if (chosenFile == null) {</span>
+<span class="nc" id="L148">                    return; // canceled</span>
+                }
+<span class="nc" id="L150">                newFile = new File(chosenFile);</span>
+                // Check if the file already exists:
+<span class="nc bnc" id="L152" title="All 4 branches missed.">                if (newFile.exists() &amp;&amp; (JOptionPane.showConfirmDialog(frame,</span>
+<span class="nc" id="L153">                        Localization.lang(&quot;'%0' exists. Overwrite file?&quot;, newFile.getName()), MOVE_RENAME,</span>
+<span class="nc" id="L154">                        JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION)) {</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">                    if (toFileDir) {</span>
+<span class="nc" id="L156">                        return;</span>
+                    } else {
+<span class="nc" id="L158">                        repeat = true;</span>
+                    }
+                }
+            }
+
+<span class="nc bnc" id="L163" title="All 2 branches missed.">            if (!newFile.equals(file)) {</span>
+                try {
+<span class="nc" id="L165">                    boolean success = file.renameTo(newFile);</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">                    if (!success) {</span>
+<span class="nc" id="L167">                        success = FileUtil.copyFile(file, newFile, true);</span>
+                    }
+<span class="nc bnc" id="L169" title="All 2 branches missed.">                    if (success) {</span>
+                        // Remove the original file:
+<span class="nc bnc" id="L171" title="All 2 branches missed.">                        if (!file.delete()) {</span>
+<span class="nc" id="L172">                            LOGGER.info(&quot;Cannot delete original file&quot;);</span>
+                        }
+                        // Relativise path, if possible.
+<span class="nc" id="L175">                        String canPath = new File(dirs.get(found)).getCanonicalPath();</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">                        if (newFile.getCanonicalPath().startsWith(canPath)) {</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">                            if ((newFile.getCanonicalPath().length() &gt; canPath.length()) &amp;&amp;</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                                    (newFile.getCanonicalPath().charAt(canPath.length()) == File.separatorChar)) {</span>
+
+<span class="nc" id="L180">                                String newLink = newFile.getCanonicalPath().substring(1 + canPath.length());</span>
+<span class="nc" id="L181">                                editor.getTableModel().setEntry(selected, new FileListEntry(entry.description, newLink, entry.type));</span>
+<span class="nc" id="L182">                            } else {</span>
+<span class="nc" id="L183">                                String newLink = newFile.getCanonicalPath().substring(canPath.length());</span>
+<span class="nc" id="L184">                                editor.getTableModel().setEntry(selected, new FileListEntry(entry.description, newLink, entry.type));</span>
+                            }
+
+<span class="nc" id="L187">                        } else {</span>
+<span class="nc" id="L188">                            String newLink = newFile.getCanonicalPath();</span>
+<span class="nc" id="L189">                            editor.getTableModel().setEntry(selected, new FileListEntry(entry.description, newLink, entry.type));</span>
+                        }
+<span class="nc" id="L191">                        eEditor.updateField(editor);</span>
+                        //JOptionPane.showMessageDialog(frame, Globals.lang(&quot;File moved&quot;),
+                        //        Globals.lang(&quot;Move/Rename file&quot;), JOptionPane.INFORMATION_MESSAGE);
+<span class="nc" id="L194">                        frame.output(Localization.lang(&quot;File moved&quot;));</span>
+<span class="nc" id="L195">                    } else {</span>
+<span class="nc" id="L196">                        JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Move file failed&quot;), MOVE_RENAME,</span>
+<span class="nc" id="L197">                                JOptionPane.ERROR_MESSAGE);</span>
+                    }
+
+<span class="nc" id="L200">                } catch (SecurityException | IOException ex) {</span>
+<span class="nc" id="L201">                    LOGGER.warn(&quot;Could not move file&quot;, ex);</span>
+<span class="nc" id="L202">                    JOptionPane.showMessageDialog(frame,</span>
+<span class="nc" id="L203">                            Localization.lang(&quot;Could not move file '%0'.&quot;, file.getAbsolutePath()) + ex.getMessage(),</span>
+<span class="nc" id="L204">                            MOVE_RENAME, JOptionPane.ERROR_MESSAGE);</span>
+                }
+
+            }
+<span class="nc" id="L208">        } else {</span>
+            // File doesn't exist, so we can't move it.
+<span class="nc" id="L210">            JOptionPane.showMessageDialog(frame, Localization.lang(&quot;Could not find file '%0'.&quot;, entry.link),</span>
+<span class="nc" id="L211">                    Localization.lang(&quot;File not found&quot;), JOptionPane.ERROR_MESSAGE);</span>
+        }
+
+<span class="nc" id="L214">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ErrorConsoleAction.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.actions</a> &gt; <span class="el_source">ErrorConsoleAction.java</span></div><h1>ErrorConsoleAction.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.actions;
+
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+
+import net.sf.jabref.logic.error.StreamEavesdropper;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.logging.Cache;
+
+/**
+ * Such an error console can be
+ * useful in getting complete bug reports, especially from Windows users,
+ * without asking users to run JabRef in a command window to catch the error info.
+ * &lt;p/&gt;
+ * It offers a separate tab for the log output.
+ */
+public class ErrorConsoleAction extends AbstractAction {
+
+    private final JFrame frame;
+    private final StreamEavesdropper streamEavesdropper;
+    private final Cache cache;
+
+    public ErrorConsoleAction(JFrame frame, StreamEavesdropper streamEavesdropper, Cache cache) {
+<span class="fc" id="L47">        super(Localization.menuTitle(&quot;Show error console&quot;));</span>
+<span class="fc" id="L48">        this.streamEavesdropper = streamEavesdropper;</span>
+<span class="fc" id="L49">        this.cache = cache;</span>
+<span class="fc" id="L50">        putValue(Action.SHORT_DESCRIPTION, Localization.lang(&quot;Display all error messages&quot;));</span>
+<span class="fc" id="L51">        this.frame = frame;</span>
+<span class="fc" id="L52">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L56">        displayErrorConsole(frame);</span>
+<span class="nc" id="L57">    }</span>
+
+    private void displayErrorConsole(JFrame parent) {
+<span class="nc" id="L60">        JTabbedPane tabbed = new JTabbedPane();</span>
+
+<span class="nc" id="L62">        addTextArea(tabbed, Localization.lang(&quot;Log&quot;), cache.get());</span>
+<span class="nc" id="L63">        addTextArea(tabbed, Localization.lang(&quot;Exceptions&quot;), streamEavesdropper.getErrorMessages(),</span>
+<span class="nc" id="L64">                Localization.lang(&quot;No exceptions have occurred.&quot;));</span>
+<span class="nc" id="L65">        addTextArea(tabbed, Localization.lang(&quot;Output&quot;), streamEavesdropper.getOutput());</span>
+
+<span class="nc" id="L67">        tabbed.setPreferredSize(new Dimension(500, 500));</span>
+
+<span class="nc" id="L69">        JOptionPane.showMessageDialog(parent, tabbed,</span>
+<span class="nc" id="L70">                Localization.lang(&quot;Program output&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L71">    }</span>
+
+    /**
+     * @param tabbed  the tabbed pane to add the tab to
+     * @param output  the text to display in the tab
+     * @param ifEmpty Text to output if textbox is emtpy. may be null
+     */
+    private static void addTextArea(JTabbedPane tabbed, String title, String output, String ifEmpty) {
+<span class="nc" id="L79">        JTextArea ta = new JTextArea(output);</span>
+<span class="nc" id="L80">        ta.setEditable(false);</span>
+<span class="nc bnc" id="L81" title="All 4 branches missed.">        if ((ifEmpty != null) &amp;&amp; (ta.getText().isEmpty())) {</span>
+<span class="nc" id="L82">            ta.setText(ifEmpty);</span>
+        }
+<span class="nc" id="L84">        JScrollPane sp = new JScrollPane(ta);</span>
+<span class="nc" id="L85">        tabbed.addTab(title, sp);</span>
+<span class="nc" id="L86">    }</span>
+
+    /**
+     * @param tabbed the tabbed pane to add the tab to
+     * @param output the text to display in the tab
+     */
+    private static void addTextArea(JTabbedPane tabbed, String title, String output) {
+<span class="nc" id="L93">        addTextArea(tabbed, title, output, null);</span>
+<span class="nc" id="L94">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

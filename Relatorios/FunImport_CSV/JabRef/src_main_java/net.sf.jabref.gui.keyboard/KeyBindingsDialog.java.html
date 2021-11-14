@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>KeyBindingsDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.keyboard</a> &gt; <span class="el_source">KeyBindingsDialog.java</span></div><h1>KeyBindingsDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.keyboard;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.table.TableColumnModel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.GUIGlobals;
+import net.sf.jabref.logic.l10n.Localization;
+
+/**
+ * Dialog to customize key bindings
+ */
+@SuppressWarnings(&quot;serial&quot;)
+public class KeyBindingsDialog extends JDialog {
+
+<span class="nc" id="L42">    private final JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+
+<span class="nc" id="L44">    private final JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L45">    private final JButton resetToDefaultKeyBindings = new JButton(Localization.lang(&quot;Default&quot;));</span>
+<span class="nc" id="L46">    private final JButton grabB = new JButton(Localization.lang(&quot;Grab&quot;));</span>
+<span class="nc" id="L47">    private final Box buttonBox = new Box(BoxLayout.X_AXIS);</span>
+
+    // stores the user-selected key bindings
+    private final KeyBindingRepository keyBindingRepository;
+
+    private final KeyBindingTable table;
+
+    public KeyBindingsDialog(KeyBindingRepository keyBindingRepository) {
+<span class="nc" id="L55">        super();</span>
+<span class="nc" id="L56">        setTitle(Localization.lang(&quot;Key bindings&quot;));</span>
+<span class="nc" id="L57">        setModal(true); //this needs to be modal so that client knows when ok or cancel was clicked</span>
+<span class="nc" id="L58">        getContentPane().setLayout(new BorderLayout());</span>
+<span class="nc" id="L59">        this.keyBindingRepository = keyBindingRepository;</span>
+<span class="nc" id="L60">        this.table = setupTable();</span>
+<span class="nc" id="L61">        updateTableData();</span>
+        //JScrollPane listScroller = new JScrollPane(list);
+<span class="nc" id="L63">        JScrollPane listScroller = new JScrollPane(table);</span>
+<span class="nc" id="L64">        listScroller.setPreferredSize(new Dimension(250, 400));</span>
+<span class="nc" id="L65">        getContentPane().add(listScroller, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L67">        grabB.addKeyListener(new KeyBindingsListener(table));</span>
+<span class="nc" id="L68">        buttonBox.add(grabB);</span>
+<span class="nc" id="L69">        buttonBox.add(resetToDefaultKeyBindings);</span>
+<span class="nc" id="L70">        buttonBox.add(ok);</span>
+<span class="nc" id="L71">        buttonBox.add(cancel);</span>
+
+<span class="nc" id="L73">        getContentPane().add(buttonBox, BorderLayout.SOUTH);</span>
+        //setTop();
+<span class="nc" id="L75">        activateListeners();</span>
+
+<span class="nc" id="L77">        KeyBinder.bindCloseDialogKeyToCancelAction(getRootPane(), cancel.getAction());</span>
+
+<span class="nc" id="L79">        addWindowListener(new WindowAdapter() {</span>
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+<span class="nc" id="L83">                dispose();</span>
+<span class="nc" id="L84">            }</span>
+        });
+<span class="nc" id="L86">    }</span>
+
+    private KeyBindingTable setupTable() {
+<span class="nc" id="L89">        KeyBindingTable table = new KeyBindingTable();</span>
+<span class="nc" id="L90">        table.setRowSelectionAllowed(true);</span>
+<span class="nc" id="L91">        table.setColumnSelectionAllowed(false);</span>
+<span class="nc" id="L92">        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="nc" id="L93">        table.setAutoCreateRowSorter(true);</span>
+<span class="nc" id="L94">        return table;</span>
+    }
+
+    private void updateTableData() {
+<span class="nc" id="L98">        KeyBindingTableModel tableModel = new KeyBindingTableModel(keyBindingRepository);</span>
+<span class="nc" id="L99">        table.setModel(tableModel);</span>
+
+        // has to be done each time as the columnModel is dependent on the tableModel
+<span class="nc" id="L102">        TableColumnModel cm = table.getColumnModel();</span>
+<span class="nc" id="L103">        cm.getColumn(0).setPreferredWidth(GUIGlobals.KEYBIND_COL_0);</span>
+<span class="nc" id="L104">        cm.getColumn(1).setPreferredWidth(GUIGlobals.KEYBIND_COL_1);</span>
+<span class="nc" id="L105">    }</span>
+
+    private void activateListeners() {
+<span class="nc" id="L108">        ok.addActionListener(e -&gt; {</span>
+            // save all the key bindings
+<span class="nc" id="L110">            Globals.getKeyPrefs().setNewKeyBindings(keyBindingRepository.getKeyBindings());</span>
+
+            // show message
+<span class="nc" id="L113">            JOptionPane.showMessageDialog</span>
+<span class="nc" id="L114">                    (KeyBindingsDialog.this,</span>
+<span class="nc" id="L115">                            Localization.lang(&quot;Your new key bindings have been stored.&quot;) + '\n'</span>
+<span class="nc" id="L116">                                    + Localization.lang(&quot;You must restart JabRef for the new key &quot;</span>
+                                    + &quot;bindings to work properly.&quot;),
+<span class="nc" id="L118">                            Localization.lang(&quot;Key bindings changed&quot;),</span>
+<span class="nc" id="L119">                            JOptionPane.INFORMATION_MESSAGE);</span>
+
+<span class="nc" id="L121">            dispose();</span>
+<span class="nc" id="L122">        });</span>
+<span class="nc" id="L123">        cancel.addActionListener(e -&gt; dispose());</span>
+<span class="nc" id="L124">        resetToDefaultKeyBindings.addActionListener(e -&gt; {</span>
+<span class="nc" id="L125">            int[] selected = table.getSelectedRows();</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">            boolean hasNothingSelected = selected.length == 0;</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">            if (hasNothingSelected) {</span>
+<span class="nc" id="L128">                int answer = JOptionPane.showOptionDialog(KeyBindingsDialog.this,</span>
+<span class="nc" id="L129">                        Localization.lang(&quot;All key bindings will be reset to their defaults.&quot;) + &quot; &quot; +</span>
+<span class="nc" id="L130">                        Localization.lang(&quot;Continue?&quot;),</span>
+<span class="nc" id="L131">                        Localization.lang(&quot;Resetting all key bindings&quot;),</span>
+<span class="nc" id="L132">                        JOptionPane.YES_NO_OPTION,</span>
+<span class="nc" id="L133">                        JOptionPane.QUESTION_MESSAGE, null,</span>
+<span class="nc" id="L134">                        new String[] {Localization.lang(&quot;OK&quot;),</span>
+<span class="nc" id="L135">                                Localization.lang(&quot;Cancel&quot;)},</span>
+<span class="nc" id="L136">                        Localization.lang(&quot;OK&quot;));</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">                if (answer == JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L138">                    keyBindingRepository.resetToDefault();</span>
+<span class="nc" id="L139">                    updateTableData();</span>
+                }
+<span class="nc" id="L141">            } else {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">                for (int row : selected) {</span>
+<span class="nc" id="L143">                    String name = String.valueOf(table.getValueAt(row, 0));</span>
+<span class="nc" id="L144">                    keyBindingRepository.resetToDefault(name);</span>
+<span class="nc" id="L145">                    String newKey = keyBindingRepository.get(name);</span>
+<span class="nc" id="L146">                    table.setValueAt(newKey, row, 1);</span>
+<span class="nc" id="L147">                    table.repaint();</span>
+                }
+            }
+<span class="nc" id="L150">        });</span>
+
+<span class="nc" id="L152">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

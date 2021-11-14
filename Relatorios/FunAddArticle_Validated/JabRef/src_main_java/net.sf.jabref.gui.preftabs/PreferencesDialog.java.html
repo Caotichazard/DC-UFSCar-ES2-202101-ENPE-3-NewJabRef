@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>PreferencesDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">PreferencesDialog.java</span></div><h1>PreferencesDialog.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/*  Copyright (C) 2003-2015 JabRef contributors.</span>
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Component;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.prefs.BackingStoreException;
+
+import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.ListSelectionModel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefException;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.JabRefPreferencesFilter;
+import net.sf.jabref.JabRefPreferencesFilterDialog;
+import net.sf.jabref.exporter.ExportFormats;
+import net.sf.jabref.gui.FileDialogs;
+import net.sf.jabref.gui.GUIGlobals;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.keyboard.KeyBinder;
+import net.sf.jabref.gui.maintable.MainTable;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Preferences dialog. Contains a TabbedPane, and tabs will be defined in
+ * separate classes. Tabs MUST implement the PrefsTab interface, since this
+ * dialog will call the storeSettings() method of all tabs when the user presses
+ * ok.
+ *
+ * With this design, it should be very easy to add new tabs later.
+ *
+ */
+public class PreferencesDialog extends JDialog {
+
+    private final JPanel main;
+
+    private final JabRefFrame frame;
+
+<span class="nc" id="L70">    private final JButton importPreferences = new JButton(Localization.lang(&quot;Import preferences&quot;));</span>
+<span class="nc" id="L71">    private final JButton exportPreferences = new JButton(Localization.lang(&quot;Export preferences&quot;));</span>
+<span class="nc" id="L72">    private final JButton showPreferences = new JButton(Localization.lang(&quot;Show preferences&quot;));</span>
+<span class="nc" id="L73">    private final JButton resetPreferences = new JButton(Localization.lang(&quot;Reset preferences&quot;));</span>
+
+<span class="nc" id="L75">    private static final Log LOGGER = LogFactory.getLog(PreferencesDialog.class);</span>
+
+
+    public PreferencesDialog(JabRefFrame parent) {
+<span class="nc" id="L79">        super(parent, Localization.lang(&quot;JabRef preferences&quot;), false);</span>
+<span class="nc" id="L80">        JabRefPreferences prefs = JabRefPreferences.getInstance();</span>
+<span class="nc" id="L81">        frame = parent;</span>
+
+<span class="nc" id="L83">        main = new JPanel();</span>
+<span class="nc" id="L84">        JPanel mainPanel = new JPanel();</span>
+<span class="nc" id="L85">        JPanel lower = new JPanel();</span>
+
+<span class="nc" id="L87">        getContentPane().setLayout(new BorderLayout());</span>
+<span class="nc" id="L88">        getContentPane().add(mainPanel, BorderLayout.CENTER);</span>
+<span class="nc" id="L89">        getContentPane().add(lower, BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L91">        final CardLayout cardLayout = new CardLayout();</span>
+<span class="nc" id="L92">        main.setLayout(cardLayout);</span>
+
+<span class="nc" id="L94">        List&lt;PrefsTab&gt; tabs = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L95">        tabs.add(new GeneralTab(prefs));</span>
+<span class="nc" id="L96">        tabs.add(new NetworkTab(prefs));</span>
+<span class="nc" id="L97">        tabs.add(new FileTab(frame, prefs));</span>
+<span class="nc" id="L98">        tabs.add(new FileSortTab(prefs));</span>
+<span class="nc" id="L99">        tabs.add(new EntryEditorPrefsTab(frame, prefs));</span>
+<span class="nc" id="L100">        tabs.add(new GroupsPrefsTab(prefs));</span>
+<span class="nc" id="L101">        tabs.add(new AppearancePrefsTab(prefs));</span>
+<span class="nc" id="L102">        tabs.add(new ExternalTab(frame, this, prefs));</span>
+<span class="nc" id="L103">        tabs.add(new TablePrefsTab(prefs));</span>
+<span class="nc" id="L104">        tabs.add(new TableColumnsTab(prefs, parent));</span>
+<span class="nc" id="L105">        tabs.add(new LabelPatternPrefTab(prefs, parent.getCurrentBasePanel()));</span>
+<span class="nc" id="L106">        tabs.add(new PreviewPrefsTab(prefs));</span>
+<span class="nc" id="L107">        tabs.add(new NameFormatterTab(prefs));</span>
+<span class="nc" id="L108">        tabs.add(new ImportSettingsTab(prefs));</span>
+<span class="nc" id="L109">        tabs.add(new XmpPrefsTab(prefs));</span>
+<span class="nc" id="L110">        tabs.add(new AdvancedTab(prefs));</span>
+
+        // add all tabs
+<span class="nc" id="L113">        tabs.forEach(tab -&gt; main.add((Component) tab, tab.getTabName()));</span>
+
+<span class="nc" id="L115">        mainPanel.setBorder(BorderFactory.createEtchedBorder());</span>
+
+<span class="nc" id="L117">        String[] tabNames = tabs.stream().map(PrefsTab::getTabName).toArray(String[]::new);</span>
+<span class="nc" id="L118">        JList&lt;String&gt; chooser = new JList&lt;&gt;(tabNames);</span>
+<span class="nc" id="L119">        chooser.setBorder(BorderFactory.createEtchedBorder());</span>
+        // Set a prototype value to control the width of the list:
+<span class="nc" id="L121">        chooser.setPrototypeCellValue(&quot;This should be wide enough&quot;);</span>
+<span class="nc" id="L122">        chooser.setSelectedIndex(0);</span>
+<span class="nc" id="L123">        chooser.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+
+        // Add the selection listener that will show the correct panel when
+        // selection changes:
+<span class="nc" id="L127">        chooser.addListSelectionListener(e -&gt; {</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (e.getValueIsAdjusting()) {</span>
+<span class="nc" id="L129">                return;</span>
+            }
+<span class="nc" id="L131">            String o = chooser.getSelectedValue();</span>
+<span class="nc" id="L132">            cardLayout.show(main, o);</span>
+<span class="nc" id="L133">        });</span>
+
+
+<span class="nc" id="L136">        JPanel buttons = new JPanel();</span>
+<span class="nc" id="L137">        buttons.setLayout(new GridLayout(4, 1));</span>
+<span class="nc" id="L138">        buttons.add(importPreferences, 0);</span>
+<span class="nc" id="L139">        buttons.add(exportPreferences, 1);</span>
+<span class="nc" id="L140">        buttons.add(showPreferences, 2);</span>
+<span class="nc" id="L141">        buttons.add(resetPreferences, 3);</span>
+
+<span class="nc" id="L143">        JPanel westPanel = new JPanel();</span>
+<span class="nc" id="L144">        westPanel.setLayout(new BorderLayout());</span>
+<span class="nc" id="L145">        westPanel.add(chooser, BorderLayout.CENTER);</span>
+<span class="nc" id="L146">        westPanel.add(buttons, BorderLayout.SOUTH);</span>
+<span class="nc" id="L147">        mainPanel.setLayout(new BorderLayout());</span>
+<span class="nc" id="L148">        mainPanel.add(main, BorderLayout.CENTER);</span>
+<span class="nc" id="L149">        mainPanel.add(westPanel, BorderLayout.WEST);</span>
+
+<span class="nc" id="L151">        JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+<span class="nc" id="L152">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L153">        ok.addActionListener(new OkAction());</span>
+<span class="nc" id="L154">        CancelAction cancelAction = new CancelAction();</span>
+<span class="nc" id="L155">        cancel.addActionListener(cancelAction);</span>
+<span class="nc" id="L156">        lower.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));</span>
+<span class="nc" id="L157">        ButtonBarBuilder buttonBarBuilder = new ButtonBarBuilder(lower);</span>
+<span class="nc" id="L158">        buttonBarBuilder.addGlue();</span>
+<span class="nc" id="L159">        buttonBarBuilder.addButton(ok);</span>
+<span class="nc" id="L160">        buttonBarBuilder.addButton(cancel);</span>
+<span class="nc" id="L161">        buttonBarBuilder.addGlue();</span>
+
+        // Key bindings:
+<span class="nc" id="L164">        KeyBinder.bindCloseDialogKeyToCancelAction(this.getRootPane(), cancelAction);</span>
+
+        // Import and export actions:
+<span class="nc" id="L167">        exportPreferences.setToolTipText(Localization.lang(&quot;Export preferences to file&quot;));</span>
+<span class="nc" id="L168">        exportPreferences.addActionListener(e -&gt; {</span>
+<span class="nc" id="L169">            String filename = FileDialogs.getNewFile(frame, new File(System.getProperty(&quot;user.home&quot;)), &quot;.xml&quot;,</span>
+<span class="nc" id="L170">                    JFileChooser.SAVE_DIALOG, false);</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">            if (filename == null) {</span>
+<span class="nc" id="L172">                return;</span>
+            }
+<span class="nc" id="L174">            File file = new File(filename);</span>
+<span class="nc bnc" id="L175" title="All 4 branches missed.">            if (!file.exists() || (JOptionPane.showConfirmDialog(PreferencesDialog.this,</span>
+<span class="nc" id="L176">                    Localization.lang(&quot;'%0' exists. Overwrite file?&quot;, file.getName()),</span>
+<span class="nc" id="L177">                    Localization.lang(&quot;Export preferences&quot;), JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION)) {</span>
+
+                try {
+<span class="nc" id="L180">                    prefs.exportPreferences(filename);</span>
+<span class="nc" id="L181">                } catch (JabRefException ex) {</span>
+<span class="nc" id="L182">                    LOGGER.warn(ex.getMessage(), ex);</span>
+<span class="nc" id="L183">                    JOptionPane.showMessageDialog(PreferencesDialog.this, ex.getLocalizedMessage(),</span>
+<span class="nc" id="L184">                            Localization.lang(&quot;Export preferences&quot;), JOptionPane.ERROR_MESSAGE);</span>
+                }
+            }
+<span class="nc" id="L187">        });</span>
+
+<span class="nc" id="L189">        importPreferences.setToolTipText(Localization.lang(&quot;Import preferences from file&quot;));</span>
+<span class="nc" id="L190">        importPreferences.addActionListener(e -&gt; {</span>
+<span class="nc" id="L191">            String filename = FileDialogs.getNewFile(frame, new File(System.getProperty(&quot;user.home&quot;)), &quot;.xml&quot;,</span>
+<span class="nc" id="L192">                    JFileChooser.OPEN_DIALOG, false);</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">            if (filename != null) {</span>
+                try {
+<span class="nc" id="L195">                    prefs.importPreferences(filename);</span>
+<span class="nc" id="L196">                    updateAfterPreferenceChanges();</span>
+<span class="nc" id="L197">                    JOptionPane.showMessageDialog(PreferencesDialog.this,</span>
+<span class="nc" id="L198">                            Localization.lang(&quot;You must restart JabRef for this to come into effect.&quot;),</span>
+<span class="nc" id="L199">                            Localization.lang(&quot;Import preferences&quot;),</span>
+<span class="nc" id="L200">                            JOptionPane.WARNING_MESSAGE);</span>
+<span class="nc" id="L201">                } catch (JabRefException ex) {</span>
+<span class="nc" id="L202">                    LOGGER.warn(ex.getMessage(), ex);</span>
+<span class="nc" id="L203">                    JOptionPane.showMessageDialog(PreferencesDialog.this, ex.getLocalizedMessage(),</span>
+<span class="nc" id="L204">                            Localization.lang(&quot;Import preferences&quot;), JOptionPane.ERROR_MESSAGE);</span>
+                }
+            }
+<span class="nc" id="L207">        });</span>
+
+<span class="nc" id="L209">        showPreferences.addActionListener(</span>
+<span class="nc" id="L210">                e -&gt; new JabRefPreferencesFilterDialog(new JabRefPreferencesFilter(Globals.prefs), frame)</span>
+<span class="nc" id="L211">                        .setVisible(true));</span>
+<span class="nc" id="L212">        resetPreferences.addActionListener(e -&gt; {</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">            if (JOptionPane.showConfirmDialog(PreferencesDialog.this,</span>
+<span class="nc" id="L214">                    Localization.lang(&quot;Are you sure you want to reset all settings to default values?&quot;),</span>
+<span class="nc" id="L215">                    Localization.lang(&quot;Reset preferences&quot;), JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {</span>
+                try {
+<span class="nc" id="L217">                    prefs.clear();</span>
+<span class="nc" id="L218">                    JOptionPane.showMessageDialog(PreferencesDialog.this,</span>
+<span class="nc" id="L219">                            Localization.lang(&quot;You must restart JabRef for this to come into effect.&quot;),</span>
+<span class="nc" id="L220">                            Localization.lang(&quot;Reset preferences&quot;),</span>
+<span class="nc" id="L221">                            JOptionPane.WARNING_MESSAGE);</span>
+<span class="nc" id="L222">                } catch (BackingStoreException ex) {</span>
+<span class="nc" id="L223">                    LOGGER.warn(ex.getMessage(), ex);</span>
+<span class="nc" id="L224">                    JOptionPane.showMessageDialog(PreferencesDialog.this, ex.getLocalizedMessage(),</span>
+<span class="nc" id="L225">                            Localization.lang(&quot;Reset preferences&quot;), JOptionPane.ERROR_MESSAGE);</span>
+                }
+<span class="nc" id="L227">                updateAfterPreferenceChanges();</span>
+            }
+<span class="nc" id="L229">        });</span>
+
+<span class="nc" id="L231">        setValues();</span>
+
+<span class="nc" id="L233">        pack();</span>
+
+<span class="nc" id="L235">    }</span>
+
+    private void updateAfterPreferenceChanges() {
+<span class="nc" id="L238">        setValues();</span>
+<span class="nc" id="L239">        ExportFormats.initAllExports();</span>
+<span class="nc" id="L240">        frame.removeCachedEntryEditors();</span>
+<span class="nc" id="L241">        Globals.prefs.updateEntryEditorTabList();</span>
+<span class="nc" id="L242">    }</span>
+
+    class OkAction extends AbstractAction {
+
+<span class="nc" id="L246">        public OkAction() {</span>
+<span class="nc" id="L247">            super(&quot;OK&quot;);</span>
+<span class="nc" id="L248">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            // First check that all tabs are ready to close:
+<span class="nc" id="L254">            int count = main.getComponentCount();</span>
+<span class="nc" id="L255">            Component[] comps = main.getComponents();</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">            for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc bnc" id="L257" title="All 2 branches missed.">                if (!((PrefsTab) comps[i]).validateSettings()) {</span>
+<span class="nc" id="L258">                    return; // If not, break off.</span>
+                }
+            }
+            // Then store settings and close:
+<span class="nc bnc" id="L262" title="All 2 branches missed.">            for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc" id="L263">                ((PrefsTab) comps[i]).storeSettings();</span>
+            }
+<span class="nc" id="L265">            Globals.prefs.flush();</span>
+
+<span class="nc" id="L267">            setVisible(false);</span>
+<span class="nc" id="L268">            MainTable.updateRenderers();</span>
+<span class="nc" id="L269">            GUIGlobals.updateEntryEditorColors();</span>
+<span class="nc" id="L270">            frame.setupAllTables();</span>
+<span class="nc" id="L271">            frame.getGroupSelector().revalidateGroups(); // icons may have changed</span>
+<span class="nc" id="L272">            frame.output(Localization.lang(&quot;Preferences recorded.&quot;));</span>
+<span class="nc" id="L273">        }</span>
+    }
+
+
+    public void setValues() {
+        // Update all field values in the tabs:
+<span class="nc" id="L279">        int count = main.getComponentCount();</span>
+<span class="nc" id="L280">        Component[] comps = main.getComponents();</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">        for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc" id="L282">            ((PrefsTab) comps[i]).setValues();</span>
+        }
+<span class="nc" id="L284">    }</span>
+
+
+    class CancelAction extends AbstractAction {
+
+<span class="nc" id="L289">        public CancelAction() {</span>
+<span class="nc" id="L290">            super(&quot;Cancel&quot;);</span>
+<span class="nc" id="L291">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L295">            setVisible(false);</span>
+<span class="nc" id="L296">        }</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

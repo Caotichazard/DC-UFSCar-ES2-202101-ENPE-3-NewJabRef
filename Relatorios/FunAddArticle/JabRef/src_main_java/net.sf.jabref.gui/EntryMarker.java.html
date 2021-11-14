@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryMarker.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">EntryMarker.java</span></div><h1>EntryMarker.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui;
+
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.gui.undo.NamedCompound;
+import net.sf.jabref.gui.undo.UndoableFieldChange;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+<span class="nc" id="L31">public class EntryMarker {</span>
+
+    public static final int MARK_COLOR_LEVELS = 6;
+    public static final int MAX_MARKING_LEVEL = MARK_COLOR_LEVELS - 1;
+    public static final int IMPORT_MARK_LEVEL = MARK_COLOR_LEVELS;
+
+<span class="fc" id="L37">    private static final Pattern MARK_NUMBER_PATTERN = Pattern.compile(JabRefPreferences.getInstance().MARKING_WITH_NUMBER_PATTERN);</span>
+
+
+    /**
+     * @param increment whether the given increment should be added to the current one. Currently never used in JabRef. Could be used to increase marking color (&quot;Mark in specific color&quot;).
+     */
+    public static void markEntry(BibEntry be, int markIncrement, boolean increment, NamedCompound ce) {
+        int prevMarkLevel;
+<span class="nc" id="L45">        String newValue = null;</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (be.hasField(InternalBibtexFields.MARKED)) {</span>
+<span class="nc" id="L47">            String s = be.getField(InternalBibtexFields.MARKED);</span>
+<span class="nc" id="L48">            int index = s.indexOf(Globals.prefs.WRAPPED_USERNAME);</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            if (index &gt;= 0) {</span>
+                // Already marked 1 for this user.
+<span class="nc" id="L51">                prevMarkLevel = 1;</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">                newValue = s.substring(0, index) + s.substring(index + Globals.prefs.WRAPPED_USERNAME.length()) + Globals.prefs.WRAPPED_USERNAME.substring(0, Globals.prefs.WRAPPED_USERNAME.length() - 1) + &quot;:&quot; + (increment ? Math.min(MAX_MARKING_LEVEL, prevMarkLevel + markIncrement) : markIncrement) + &quot;]&quot;;</span>
+<span class="nc" id="L53">            } else {</span>
+<span class="nc" id="L54">                Matcher m = MARK_NUMBER_PATTERN.matcher(s);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">                if (m.find()) {</span>
+                    try {
+<span class="nc" id="L57">                        prevMarkLevel = Integer.parseInt(m.group(1));</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">                        newValue = s.substring(0, m.start(1)) + (increment ? Math.min(MAX_MARKING_LEVEL, prevMarkLevel + markIncrement) : markIncrement) + s.substring(m.end(1));</span>
+<span class="nc" id="L59">                    } catch (NumberFormatException ex) {</span>
+                        // Do nothing.
+                    }
+                }
+            }
+        }
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (newValue == null) {</span>
+<span class="nc" id="L66">            newValue = Globals.prefs.WRAPPED_USERNAME.substring(0, Globals.prefs.WRAPPED_USERNAME.length() - 1) + &quot;:&quot; + markIncrement + &quot;]&quot;;</span>
+        }
+
+<span class="nc" id="L69">        ce.addEdit(new UndoableFieldChange(be, InternalBibtexFields.MARKED, be.getField(InternalBibtexFields.MARKED), newValue));</span>
+<span class="nc" id="L70">        be.setField(InternalBibtexFields.MARKED, newValue);</span>
+<span class="nc" id="L71">    }</span>
+
+    /**
+     * SIDE EFFECT: Unselects given entry
+     */
+    public static void unmarkEntry(BibEntry be, boolean onlyMaxLevel, BibDatabase database, NamedCompound ce) {
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (be.hasField(InternalBibtexFields.MARKED)) {</span>
+<span class="nc" id="L78">            String s = be.getField(InternalBibtexFields.MARKED);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">            if (&quot;0&quot;.equals(s)) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">                if (!onlyMaxLevel) {</span>
+<span class="nc" id="L81">                    unmarkOldStyle(be, database, ce);</span>
+                }
+<span class="nc" id="L83">                return;</span>
+            }
+<span class="nc" id="L85">            String newValue = null;</span>
+<span class="nc" id="L86">            int index = s.indexOf(Globals.prefs.WRAPPED_USERNAME);</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            if (index &gt;= 0) {</span>
+                // Marked 1 for this user.
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                if (onlyMaxLevel) {</span>
+<span class="nc" id="L90">                    return;</span>
+                } else {
+<span class="nc" id="L92">                    newValue = s.substring(0, index) + s.substring(index + Globals.prefs.WRAPPED_USERNAME.length());</span>
+                }
+<span class="nc" id="L94">            } else {</span>
+<span class="nc" id="L95">                Matcher m = MARK_NUMBER_PATTERN.matcher(s);</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                if (m.find()) {</span>
+                    try {
+<span class="nc" id="L98">                        int prevMarkLevel = Integer.parseInt(m.group(1));</span>
+<span class="nc bnc" id="L99" title="All 4 branches missed.">                        if (!onlyMaxLevel || (prevMarkLevel == MARK_COLOR_LEVELS)) {</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                            if (prevMarkLevel &gt; 1) {</span>
+<span class="nc" id="L101">                                newValue = s.substring(0, m.start(1)) + s.substring(m.end(1));</span>
+<span class="nc" id="L102">                            } else {</span>
+<span class="nc" id="L103">                                String toRemove = Globals.prefs.WRAPPED_USERNAME.substring(0, Globals.prefs.WRAPPED_USERNAME.length() - 1) + &quot;:1]&quot;;</span>
+<span class="nc" id="L104">                                index = s.indexOf(toRemove);</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                                if (index &gt;= 0) {</span>
+<span class="nc" id="L106">                                    newValue = s.substring(0, index) + s.substring(index + toRemove.length());</span>
+                                }
+                            }
+<span class="nc" id="L109">                        } else {</span>
+<span class="nc" id="L110">                            return;</span>
+                        }
+<span class="nc" id="L112">                    } catch (NumberFormatException ex) {</span>
+                        // Do nothing.
+                    }
+                }
+            }
+
+            /*int piv = 0, hit;
+            StringBuffer sb = new StringBuffer();
+            while ((hit = s.indexOf(G047749118118
+            1110lobals.prefs.WRAPPED_USERNAME, piv)) &gt;= 0) {
+            	if (hit &gt; 0)
+            		sb.append(s.substring(piv, hit));
+            	piv = hit + Globals.prefs.WRAPPED_USERNAME.length();
+            }
+            if (piv &lt; s.length() - 1) {
+            	sb.append(s.substring(piv));
+            }
+            String newVal = sb.length() &gt; 0 ? sb.toString() : null;*/
+<span class="nc" id="L130">            ce.addEdit(new UndoableFieldChange(be, InternalBibtexFields.MARKED, be.getField(InternalBibtexFields.MARKED), newValue));</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (newValue == null) {</span>
+<span class="nc" id="L132">                be.clearField(InternalBibtexFields.MARKED);</span>
+<span class="nc" id="L133">            } else {</span>
+<span class="nc" id="L134">                be.setField(InternalBibtexFields.MARKED, newValue);</span>
+            }
+        }
+<span class="nc" id="L137">    }</span>
+
+    /**
+     * An entry is marked with a &quot;0&quot;, not in the new style with user names. We
+     * want to unmark it as transparently as possible. Since this shouldn't
+     * happen too often, we do it by scanning the &quot;owner&quot; fields of the entire
+     * database, collecting all user names. We then mark the entry for all users
+     * except the current one. Thus only the user who unmarks will see that it
+     * is unmarked, and we get rid of the old-style marking.
+     *
+     * @param be
+     * @param ce
+     */
+    private static void unmarkOldStyle(BibEntry be, BibDatabase database, NamedCompound ce) {
+<span class="nc" id="L151">        Set&lt;Object&gt; owners = new TreeSet&lt;&gt;();</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        for (BibEntry entry : database.getEntries()) {</span>
+<span class="nc" id="L153">            entry.getFieldOptional(InternalBibtexFields.OWNER).ifPresent(owners::add);</span>
+        }
+<span class="nc" id="L155">        owners.remove(Globals.prefs.get(JabRefPreferences.DEFAULT_OWNER));</span>
+<span class="nc" id="L156">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        for (Object owner : owners) {</span>
+<span class="nc" id="L158">            sb.append('[');</span>
+<span class="nc" id="L159">            sb.append(owner);</span>
+<span class="nc" id="L160">            sb.append(']');</span>
+        }
+<span class="nc" id="L162">        String newVal = sb.toString();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (newVal.isEmpty()) {</span>
+<span class="nc" id="L164">            ce.addEdit(new UndoableFieldChange(be, InternalBibtexFields.MARKED, be.getField(InternalBibtexFields.MARKED), null));</span>
+<span class="nc" id="L165">            be.clearField(InternalBibtexFields.MARKED);</span>
+<span class="nc" id="L166">        } else {</span>
+<span class="nc" id="L167">            ce.addEdit(new UndoableFieldChange(be, InternalBibtexFields.MARKED, be.getField(InternalBibtexFields.MARKED), newVal));</span>
+<span class="nc" id="L168">            be.setField(InternalBibtexFields.MARKED, newVal);</span>
+        }
+<span class="nc" id="L170">    }</span>
+
+    public static int isMarked(BibEntry be) {
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">        if (!be.hasField(InternalBibtexFields.MARKED)) {</span>
+<span class="fc" id="L174">            return 0;</span>
+        }
+<span class="nc" id="L176">        String s = be.getField(InternalBibtexFields.MARKED);</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (&quot;0&quot;.equals(s)) {</span>
+<span class="nc" id="L178">            return 1;</span>
+        }
+<span class="nc" id="L180">        int index = s.indexOf(Globals.prefs.WRAPPED_USERNAME);</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if (index &gt;= 0) {</span>
+<span class="nc" id="L182">            return 1;</span>
+        }
+
+<span class="nc" id="L185">        Matcher m = MARK_NUMBER_PATTERN.matcher(s);</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (m.find()) {</span>
+            try {
+<span class="nc" id="L188">                return Integer.parseInt(m.group(1));</span>
+<span class="nc" id="L189">            } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L190">                return 1;</span>
+            }
+        } else {
+<span class="nc" id="L193">            return 0;</span>
+        }
+
+    }
+
+    public static boolean shouldMarkEntries() {
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        return (Globals.prefs.getBoolean(JabRefPreferences.MARK_IMPORTED_ENTRIES)</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">                &amp;&amp; (Globals.prefs.getBoolean(JabRefPreferences.USE_OWNER)</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">                        || Globals.prefs.getBoolean(JabRefPreferences.USE_TIME_STAMP)));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

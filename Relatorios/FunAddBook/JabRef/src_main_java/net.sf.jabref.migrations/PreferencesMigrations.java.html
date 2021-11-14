@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>PreferencesMigrations.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.migrations</a> &gt; <span class="el_source">PreferencesMigrations.java</span></div><h1>PreferencesMigrations.java</h1><pre class="source lang-java linenums">package net.sf.jabref.migrations;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+
+<span class="nc" id="L9">public class PreferencesMigrations {</span>
+
+    /**
+     * This method is called at startup, and makes necessary adaptations to
+     * preferences for users from an earlier version of Jabref.
+     */
+    public static void replaceAbstractField() {
+        // Make sure &quot;abstract&quot; is not in General fields, because
+        // Jabref 1.55 moves the abstract to its own tab.
+<span class="fc" id="L18">        String genFields = Globals.prefs.get(JabRefPreferences.GENERAL_FIELDS);</span>
+
+<span class="pc bpc" id="L20" title="1 of 2 branches missed.">        if (genFields.contains(&quot;abstract&quot;)) {</span>
+
+            String newGen;
+<span class="nc bnc" id="L23" title="All 2 branches missed.">            if (&quot;abstract&quot;.equals(genFields)) {</span>
+<span class="nc" id="L24">                newGen = &quot;&quot;;</span>
+<span class="nc bnc" id="L25" title="All 2 branches missed.">            } else if (genFields.contains(&quot;;abstract;&quot;)) {</span>
+<span class="nc" id="L26">                newGen = genFields.replace(&quot;;abstract;&quot;, &quot;;&quot;);</span>
+<span class="nc bnc" id="L27" title="All 2 branches missed.">            } else if (genFields.indexOf(&quot;abstract;&quot;) == 0) {</span>
+<span class="nc" id="L28">                newGen = genFields.replace(&quot;abstract;&quot;, &quot;&quot;);</span>
+<span class="nc bnc" id="L29" title="All 2 branches missed.">            } else if (genFields.indexOf(&quot;;abstract&quot;) == (genFields.length() - 9)) {</span>
+<span class="nc" id="L30">                newGen = genFields.replace(&quot;;abstract&quot;, &quot;&quot;);</span>
+<span class="nc" id="L31">            } else {</span>
+<span class="nc" id="L32">                newGen = genFields;</span>
+            }
+
+<span class="nc" id="L35">            Globals.prefs.put(JabRefPreferences.GENERAL_FIELDS, newGen);</span>
+        }
+<span class="fc" id="L37">    }</span>
+
+    /**
+     * Added from Jabref 2.11 beta 4 onwards to fix wrong encoding names
+     */
+    public static void upgradeFaultyEncodingStrings() {
+<span class="fc" id="L43">        JabRefPreferences prefs = Globals.prefs;</span>
+<span class="fc" id="L44">        String defaultEncoding = prefs.get(JabRefPreferences.DEFAULT_ENCODING);</span>
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">        if (defaultEncoding == null) {</span>
+<span class="nc" id="L46">            return;</span>
+        }
+
+<span class="fc" id="L49">        Map&lt;String, String&gt; encodingMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L50">        encodingMap.put(&quot;UTF8&quot;, &quot;UTF-8&quot;);</span>
+<span class="fc" id="L51">        encodingMap.put(&quot;Cp1250&quot;, &quot;CP1250&quot;);</span>
+<span class="fc" id="L52">        encodingMap.put(&quot;Cp1251&quot;, &quot;CP1251&quot;);</span>
+<span class="fc" id="L53">        encodingMap.put(&quot;Cp1252&quot;, &quot;CP1252&quot;);</span>
+<span class="fc" id="L54">        encodingMap.put(&quot;Cp1253&quot;, &quot;CP1253&quot;);</span>
+<span class="fc" id="L55">        encodingMap.put(&quot;Cp1254&quot;, &quot;CP1254&quot;);</span>
+<span class="fc" id="L56">        encodingMap.put(&quot;Cp1257&quot;, &quot;CP1257&quot;);</span>
+<span class="fc" id="L57">        encodingMap.put(&quot;ISO8859_1&quot;, &quot;ISO8859-1&quot;);</span>
+<span class="fc" id="L58">        encodingMap.put(&quot;ISO8859_2&quot;, &quot;ISO8859-2&quot;);</span>
+<span class="fc" id="L59">        encodingMap.put(&quot;ISO8859_3&quot;, &quot;ISO8859-3&quot;);</span>
+<span class="fc" id="L60">        encodingMap.put(&quot;ISO8859_4&quot;, &quot;ISO8859-4&quot;);</span>
+<span class="fc" id="L61">        encodingMap.put(&quot;ISO8859_5&quot;, &quot;ISO8859-5&quot;);</span>
+<span class="fc" id="L62">        encodingMap.put(&quot;ISO8859_6&quot;, &quot;ISO8859-6&quot;);</span>
+<span class="fc" id="L63">        encodingMap.put(&quot;ISO8859_7&quot;, &quot;ISO8859-7&quot;);</span>
+<span class="fc" id="L64">        encodingMap.put(&quot;ISO8859_8&quot;, &quot;ISO8859-8&quot;);</span>
+<span class="fc" id="L65">        encodingMap.put(&quot;ISO8859_9&quot;, &quot;ISO8859-9&quot;);</span>
+<span class="fc" id="L66">        encodingMap.put(&quot;ISO8859_13&quot;, &quot;ISO8859-13&quot;);</span>
+<span class="fc" id="L67">        encodingMap.put(&quot;ISO8859_15&quot;, &quot;ISO8859-15&quot;);</span>
+<span class="fc" id="L68">        encodingMap.put(&quot;KOI8_R&quot;, &quot;KOI8-R&quot;);</span>
+<span class="fc" id="L69">        encodingMap.put(&quot;Big5_HKSCS&quot;, &quot;Big5-HKSCS&quot;);</span>
+<span class="fc" id="L70">        encodingMap.put(&quot;EUC_JP&quot;, &quot;EUC-JP&quot;);</span>
+
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if (encodingMap.containsKey(defaultEncoding)) {</span>
+<span class="nc" id="L73">            prefs.put(JabRefPreferences.DEFAULT_ENCODING, encodingMap.get(defaultEncoding));</span>
+        }
+<span class="fc" id="L75">    }</span>
+
+    /**
+     * Upgrade the sort order preferences for the current version
+     * The old preference is kept in case an old version of JabRef is used with
+     * these preferences, but it is only used when the new preference does not
+     * exist
+     */
+    public static void upgradeSortOrder() {
+<span class="fc" id="L84">        JabRefPreferences prefs = Globals.prefs;</span>
+
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (prefs.get(JabRefPreferences.EXPORT_IN_SPECIFIED_ORDER, null) == null) {</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">            if (prefs.getBoolean(&quot;exportInStandardOrder&quot;, false)) {</span>
+<span class="nc" id="L88">                prefs.putBoolean(JabRefPreferences.EXPORT_IN_SPECIFIED_ORDER, true);</span>
+<span class="nc" id="L89">                prefs.put(JabRefPreferences.EXPORT_PRIMARY_SORT_FIELD, &quot;author&quot;);</span>
+<span class="nc" id="L90">                prefs.put(JabRefPreferences.EXPORT_SECONDARY_SORT_FIELD, &quot;editor&quot;);</span>
+<span class="nc" id="L91">                prefs.put(JabRefPreferences.EXPORT_TERTIARY_SORT_FIELD, &quot;year&quot;);</span>
+<span class="nc" id="L92">                prefs.putBoolean(JabRefPreferences.EXPORT_PRIMARY_SORT_DESCENDING, false);</span>
+<span class="nc" id="L93">                prefs.putBoolean(JabRefPreferences.EXPORT_SECONDARY_SORT_DESCENDING, false);</span>
+<span class="nc" id="L94">                prefs.putBoolean(JabRefPreferences.EXPORT_TERTIARY_SORT_DESCENDING, false);</span>
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">            } else if (prefs.getBoolean(&quot;exportInTitleOrder&quot;, false)) {</span>
+                // exportInTitleOrder =&gt; title, author, editor
+<span class="nc" id="L97">                prefs.putBoolean(JabRefPreferences.EXPORT_IN_SPECIFIED_ORDER, true);</span>
+<span class="nc" id="L98">                prefs.put(JabRefPreferences.EXPORT_PRIMARY_SORT_FIELD, &quot;title&quot;);</span>
+<span class="nc" id="L99">                prefs.put(JabRefPreferences.EXPORT_SECONDARY_SORT_FIELD, &quot;author&quot;);</span>
+<span class="nc" id="L100">                prefs.put(JabRefPreferences.EXPORT_TERTIARY_SORT_FIELD, &quot;editor&quot;);</span>
+<span class="nc" id="L101">                prefs.putBoolean(JabRefPreferences.EXPORT_PRIMARY_SORT_DESCENDING, false);</span>
+<span class="nc" id="L102">                prefs.putBoolean(JabRefPreferences.EXPORT_SECONDARY_SORT_DESCENDING, false);</span>
+<span class="nc" id="L103">                prefs.putBoolean(JabRefPreferences.EXPORT_TERTIARY_SORT_DESCENDING, false);</span>
+            }
+        }
+<span class="fc" id="L106">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

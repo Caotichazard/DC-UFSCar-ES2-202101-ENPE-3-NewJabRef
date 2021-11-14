@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryFetchers.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fetcher</a> &gt; <span class="el_source">EntryFetchers.java</span></div><h1>EntryFetchers.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.importer.fetcher;
+
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
+import net.sf.jabref.logic.journals.JournalAbbreviationLoader;
+
+public class EntryFetchers {
+
+<span class="fc" id="L26">    private final List&lt;EntryFetcher&gt; entryFetchers = new LinkedList&lt;&gt;();</span>
+
+
+<span class="fc" id="L29">    public EntryFetchers(JournalAbbreviationLoader abbreviationLoader) {</span>
+<span class="fc" id="L30">        entryFetchers.add(new ADSFetcher());</span>
+<span class="fc" id="L31">        entryFetchers.add(new CiteSeerXFetcher());</span>
+<span class="fc" id="L32">        entryFetchers.add(new DBLPFetcher());</span>
+<span class="fc" id="L33">        entryFetchers.add(new DiVAtoBibTeXFetcher());</span>
+<span class="fc" id="L34">        entryFetchers.add(new DOItoBibTeXFetcher());</span>
+<span class="fc" id="L35">        entryFetchers.add(new GVKFetcher());</span>
+<span class="fc" id="L36">        entryFetchers.add(new IEEEXploreFetcher(abbreviationLoader));</span>
+<span class="fc" id="L37">        entryFetchers.add(new INSPIREFetcher());</span>
+<span class="fc" id="L38">        entryFetchers.add(new ISBNtoBibTeXFetcher());</span>
+<span class="fc" id="L39">        entryFetchers.add(new MedlineFetcher());</span>
+<span class="fc" id="L40">        entryFetchers.add(new OAI2Fetcher());</span>
+        // entryFetchers.add(new ScienceDirectFetcher()); currently not working - removed see #409
+<span class="fc" id="L42">        entryFetchers.add(new ACMPortalFetcher());</span>
+<span class="fc" id="L43">        entryFetchers.add(new GoogleScholarFetcher());</span>
+<span class="fc" id="L44">        entryFetchers.add(new DOAJFetcher());</span>
+<span class="fc" id="L45">        entryFetchers.add(new SpringerFetcher());</span>
+<span class="fc" id="L46">    }</span>
+
+    public List&lt;EntryFetcher&gt; getEntryFetchers() {
+<span class="fc" id="L49">        return Collections.unmodifiableList(this.entryFetchers);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

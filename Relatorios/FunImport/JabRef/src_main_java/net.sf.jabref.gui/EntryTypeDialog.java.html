@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryTypeDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">EntryTypeDialog.java</span></div><h1>EntryTypeDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui;
+
+import java.awt.BorderLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.Collection;
+
+import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.logic.CustomEntryTypesManager;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.EntryTypes;
+import net.sf.jabref.model.entry.BibtexEntryTypes;
+import net.sf.jabref.model.entry.EntryType;
+import net.sf.jabref.model.entry.IEEETranEntryTypes;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import org.jdesktop.swingx.VerticalLayout;
+
+/**
+ * Dialog that prompts the user to choose a type for an entry.
+ * Returns null if canceled.
+ */
+public class EntryTypeDialog extends JDialog implements ActionListener {
+    private EntryType type;
+    private static final int COLUMN = 3;
+    private final boolean biblatexMode;
+
+<span class="nc" id="L57">    private final CancelAction cancelAction = new CancelAction();</span>
+    private final BibDatabaseContext bibDatabaseContext;
+
+    static class TypeButton extends JButton implements Comparable&lt;TypeButton&gt; {
+
+        private final EntryType type;
+
+
+        public TypeButton(String label, EntryType type) {
+<span class="nc" id="L66">            super(label);</span>
+<span class="nc" id="L67">            this.type = type;</span>
+<span class="nc" id="L68">        }</span>
+
+        @Override
+        public int compareTo(TypeButton o) {
+<span class="nc" id="L72">            return type.getName().compareTo(o.type.getName());</span>
+        }
+
+        public EntryType getType() {
+<span class="nc" id="L76">            return type;</span>
+        }
+    }
+
+    public EntryTypeDialog(JabRefFrame frame) {
+        // modal dialog
+<span class="nc" id="L82">        super(frame, true);</span>
+
+<span class="nc" id="L84">        bibDatabaseContext = frame.getCurrentBasePanel().getBibDatabaseContext();</span>
+<span class="nc" id="L85">        biblatexMode = bibDatabaseContext.isBiblatexMode();</span>
+
+
+<span class="nc" id="L88">        setTitle(Localization.lang(&quot;Select entry type&quot;));</span>
+
+<span class="nc" id="L90">        addWindowListener(new WindowAdapter() {</span>
+            @Override
+            public void windowClosing(WindowEvent e) {
+<span class="nc" id="L93">                cancelAction.actionPerformed(null);</span>
+<span class="nc" id="L94">            }</span>
+        });
+
+<span class="nc" id="L97">        getContentPane().setLayout(new BorderLayout());</span>
+<span class="nc" id="L98">        getContentPane().add(createCancelButtonBarPanel(), BorderLayout.SOUTH);</span>
+<span class="nc" id="L99">        getContentPane().add(createEntryGroupsPanel(), BorderLayout.CENTER);</span>
+
+<span class="nc" id="L101">        pack();</span>
+<span class="nc" id="L102">        setResizable(false);</span>
+<span class="nc" id="L103">    }</span>
+
+    private JPanel createEntryGroupsPanel() {
+<span class="nc" id="L106">        JPanel panel = new JPanel();</span>
+<span class="nc" id="L107">        panel.setLayout(new VerticalLayout());</span>
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if(biblatexMode) {</span>
+<span class="nc" id="L110">            panel.add(createEntryGroupPanel(&quot;BibLateX&quot;, EntryTypes.getAllValues(bibDatabaseContext.getMode())));</span>
+<span class="nc" id="L111">        } else {</span>
+<span class="nc" id="L112">            panel.add(createEntryGroupPanel(&quot;BibTeX&quot;, BibtexEntryTypes.ALL));</span>
+<span class="nc" id="L113">            panel.add(createEntryGroupPanel(&quot;IEEETran&quot;, IEEETranEntryTypes.ALL));</span>
+<span class="nc" id="L114">            panel.add(createEntryGroupPanel(&quot;Custom&quot;, CustomEntryTypesManager.ALL));</span>
+        }
+
+<span class="nc" id="L117">        return panel;</span>
+    }
+
+    private JPanel createCancelButtonBarPanel() {
+<span class="nc" id="L121">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L122">        cancel.addActionListener(this);</span>
+
+        // Make ESC close dialog, equivalent to clicking Cancel.
+<span class="nc" id="L125">        cancel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L126">        cancel.getActionMap().put(&quot;close&quot;, cancelAction);</span>
+
+<span class="nc" id="L128">        JPanel buttons = new JPanel();</span>
+<span class="nc" id="L129">        ButtonBarBuilder bb = new ButtonBarBuilder(buttons);</span>
+<span class="nc" id="L130">        bb.addGlue();</span>
+<span class="nc" id="L131">        bb.addButton(cancel);</span>
+<span class="nc" id="L132">        bb.addGlue();</span>
+<span class="nc" id="L133">        return buttons;</span>
+    }
+
+    private JPanel createEntryGroupPanel(String groupTitle, Collection&lt;EntryType&gt; entries) {
+<span class="nc" id="L137">        JPanel panel = new JPanel();</span>
+<span class="nc" id="L138">        GridBagLayout bagLayout = new GridBagLayout();</span>
+<span class="nc" id="L139">        panel.setLayout(bagLayout);</span>
+<span class="nc" id="L140">        GridBagConstraints constraints = new GridBagConstraints();</span>
+<span class="nc" id="L141">        constraints.anchor = GridBagConstraints.WEST;</span>
+<span class="nc" id="L142">        constraints.fill = GridBagConstraints.HORIZONTAL;</span>
+<span class="nc" id="L143">        constraints.insets = new Insets(4, 4, 4, 4);</span>
+        // column count
+<span class="nc" id="L145">        int col = 0;</span>
+
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        for (EntryType entryType : entries) {</span>
+<span class="nc" id="L148">            TypeButton entryButton = new TypeButton(entryType.getName(), entryType);</span>
+<span class="nc" id="L149">            entryButton.addActionListener(this);</span>
+            // Check if we should finish the row.
+<span class="nc" id="L151">            col++;</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">            if (col == EntryTypeDialog.COLUMN) {</span>
+<span class="nc" id="L153">                col = 0;</span>
+<span class="nc" id="L154">                constraints.gridwidth = GridBagConstraints.REMAINDER;</span>
+<span class="nc" id="L155">            } else {</span>
+<span class="nc" id="L156">                constraints.gridwidth = 1;</span>
+            }
+<span class="nc" id="L158">            bagLayout.setConstraints(entryButton, constraints);</span>
+<span class="nc" id="L159">            panel.add(entryButton);</span>
+        }
+<span class="nc" id="L161">        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), groupTitle));</span>
+
+<span class="nc" id="L163">        return panel;</span>
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        if (e.getSource() instanceof TypeButton) {</span>
+<span class="nc" id="L169">            type = ((TypeButton) e.getSource()).getType();</span>
+        }
+<span class="nc" id="L171">        dispose();</span>
+<span class="nc" id="L172">    }</span>
+
+    public EntryType getChoice() {
+<span class="nc" id="L175">        return type;</span>
+    }
+
+
+    class CancelAction extends AbstractAction {
+<span class="nc" id="L180">        public CancelAction() {</span>
+<span class="nc" id="L181">            super(&quot;Cancel&quot;);</span>
+<span class="nc" id="L182">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L186">            dispose();</span>
+<span class="nc" id="L187">        }</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

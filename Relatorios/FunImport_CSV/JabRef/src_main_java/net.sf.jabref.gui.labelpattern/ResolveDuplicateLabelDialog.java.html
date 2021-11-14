@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>ResolveDuplicateLabelDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.labelpattern</a> &gt; <span class="el_source">ResolveDuplicateLabelDialog.java</span></div><h1>ResolveDuplicateLabelDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.labelpattern;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JScrollPane;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.PreviewPanel;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+/**
+ * Dialog box for resolving duplicate bibte keys
+ */
+class ResolveDuplicateLabelDialog {
+
+    private final JDialog diag;
+<span class="nc" id="L52">    private final List&lt;JCheckBox&gt; cbs = new ArrayList&lt;&gt;();</span>
+    private boolean okPressed;
+
+    private static final String LAYOUT = &quot;&lt;font face=\&quot;arial\&quot;&gt;&lt;b&gt;&lt;i&gt;\\bibtextype&lt;/i&gt;&lt;a name=\&quot;\\bibtexkey\&quot;&gt;\\begin{bibtexkey} (\\bibtexkey)&lt;/a&gt;\\end{bibtexkey}&lt;/b&gt;&lt;br&gt;\n&quot; +
+            &quot;\\begin{author} \\format[HTMLChars,AuthorAbbreviator,AuthorAndsReplacer]{\\author}&lt;BR&gt;\\end{author}\n&quot; +
+            &quot;\\begin{editor} \\format[HTMLChars,AuthorAbbreviator,AuthorAndsReplacer]{\\editor} &lt;i&gt;(\\format[IfPlural(Eds.,Ed.)]{\\editor})&lt;/i&gt;&lt;BR&gt;\\end{editor}\n&quot; +
+            &quot;\\begin{title} \\format[HTMLChars]{\\title} \\end{title}&lt;BR&gt;\n&quot; +
+            &quot;\\begin{chapter} \\format[HTMLChars]{\\chapter}&lt;BR&gt;\\end{chapter}\n&quot; +
+            &quot;\\begin{journal} &lt;em&gt;\\format[HTMLChars]{\\journal}, &lt;/em&gt;\\end{journal}\n&quot; +
+            &quot;\\begin{booktitle} &lt;em&gt;\\format[HTMLChars]{\\booktitle}, &lt;/em&gt;\\end{booktitle}\n&quot; +
+            &quot;\\begin{school} &lt;em&gt;\\format[HTMLChars]{\\school}, &lt;/em&gt;\\end{school}\n&quot; +
+            &quot;\\begin{institution} &lt;em&gt;\\format[HTMLChars]{\\institution}, &lt;/em&gt;\\end{institution}\n&quot; +
+            &quot;\\begin{publisher} &lt;em&gt;\\format[HTMLChars]{\\publisher}, &lt;/em&gt;\\end{publisher}\n&quot; +
+            &quot;\\begin{year}&lt;b&gt;\\year&lt;/b&gt;\\end{year}\\begin{volume}&lt;i&gt;, \\volume&lt;/i&gt;\\end{volume}\\begin{pages}, \\format[FormatPagesForHTML]{\\pages} \\end{pages}\n&quot; +
+            &quot;&lt;p&gt;&lt;/p&gt;&lt;/font&gt;&quot;;
+
+
+<span class="nc" id="L69">    public ResolveDuplicateLabelDialog(BasePanel panel, String key, List&lt;BibEntry&gt; entries) {</span>
+<span class="nc" id="L70">        diag = new JDialog(panel.frame(), Localization.lang(&quot;Duplicate BibTeX key&quot;), true);</span>
+
+<span class="nc" id="L72">        FormBuilder b = FormBuilder.create().layout(new FormLayout(</span>
+<span class="nc" id="L73">                &quot;left:pref, 4dlu, fill:pref&quot;, &quot;p&quot;));</span>
+<span class="nc" id="L74">        b.add(new JLabel(Localization.lang(&quot;Duplicate BibTeX key&quot;) + &quot;: &quot; + key)).xyw(1, 1, 3);</span>
+<span class="nc" id="L75">        b.getPanel().setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+
+<span class="nc" id="L77">        boolean first = true;</span>
+<span class="nc" id="L78">        int row = 3;</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        for (BibEntry entry : entries) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">            JCheckBox cb = new JCheckBox(Localization.lang(&quot;Generate BibTeX key&quot;), !first);</span>
+            //JPanel pan = new JPanel();
+            //pan.setLayout(new BorderLayout());
+            //pan.add(cb, BorderLayout.NORTH);
+            //cb.add(new JPanel(), BorderLayout.CENTER);
+<span class="nc" id="L85">            b.appendRows(&quot;1dlu, p&quot;);</span>
+<span class="nc" id="L86">            b.add(cb).xy(1, row);</span>
+<span class="nc" id="L87">            PreviewPanel pp = new PreviewPanel(null, entry, null, ResolveDuplicateLabelDialog.LAYOUT);</span>
+<span class="nc" id="L88">            pp.setPreferredSize(new Dimension(800, 90));</span>
+            //pp.setBorder(BorderFactory.createEtchedBorder());
+<span class="nc" id="L90">            b.add(new JScrollPane(pp)).xy(3, row);</span>
+<span class="nc" id="L91">            row += 2;</span>
+<span class="nc" id="L92">            cbs.add(cb);</span>
+<span class="nc" id="L93">            first = false;</span>
+        }
+
+<span class="nc" id="L96">        ButtonBarBuilder bb = new ButtonBarBuilder();</span>
+<span class="nc" id="L97">        bb.addGlue();</span>
+<span class="nc" id="L98">        JButton ok = new JButton(Localization.lang(&quot;OK&quot;));</span>
+<span class="nc" id="L99">        bb.addButton(ok);</span>
+<span class="nc" id="L100">        JButton cancel = new JButton(Localization.lang(&quot;Cancel&quot;));</span>
+<span class="nc" id="L101">        bb.addButton(cancel);</span>
+<span class="nc" id="L102">        bb.addGlue();</span>
+<span class="nc" id="L103">        bb.getPanel().setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+
+<span class="nc" id="L105">        diag.getContentPane().add(b.getPanel(), BorderLayout.CENTER);</span>
+<span class="nc" id="L106">        diag.getContentPane().add(bb.getPanel(), BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L108">        diag.pack();</span>
+
+<span class="nc" id="L110">        ok.addActionListener(e -&gt; {</span>
+<span class="nc" id="L111">                okPressed = true;</span>
+<span class="nc" id="L112">                diag.dispose();</span>
+<span class="nc" id="L113">        });</span>
+
+
+<span class="nc" id="L116">        AbstractAction closeAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L120">                diag.dispose();</span>
+<span class="nc" id="L121">            }</span>
+        };
+
+<span class="nc" id="L124">        cancel.addActionListener(closeAction);</span>
+
+<span class="nc" id="L126">        ActionMap am = b.getPanel().getActionMap();</span>
+<span class="nc" id="L127">        InputMap im = b.getPanel().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+<span class="nc" id="L128">        im.put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L129">        am.put(&quot;close&quot;, closeAction);</span>
+<span class="nc" id="L130">    }</span>
+
+    /**
+     * After the dialog has been closed, this query answers whether the dialog was okPressed
+     * (by cancel button or by closing the dialog directly).
+     * @return true if it was okPressed, false if Ok was pressed.
+     */
+    public boolean isOkPressed() {
+<span class="nc" id="L138">        return okPressed;</span>
+    }
+
+    /**
+     * Get the list of checkboxes where the user has selected which entries to generate
+     * new keys for.
+     * @return the list of checkboxes
+     */
+    public List&lt;JCheckBox&gt; getCheckBoxes() {
+<span class="nc" id="L147">        return cbs;</span>
+    }
+
+    public void show() {
+<span class="nc" id="L151">        okPressed = false;</span>
+<span class="nc" id="L152">        diag.setLocationRelativeTo(diag.getParent());</span>
+<span class="nc" id="L153">        diag.setVisible(true);</span>
+<span class="nc" id="L154">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

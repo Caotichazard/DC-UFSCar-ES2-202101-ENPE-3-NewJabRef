@@ -1,0 +1,1021 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CaseKeeperList.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.formatter.casechanger</a> &gt; <span class="el_source">CaseKeeperList.java</span></div><h1>CaseKeeperList.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2012 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+package net.sf.jabref.logic.formatter.casechanger;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Container class for lists with keywords where the case should be kept independent of bibstyle
+ *
+ */
+public class CaseKeeperList {
+
+
+    // @formatter:off
+    // Common words in IEEE Xplore that should always be in the given case
+<span class="nc" id="L32">    private static final String[] wordListIEEEXplore = new String[] {</span>
+<span class="nc" id="L33">            &quot;1-D&quot;,</span>
+<span class="nc" id="L34">            &quot;1D&quot;,</span>
+<span class="nc" id="L35">            &quot;2-D&quot;,</span>
+<span class="nc" id="L36">            &quot;2D&quot;,</span>
+<span class="nc" id="L37">            &quot;3-D&quot;,</span>
+<span class="nc" id="L38">            &quot;3D&quot;,</span>
+<span class="nc" id="L39">            &quot;3G&quot;,</span>
+<span class="nc" id="L40">            &quot;3GPP&quot;,</span>
+<span class="nc" id="L41">            &quot;4-D&quot;,</span>
+<span class="nc" id="L42">            &quot;4D&quot;,</span>
+<span class="nc" id="L43">            &quot;4G&quot;,</span>
+<span class="nc" id="L44">            &quot;4H&quot;,</span>
+<span class="nc" id="L45">            &quot;6H&quot;,</span>
+<span class="nc" id="L46">            &quot;A/D&quot;,</span>
+<span class="nc" id="L47">            &quot;ACM&quot;,</span>
+<span class="nc" id="L48">            &quot;AC&quot;,</span>
+<span class="nc" id="L49">            &quot;ADC&quot;,</span>
+<span class="nc" id="L50">            &quot;ADI&quot;,</span>
+<span class="nc" id="L51">            &quot;ADSL&quot;,</span>
+<span class="nc" id="L52">            &quot;ADP&quot;,</span>
+<span class="nc" id="L53">            &quot;ADPLL&quot;,</span>
+<span class="nc" id="L54">            &quot;AES&quot;,</span>
+<span class="nc" id="L55">            &quot;AFE&quot;,</span>
+<span class="nc" id="L56">            &quot;AGC&quot;,</span>
+<span class="nc" id="L57">            &quot;AI&quot;,</span>
+<span class="nc" id="L58">            &quot;AIQ&quot;,</span>
+<span class="nc" id="L59">            &quot;ALU&quot;,</span>
+<span class="nc" id="L60">            &quot;AMPS&quot;,</span>
+<span class="nc" id="L61">            &quot;AM&quot;,</span>
+<span class="nc" id="L62">            &quot;AND&quot;,</span>
+<span class="nc" id="L63">            &quot;ANOVA&quot;,</span>
+<span class="nc" id="L64">            &quot;ANSI&quot;,</span>
+<span class="nc" id="L65">            &quot;API&quot;,</span>
+<span class="nc" id="L66">            &quot;ARMA&quot;,</span>
+<span class="nc" id="L67">            &quot;ARQ&quot;,</span>
+<span class="nc" id="L68">            &quot;ASIC&quot;,</span>
+<span class="nc" id="L69">            &quot;ASIP&quot;,</span>
+<span class="nc" id="L70">            &quot;ASK&quot;,</span>
+<span class="nc" id="L71">            &quot;ATE&quot;,</span>
+<span class="nc" id="L72">            &quot;ATM&quot;,</span>
+<span class="nc" id="L73">            &quot;ATP&quot;,</span>
+<span class="nc" id="L74">            &quot;ATPG&quot;,</span>
+<span class="nc" id="L75">            &quot;ATSC&quot;,</span>
+<span class="nc" id="L76">            &quot;ATV&quot;,</span>
+<span class="nc" id="L77">            &quot;AVC&quot;,</span>
+<span class="nc" id="L78">            &quot;AWGN&quot;,</span>
+<span class="nc" id="L79">            &quot;Alamouti&quot;,</span>
+<span class="nc" id="L80">            &quot;AlGaAs&quot;,</span>
+<span class="nc" id="L81">            &quot;AlGaN&quot;,</span>
+<span class="nc" id="L82">            &quot;AlN&quot;,</span>
+<span class="nc" id="L83">            &quot;Altera&quot;,</span>
+<span class="nc" id="L84">            &quot;BCD&quot;,</span>
+<span class="nc" id="L85">            &quot;BCH&quot;,</span>
+<span class="nc" id="L86">            &quot;BCJR&quot;,</span>
+<span class="nc" id="L87">            &quot;BDD&quot;,</span>
+<span class="nc" id="L88">            &quot;BER&quot;,</span>
+<span class="nc" id="L89">            &quot;BGA&quot;,</span>
+<span class="nc" id="L90">            &quot;BIBO&quot;,</span>
+<span class="nc" id="L91">            &quot;BIST&quot;,</span>
+<span class="nc" id="L92">            &quot;BJT&quot;,</span>
+<span class="nc" id="L93">            &quot;BLAST&quot;,</span>
+<span class="nc" id="L94">            &quot;BPSK&quot;,</span>
+<span class="nc" id="L95">            &quot;BP&quot;,</span>
+<span class="nc" id="L96">            &quot;BT&quot;,</span>
+<span class="nc" id="L97">            &quot;Baum&quot;,</span>
+<span class="nc" id="L98">            &quot;Bayes&quot;,</span>
+<span class="nc" id="L99">            &quot;Berlekamp&quot;,</span>
+<span class="nc" id="L100">            &quot;Bessel&quot;,</span>
+<span class="nc" id="L101">            &quot;BiCMOS&quot;,</span>
+<span class="nc" id="L102">            &quot;Blackwell&quot;,</span>
+<span class="nc" id="L103">            &quot;Bluetooth&quot;,</span>
+<span class="nc" id="L104">            &quot;Booth&quot;,</span>
+<span class="nc" id="L105">            &quot;Bose&quot;,</span>
+<span class="nc" id="L106">            &quot;Bragg&quot;,</span>
+<span class="nc" id="L107">            &quot;Butterworth&quot;,</span>
+<span class="nc" id="L108">            &quot;CAD&quot;,</span>
+<span class="nc" id="L109">            &quot;CAS&quot;,</span>
+<span class="nc" id="L110">            &quot;CATV&quot;,</span>
+<span class="nc" id="L111">            &quot;CBR&quot;,</span>
+<span class="nc" id="L112">            &quot;CCD&quot;,</span>
+<span class="nc" id="L113">            &quot;CDMA&quot;,</span>
+<span class="nc" id="L114">            &quot;CD&quot;,</span>
+<span class="nc" id="L115">            &quot;CDC&quot;,</span>
+<span class="nc" id="L116">            &quot;CDR&quot;,</span>
+<span class="nc" id="L117">            &quot;CERN&quot;,</span>
+<span class="nc" id="L118">            &quot;CFAR&quot;,</span>
+<span class="nc" id="L119">            &quot;CIC&quot;,</span>
+<span class="nc" id="L120">            &quot;CLB&quot;,</span>
+<span class="nc" id="L121">            &quot;CMFB&quot;,</span>
+<span class="nc" id="L122">            &quot;CMOS&quot;,</span>
+<span class="nc" id="L123">            &quot;CMRR&quot;,</span>
+<span class="nc" id="L124">            &quot;CMS&quot;,</span>
+<span class="nc" id="L125">            &quot;CNF&quot;,</span>
+<span class="nc" id="L126">            &quot;CNN&quot;,</span>
+<span class="nc" id="L127">            &quot;CO2&quot;,</span>
+<span class="nc" id="L128">            &quot;CORDIC&quot;,</span>
+<span class="nc" id="L129">            &quot;COTS&quot;,</span>
+<span class="nc" id="L130">            &quot;CP&quot;,</span>
+<span class="nc" id="L131">            &quot;CPE&quot;,</span>
+<span class="nc" id="L132">            &quot;CPM&quot;,</span>
+<span class="nc" id="L133">            &quot;CPLD&quot;,</span>
+<span class="nc" id="L134">            &quot;CPU&quot;,</span>
+<span class="nc" id="L135">            &quot;CRC&quot;,</span>
+<span class="nc" id="L136">            &quot;CRM&quot;,</span>
+<span class="nc" id="L137">            &quot;CSD&quot;,</span>
+<span class="nc" id="L138">            &quot;CSE&quot;,</span>
+<span class="nc" id="L139">            &quot;CSIT&quot;,</span>
+<span class="nc" id="L140">            &quot;CSI&quot;,</span>
+<span class="nc" id="L141">            &quot;CSMA&quot;,</span>
+<span class="nc" id="L142">            &quot;CSP&quot;,</span>
+<span class="nc" id="L143">            &quot;CT&quot;,</span>
+<span class="nc" id="L144">            &quot;CUDA&quot;,</span>
+<span class="nc" id="L145">            &quot;CW&quot;,</span>
+<span class="nc" id="L146">            &quot;Carlo&quot;,</span>
+<span class="nc" id="L147">            &quot;Cauer&quot;,</span>
+<span class="nc" id="L148">            &quot;Chebychev&quot;,</span>
+<span class="nc" id="L149">            &quot;Chebyshev&quot;,</span>
+<span class="nc" id="L150">            &quot;Chien&quot;,</span>
+<span class="nc" id="L151">            &quot;Cooley&quot;,</span>
+<span class="nc" id="L152">            &quot;D/A&quot;,</span>
+<span class="nc" id="L153">            &quot;DAB&quot;,</span>
+<span class="nc" id="L154">            &quot;DAC&quot;,</span>
+<span class="nc" id="L155">            &quot;DBMS&quot;,</span>
+<span class="nc" id="L156">            &quot;DCT&quot;,</span>
+<span class="nc" id="L157">            &quot;DC&quot;,</span>
+<span class="nc" id="L158">            &quot;DDC&quot;,</span>
+<span class="nc" id="L159">            &quot;DDFS&quot;,</span>
+<span class="nc" id="L160">            &quot;DDR&quot;,</span>
+<span class="nc" id="L161">            &quot;DDSM&quot;,</span>
+<span class="nc" id="L162">            &quot;DDS&quot;,</span>
+<span class="nc" id="L163">            &quot;DDoS&quot;,</span>
+<span class="nc" id="L164">            &quot;DECT&quot;,</span>
+<span class="nc" id="L165">            &quot;DEM&quot;,</span>
+<span class="nc" id="L166">            &quot;DFE&quot;,</span>
+<span class="nc" id="L167">            &quot;DFT&quot;,</span>
+<span class="nc" id="L168">            &quot;DGPS&quot;,</span>
+<span class="nc" id="L169">            &quot;DHT&quot;,</span>
+<span class="nc" id="L170">            &quot;DIMM&quot;,</span>
+<span class="nc" id="L171">            &quot;DLL&quot;,</span>
+<span class="nc" id="L172">            &quot;DMT&quot;,</span>
+<span class="nc" id="L173">            &quot;DNA&quot;,</span>
+<span class="nc" id="L174">            &quot;DNL&quot;,</span>
+<span class="nc" id="L175">            &quot;DOA&quot;,</span>
+<span class="nc" id="L176">            &quot;DOCSIS&quot;,</span>
+<span class="nc" id="L177">            &quot;DOI&quot;,</span>
+<span class="nc" id="L178">            &quot;DPSK&quot;,</span>
+<span class="nc" id="L179">            &quot;DRAM&quot;,</span>
+<span class="nc" id="L180">            &quot;DRM&quot;,</span>
+<span class="nc" id="L181">            &quot;DS&quot;,</span>
+<span class="nc" id="L182">            &quot;DSP&quot;,</span>
+<span class="nc" id="L183">            &quot;DST&quot;,</span>
+<span class="nc" id="L184">            &quot;DTMB&quot;,</span>
+<span class="nc" id="L185">            &quot;DTTB&quot;,</span>
+<span class="nc" id="L186">            &quot;DTV&quot;,</span>
+<span class="nc" id="L187">            &quot;DUC&quot;,</span>
+<span class="nc" id="L188">            &quot;DVB-C&quot;,</span>
+<span class="nc" id="L189">            &quot;DVB-H&quot;,</span>
+<span class="nc" id="L190">            &quot;DVB-S&quot;,</span>
+<span class="nc" id="L191">            &quot;DVB-T&quot;,</span>
+<span class="nc" id="L192">            &quot;DVB&quot;,</span>
+<span class="nc" id="L193">            &quot;DVD&quot;,</span>
+<span class="nc" id="L194">            &quot;DVFS&quot;,</span>
+<span class="nc" id="L195">            &quot;DVI&quot;,</span>
+<span class="nc" id="L196">            &quot;DWT&quot;,</span>
+<span class="nc" id="L197">            &quot;Dadda&quot;,</span>
+<span class="nc" id="L198">            &quot;Daubechies&quot;,</span>
+<span class="nc" id="L199">            &quot;Doppler&quot;,</span>
+<span class="nc" id="L200">            &quot;ECC&quot;,</span>
+<span class="nc" id="L201">            &quot;ECG&quot;,</span>
+<span class="nc" id="L202">            &quot;ECL&quot;,</span>
+<span class="nc" id="L203">            &quot;EDGE&quot;,</span>
+<span class="nc" id="L204">            &quot;EEG&quot;,</span>
+<span class="nc" id="L205">            &quot;EJB&quot;,</span>
+<span class="nc" id="L206">            &quot;EKF&quot;,</span>
+<span class="nc" id="L207">            &quot;EKG&quot;,</span>
+<span class="nc" id="L208">            &quot;EMC&quot;,</span>
+<span class="nc" id="L209">            &quot;EMG&quot;,</span>
+<span class="nc" id="L210">            &quot;EMI&quot;,</span>
+<span class="nc" id="L211">            &quot;ENOB&quot;,</span>
+<span class="nc" id="L212">            &quot;EPROM&quot;,</span>
+<span class="nc" id="L213">            &quot;ESD&quot;,</span>
+<span class="nc" id="L214">            &quot;ESPRIT&quot;,</span>
+<span class="nc" id="L215">            &quot;EV&quot;,</span>
+<span class="nc" id="L216">            &quot;EVM&quot;,</span>
+<span class="nc" id="L217">            &quot;Einstein&quot;,</span>
+<span class="nc" id="L218">            &quot;Euclid&quot;,</span>
+<span class="nc" id="L219">            &quot;Euler&quot;,</span>
+<span class="nc" id="L220">            &quot;FBAR&quot;,</span>
+<span class="nc" id="L221">            &quot;FDE&quot;,</span>
+<span class="nc" id="L222">            &quot;FDI&quot;,</span>
+<span class="nc" id="L223">            &quot;FDMA&quot;,</span>
+<span class="nc" id="L224">            &quot;FDTD&quot;,</span>
+<span class="nc" id="L225">            &quot;FEC&quot;,</span>
+<span class="nc" id="L226">            &quot;FEM&quot;,</span>
+<span class="nc" id="L227">            &quot;FER&quot;,</span>
+<span class="nc" id="L228">            &quot;FET&quot;,</span>
+<span class="nc" id="L229">            &quot;FFT&quot;,</span>
+<span class="nc" id="L230">            &quot;FIFO&quot;,</span>
+<span class="nc" id="L231">            &quot;FIR&quot;,</span>
+<span class="nc" id="L232">            &quot;FMCW&quot;,</span>
+<span class="nc" id="L233">            &quot;FM&quot;,</span>
+<span class="nc" id="L234">            &quot;FP&quot;,</span>
+<span class="nc" id="L235">            &quot;FPAA&quot;,</span>
+<span class="nc" id="L236">            &quot;FPGA&quot;,</span>
+<span class="nc" id="L237">            &quot;FPU&quot;,</span>
+<span class="nc" id="L238">            &quot;FRM&quot;,</span>
+<span class="nc" id="L239">            &quot;FSK&quot;,</span>
+<span class="nc" id="L240">            &quot;FSM&quot;,</span>
+<span class="nc" id="L241">            &quot;FTTC&quot;,</span>
+<span class="nc" id="L242">            &quot;FTTH&quot;,</span>
+<span class="nc" id="L243">            &quot;Farrow&quot;,</span>
+<span class="nc" id="L244">            &quot;FinFET&quot;,</span>
+<span class="nc" id="L245">            &quot;Fokker&quot;,</span>
+<span class="nc" id="L246">            &quot;Fourier&quot;,</span>
+<span class="nc" id="L247">            &quot;Frobenius&quot;,</span>
+<span class="nc" id="L248">            &quot;GALS&quot;,</span>
+<span class="nc" id="L249">            &quot;GCM&quot;,</span>
+<span class="nc" id="L250">            &quot;GF&quot;,</span>
+<span class="nc" id="L251">            &quot;GIS&quot;,</span>
+<span class="nc" id="L252">            &quot;GM&quot;,</span>
+<span class="nc" id="L253">            &quot;GMD&quot;,</span>
+<span class="nc" id="L254">            &quot;GNSS&quot;,</span>
+<span class="nc" id="L255">            &quot;GNU&quot;,</span>
+<span class="nc" id="L256">            &quot;GPGPU&quot;,</span>
+<span class="nc" id="L257">            &quot;GPRS&quot;,</span>
+<span class="nc" id="L258">            &quot;GPS&quot;,</span>
+<span class="nc" id="L259">            &quot;GPU&quot;,</span>
+<span class="nc" id="L260">            &quot;GSM&quot;,</span>
+<span class="nc" id="L261">            &quot;GSPS&quot;,</span>
+<span class="nc" id="L262">            &quot;GaAs&quot;,</span>
+<span class="nc" id="L263">            &quot;GaN&quot;,</span>
+<span class="nc" id="L264">            &quot;Gabor&quot;,</span>
+<span class="nc" id="L265">            &quot;Galileo&quot;,</span>
+<span class="nc" id="L266">            &quot;Galois&quot;,</span>
+<span class="nc" id="L267">            &quot;Gauss&quot;,</span>
+<span class="nc" id="L268">            &quot;Gram-Schmidt&quot;,</span>
+<span class="nc" id="L269">            &quot;H.264&quot;,</span>
+<span class="nc" id="L270">            &quot;HARQ&quot;,</span>
+<span class="nc" id="L271">            &quot;HBM&quot;,</span>
+<span class="nc" id="L272">            &quot;HBT&quot;,</span>
+<span class="nc" id="L273">            &quot;HDMI&quot;,</span>
+<span class="nc" id="L274">            &quot;HDTV&quot;,</span>
+<span class="nc" id="L275">            &quot;HD&quot;,</span>
+<span class="nc" id="L276">            &quot;HDD&quot;,</span>
+<span class="nc" id="L277">            &quot;HDI&quot;,</span>
+<span class="nc" id="L278">            &quot;HDL&quot;,</span>
+<span class="nc" id="L279">            &quot;HEMT&quot;,</span>
+<span class="nc" id="L280">            &quot;HEVC&quot;,</span>
+<span class="nc" id="L281">            &quot;HF&quot;,</span>
+<span class="nc" id="L282">            &quot;HMM&quot;,</span>
+<span class="nc" id="L283">            &quot;HPC&quot;,</span>
+<span class="nc" id="L284">            &quot;HRV&quot;,</span>
+<span class="nc" id="L285">            &quot;HSPA&quot;,</span>
+<span class="nc" id="L286">            &quot;HSDPA&quot;,</span>
+<span class="nc" id="L287">            &quot;HTML&quot;,</span>
+<span class="nc" id="L288">            &quot;HVAC&quot;,</span>
+<span class="nc" id="L289">            &quot;HVDC&quot;,</span>
+<span class="nc" id="L290">            &quot;HW&quot;,</span>
+<span class="nc" id="L291">            &quot;Haar&quot;,</span>
+<span class="nc" id="L292">            &quot;Hadamard&quot;,</span>
+<span class="nc" id="L293">            &quot;Hamming&quot;,</span>
+<span class="nc" id="L294">            &quot;Hankel&quot;,</span>
+<span class="nc" id="L295">            &quot;Hartley&quot;,</span>
+<span class="nc" id="L296">            &quot;Hermit&quot;, // Hermitian, Hermite, Hermit</span>
+<span class="nc" id="L297">            &quot;Hilbert&quot;,</span>
+<span class="nc" id="L298">            &quot;I-V&quot;,</span>
+<span class="nc" id="L299">            &quot;I/O&quot;,</span>
+<span class="nc" id="L300">            &quot;I/Q&quot;,</span>
+<span class="nc" id="L301">            &quot;IBM&quot;,</span>
+<span class="nc" id="L302">            &quot;ICA&quot;,</span>
+<span class="nc" id="L303">            &quot;IC&quot;,</span>
+<span class="nc" id="L304">            &quot;ICI&quot;,</span>
+<span class="nc" id="L305">            &quot;ICT&quot;,</span>
+<span class="nc" id="L306">            &quot;IDCT&quot;,</span>
+<span class="nc" id="L307">            &quot;IDFT&quot;,</span>
+<span class="nc" id="L308">            &quot;IEC&quot;,</span>
+<span class="nc" id="L309">            &quot;IEE&quot;,</span>
+<span class="nc" id="L310">            &quot;IEEE&quot;,</span>
+<span class="nc" id="L311">            &quot;IET&quot;,</span>
+<span class="nc" id="L312">            &quot;IFFT&quot;,</span>
+<span class="nc" id="L313">            &quot;IFIR&quot;,</span>
+<span class="nc" id="L314">            &quot;IF&quot;,</span>
+<span class="nc" id="L315">            &quot;IGBT&quot;,</span>
+<span class="nc" id="L316">            &quot;II-VI&quot;,</span>
+<span class="nc" id="L317">            &quot;II/VI&quot;,</span>
+<span class="nc" id="L318">            &quot;III-V&quot;,</span>
+<span class="nc" id="L319">            &quot;III/V&quot;,</span>
+<span class="nc" id="L320">            &quot;IIR&quot;,</span>
+<span class="nc" id="L321">            &quot;ILP&quot;,</span>
+<span class="nc" id="L322">            &quot;IMDCT&quot;,</span>
+<span class="nc" id="L323">            &quot;IMDST&quot;,</span>
+<span class="nc" id="L324">            &quot;IMT-A&quot;, // IMT-Advanced</span>
+<span class="nc" id="L325">            &quot;IMU&quot;,</span>
+<span class="nc" id="L326">            &quot;INL&quot;,</span>
+<span class="nc" id="L327">            &quot;IO&quot;,</span>
+<span class="nc" id="L328">            &quot;IPTV&quot;,</span>
+<span class="nc" id="L329">            &quot;IP&quot;,</span>
+<span class="nc" id="L330">            &quot;IQ&quot;,</span>
+<span class="nc" id="L331">            &quot;IR&quot;,</span>
+<span class="nc" id="L332">            &quot;IS-95&quot;,</span>
+<span class="nc" id="L333">            &quot;ISDN&quot;,</span>
+<span class="nc" id="L334">            &quot;ISI&quot;,</span>
+<span class="nc" id="L335">            &quot;ISM&quot;,</span>
+<span class="nc" id="L336">            &quot;ISO&quot;,</span>
+<span class="nc" id="L337">            &quot;ISS&quot;,</span>
+<span class="nc" id="L338">            &quot;ITE&quot;,</span>
+<span class="nc" id="L339">            &quot;InGaAs&quot;,</span>
+<span class="nc" id="L340">            &quot;InGaN&quot;,</span>
+<span class="nc" id="L341">            &quot;InP&quot;,</span>
+<span class="nc" id="L342">            &quot;InSAR&quot;,</span>
+<span class="nc" id="L343">            &quot;J2EE&quot;,</span>
+<span class="nc" id="L344">            &quot;JEDEC&quot;,</span>
+<span class="nc" id="L345">            &quot;JFET&quot;,</span>
+<span class="nc" id="L346">            &quot;JIT&quot;,</span>
+<span class="nc" id="L347">            &quot;JPEG&quot;,</span>
+<span class="nc" id="L348">            &quot;JTAG&quot;,</span>
+<span class="nc" id="L349">            &quot;Josephson&quot;,</span>
+<span class="nc" id="L350">            &quot;Kalman&quot;,</span>
+<span class="nc" id="L351">            &quot;Karatsuba&quot;,</span>
+<span class="nc" id="L352">            &quot;LAN&quot;,</span>
+<span class="nc" id="L353">            &quot;LC&quot;,</span>
+<span class="nc" id="L354">            &quot;LCD&quot;,</span>
+<span class="nc" id="L355">            &quot;LCG&quot;,</span>
+<span class="nc" id="L356">            &quot;LDA&quot;,</span>
+<span class="nc" id="L357">            &quot;LDD&quot;,</span>
+<span class="nc" id="L358">            &quot;LDI&quot;,</span>
+<span class="nc" id="L359">            &quot;LDPC&quot;,</span>
+<span class="nc" id="L360">            &quot;LED&quot;,</span>
+<span class="nc" id="L361">            &quot;LFSR&quot;,</span>
+<span class="nc" id="L362">            &quot;LHC&quot;,</span>
+<span class="nc" id="L363">            &quot;LIDAR&quot;,</span>
+<span class="nc" id="L364">            &quot;LiDAR&quot;,</span>
+<span class="nc" id="L365">            &quot;LLC&quot;,</span>
+<span class="nc" id="L366">            &quot;LLR&quot;,</span>
+<span class="nc" id="L367">            &quot;LMDS&quot;,</span>
+<span class="nc" id="L368">            &quot;LMI&quot;,</span>
+<span class="nc" id="L369">            &quot;LMS&quot;,</span>
+<span class="nc" id="L370">            &quot;LNA&quot;,</span>
+<span class="nc" id="L371">            &quot;LNS&quot;,</span>
+<span class="nc" id="L372">            &quot;LS&quot;,</span>
+<span class="nc" id="L373">            &quot;LSB&quot;,</span>
+<span class="nc" id="L374">            &quot;LTCC&quot;,</span>
+<span class="nc" id="L375">            &quot;LTE-A&quot;,</span>
+<span class="nc" id="L376">            &quot;LTE&quot;,</span>
+<span class="nc" id="L377">            &quot;LTI&quot;,</span>
+<span class="nc" id="L378">            &quot;LUT&quot;,</span>
+<span class="nc" id="L379">            &quot;LVDC&quot;,</span>
+<span class="nc" id="L380">            &quot;LVDS&quot;,</span>
+<span class="nc" id="L381">            &quot;LZW&quot;,</span>
+<span class="nc" id="L382">            &quot;Laplace&quot;,</span>
+<span class="nc" id="L383">            &quot;Lempel&quot;,</span>
+<span class="nc" id="L384">            &quot;Lyapunov&quot;,</span>
+<span class="nc" id="L385">            &quot;M2M&quot;,</span>
+<span class="nc" id="L386">            &quot;MAC&quot;,</span>
+<span class="nc" id="L387">            &quot;MANET&quot;,</span>
+<span class="nc" id="L388">            &quot;MAP&quot;,</span>
+<span class="nc" id="L389">            &quot;MASH&quot;,</span>
+<span class="nc" id="L390">            &quot;MBE&quot;,</span>
+<span class="nc" id="L391">            &quot;MC&quot;,</span>
+<span class="nc" id="L392">            &quot;MCE&quot;,</span>
+<span class="nc" id="L393">            &quot;MCM&quot;,</span>
+<span class="nc" id="L394">            &quot;MCMC&quot;,</span>
+<span class="nc" id="L395">            &quot;MCU&quot;,</span>
+<span class="nc" id="L396">            &quot;MDCT&quot;,</span>
+<span class="nc" id="L397">            &quot;MDST&quot;,</span>
+<span class="nc" id="L398">            &quot;MEMS&quot;,</span>
+<span class="nc" id="L399">            &quot;MESFET&quot;,</span>
+<span class="nc" id="L400">            &quot;MILP&quot;,</span>
+<span class="nc" id="L401">            &quot;MIMO&quot;,</span>
+<span class="nc" id="L402">            &quot;MISO&quot;,</span>
+<span class="nc" id="L403">            &quot;MIT&quot;,</span>
+<span class="nc" id="L404">            &quot;ML&quot;,</span>
+<span class="nc" id="L405">            &quot;MLSD&quot;,</span>
+<span class="nc" id="L406">            &quot;MMIC&quot;,</span>
+<span class="nc" id="L407">            &quot;MMS&quot;,</span>
+<span class="nc" id="L408">            &quot;MMSE&quot;,</span>
+<span class="nc" id="L409">            &quot;MOSFET&quot;,</span>
+<span class="nc" id="L410">            &quot;MOS&quot;,</span>
+<span class="nc" id="L411">            &quot;MP3&quot;,</span>
+<span class="nc" id="L412">            &quot;MPC&quot;,</span>
+<span class="nc" id="L413">            &quot;MPEG&quot;,</span>
+<span class="nc" id="L414">            &quot;MPI&quot;,</span>
+<span class="nc" id="L415">            &quot;MPPC&quot;,</span>
+<span class="nc" id="L416">            &quot;MPSoC&quot;,</span>
+<span class="nc" id="L417">            &quot;MQW&quot;,</span>
+<span class="nc" id="L418">            &quot;MRC&quot;,</span>
+<span class="nc" id="L419">            &quot;MRI&quot;,</span>
+<span class="nc" id="L420">            &quot;MRTD&quot;,</span>
+<span class="nc" id="L421">            &quot;MSB&quot;,</span>
+<span class="nc" id="L422">            &quot;MSD&quot;,</span>
+<span class="nc" id="L423">            &quot;MSE&quot;,</span>
+<span class="nc" id="L424">            &quot;MSPS&quot;,</span>
+<span class="nc" id="L425">            &quot;MTCMOS&quot;,</span>
+<span class="nc" id="L426">            &quot;MTD&quot;,</span>
+<span class="nc" id="L427">            &quot;MTI&quot;,</span>
+<span class="nc" id="L428">            &quot;MV&quot;,</span>
+<span class="nc" id="L429">            &quot;MVC&quot;,</span>
+<span class="nc" id="L430">            &quot;Maclaurin&quot;,</span>
+<span class="nc" id="L431">            &quot;Manchester&quot;,</span>
+<span class="nc" id="L432">            &quot;Markov&quot;,</span>
+<span class="nc" id="L433">            &quot;Massey&quot;,</span>
+<span class="nc" id="L434">            &quot;Maxwell&quot;,</span>
+<span class="nc" id="L435">            &quot;McClellan&quot;,</span>
+<span class="nc" id="L436">            &quot;Miller&quot;,</span>
+<span class="nc" id="L437">            &quot;Monte&quot;,</span>
+<span class="nc" id="L438">            &quot;Montgomery&quot;,</span>
+<span class="nc" id="L439">            &quot;Msps&quot;,</span>
+<span class="nc" id="L440">            &quot;NAND&quot;,</span>
+<span class="nc" id="L441">            &quot;NOR&quot;,</span>
+<span class="nc" id="L442">            &quot;NF&quot;,</span>
+<span class="nc" id="L443">            &quot;NMOS&quot;,</span>
+<span class="nc" id="L444">            &quot;NRZ&quot;,</span>
+<span class="nc" id="L445">            &quot;NTSC&quot;,</span>
+<span class="nc" id="L446">            &quot;Newton&quot;,</span>
+<span class="nc" id="L447">            &quot;NoC&quot;,</span>
+<span class="nc" id="L448">            &quot;Nyquist&quot;,</span>
+<span class="nc" id="L449">            &quot;OCR&quot;,</span>
+<span class="nc" id="L450">            &quot;OFDMA&quot;,</span>
+<span class="nc" id="L451">            &quot;OFDM&quot;,</span>
+<span class="nc" id="L452">            &quot;OLED&quot;,</span>
+<span class="nc" id="L453">            &quot;OOP&quot;,</span>
+<span class="nc" id="L454">            &quot;OR&quot;,</span>
+<span class="nc" id="L455">            &quot;OSR&quot;,</span>
+<span class="nc" id="L456">            &quot;OTA-C&quot;,</span>
+<span class="nc" id="L457">            &quot;OTA&quot;,</span>
+<span class="nc" id="L458">            &quot;Ofman&quot;,</span>
+<span class="nc" id="L459">            &quot;P2P&quot;,</span>
+<span class="nc" id="L460">            &quot;PAL&quot;,</span>
+<span class="nc" id="L461">            &quot;PAM&quot;,</span>
+<span class="nc" id="L462">            &quot;PAPR&quot;,</span>
+<span class="nc" id="L463">            &quot;PBGA&quot;,</span>
+<span class="nc" id="L464">            &quot;PCA&quot;,</span>
+<span class="nc" id="L465">            &quot;PCB&quot;,</span>
+<span class="nc" id="L466">            &quot;PCI&quot;,</span>
+<span class="nc" id="L467">            &quot;PCM&quot;,</span>
+<span class="nc" id="L468">            &quot;PCMCIA&quot;,</span>
+<span class="nc" id="L469">            &quot;PC&quot;,</span>
+<span class="nc" id="L470">            &quot;PDF&quot;,</span>
+<span class="nc" id="L471">            &quot;PDP&quot;,</span>
+<span class="nc" id="L472">            &quot;PET&quot;,</span>
+<span class="nc" id="L473">            &quot;PFA&quot;,</span>
+<span class="nc" id="L474">            &quot;PHD&quot;,</span>
+<span class="nc" id="L475">            &quot;PHY&quot;,</span>
+<span class="nc" id="L476">            &quot;PIC&quot;,</span>
+<span class="nc" id="L477">            &quot;PID&quot;,</span>
+<span class="nc" id="L478">            &quot;PIN&quot;,</span>
+<span class="nc" id="L479">            &quot;PLC&quot;,</span>
+<span class="nc" id="L480">            &quot;PLL&quot;,</span>
+<span class="nc" id="L481">            &quot;PMOS&quot;,</span>
+<span class="nc" id="L482">            &quot;PN&quot;,</span>
+<span class="nc" id="L483">            &quot;PON&quot;,</span>
+<span class="nc" id="L484">            &quot;POTS&quot;,</span>
+<span class="nc" id="L485">            &quot;PQFP&quot;,</span>
+<span class="nc" id="L486">            &quot;PRPG&quot;,</span>
+<span class="nc" id="L487">            &quot;PSK&quot;,</span>
+<span class="nc" id="L488">            &quot;PSNR&quot;,</span>
+<span class="nc" id="L489">            &quot;PSO&quot;,</span>
+<span class="nc" id="L490">            &quot;PSRR&quot;,</span>
+<span class="nc" id="L491">            &quot;PTL&quot;,</span>
+<span class="nc" id="L492">            &quot;PV&quot;,</span>
+<span class="nc" id="L493">            &quot;PWB&quot;,</span>
+<span class="nc" id="L494">            &quot;PWM&quot;,</span>
+<span class="nc" id="L495">            &quot;Parks-McClellan&quot;, // Only Parks will give lots of incorrect hits</span>
+<span class="nc" id="L496">            &quot;Pb&quot;,</span>
+<span class="nc" id="L497">            &quot;Planck&quot;,</span>
+<span class="nc" id="L498">            &quot;PowerPC&quot;,</span>
+<span class="nc" id="L499">            &quot;QAM&quot;,</span>
+<span class="nc" id="L500">            &quot;QC-LDPC&quot;,</span>
+<span class="nc" id="L501">            &quot;QCA&quot;,</span>
+<span class="nc" id="L502">            &quot;QDI&quot;,</span>
+<span class="nc" id="L503">            &quot;QFP&quot;,</span>
+<span class="nc" id="L504">            &quot;QMF&quot;,</span>
+<span class="nc" id="L505">            &quot;QNN&quot;,</span>
+<span class="nc" id="L506">            &quot;QO&quot;,</span>
+<span class="nc" id="L507">            &quot;QP&quot;,</span>
+<span class="nc" id="L508">            &quot;QPSK&quot;,</span>
+<span class="nc" id="L509">            &quot;QR&quot;,</span>
+<span class="nc" id="L510">            &quot;QRD&quot;,</span>
+<span class="nc" id="L511">            &quot;QRS&quot;,</span>
+<span class="nc" id="L512">            &quot;QoS&quot;,</span>
+<span class="nc" id="L513">            &quot;RAD&quot;,</span>
+<span class="nc" id="L514">            &quot;RAKE&quot;,</span>
+<span class="nc" id="L515">            &quot;RAM&quot;,</span>
+<span class="nc" id="L516">            &quot;RBF&quot;,</span>
+<span class="nc" id="L517">            &quot;RC&quot;,</span>
+<span class="nc" id="L518">            &quot;RCS&quot;,</span>
+<span class="nc" id="L519">            &quot;RFDAC&quot;,</span>
+<span class="nc" id="L520">            &quot;RFE&quot;,</span>
+<span class="nc" id="L521">            &quot;RFIC&quot;,</span>
+<span class="nc" id="L522">            &quot;RFID&quot;,</span>
+<span class="nc" id="L523">            &quot;RF&quot;,</span>
+<span class="nc" id="L524">            &quot;RFS&quot;,</span>
+<span class="nc" id="L525">            &quot;RISC&quot;,</span>
+<span class="nc" id="L526">            &quot;RLC&quot;,</span>
+<span class="nc" id="L527">            &quot;RLS&quot;,</span>
+<span class="nc" id="L528">            &quot;RMS&quot;,</span>
+<span class="nc" id="L529">            &quot;RNS&quot;,</span>
+<span class="nc" id="L530">            &quot;ROM&quot;,</span>
+<span class="nc" id="L531">            &quot;RRC&quot;,</span>
+<span class="nc" id="L532">            &quot;RS&quot;,</span>
+<span class="nc" id="L533">            &quot;RSA&quot;,</span>
+<span class="nc" id="L534">            &quot;RT&quot;,</span>
+<span class="nc" id="L535">            &quot;RTL&quot;,</span>
+<span class="nc" id="L536">            &quot;RTOS&quot;,</span>
+<span class="nc" id="L537">            &quot;RX&quot;,</span>
+<span class="nc" id="L538">            &quot;RZ&quot;,</span>
+<span class="nc" id="L539">            &quot;Rao&quot;,</span>
+<span class="nc" id="L540">            &quot;Raphson&quot;,</span>
+<span class="nc" id="L541">            &quot;Rayleigh&quot;,</span>
+<span class="nc" id="L542">            &quot;Reed&quot;,</span>
+<span class="nc" id="L543">            &quot;Remez&quot;,</span>
+<span class="nc" id="L544">            &quot;Riccati&quot;,</span>
+<span class="nc" id="L545">            &quot;SAR&quot;,</span>
+<span class="nc" id="L546">            &quot;SAT&quot;,</span>
+<span class="nc" id="L547">            &quot;SAW&quot;,</span>
+<span class="nc" id="L548">            &quot;SC&quot;,</span>
+<span class="nc" id="L549">            &quot;SDF&quot;,</span>
+<span class="nc" id="L550">            &quot;SDH&quot;,</span>
+<span class="nc" id="L551">            &quot;SDP&quot;,</span>
+<span class="nc" id="L552">            &quot;SDRAM&quot;,</span>
+<span class="nc" id="L553">            &quot;SDR&quot;,</span>
+<span class="nc" id="L554">            &quot;SDRE&quot;,</span>
+<span class="nc" id="L555">            &quot;SEU&quot;,</span>
+<span class="nc" id="L556">            &quot;SFDR&quot;,</span>
+<span class="nc" id="L557">            &quot;SIC&quot;,</span>
+<span class="nc" id="L558">            &quot;SIMD&quot;,</span>
+<span class="nc" id="L559">            &quot;SIMO&quot;,</span>
+<span class="nc" id="L560">            &quot;SINAD&quot;,</span>
+<span class="nc" id="L561">            &quot;SINR&quot;,</span>
+<span class="nc" id="L562">            &quot;SINS&quot;,</span>
+<span class="nc" id="L563">            &quot;SISO&quot;,</span>
+<span class="nc" id="L564">            &quot;SLAM&quot;,</span>
+<span class="nc" id="L565">            &quot;SMD&quot;,</span>
+<span class="nc" id="L566">            &quot;SME&quot;,</span>
+<span class="nc" id="L567">            &quot;SMS&quot;,</span>
+<span class="nc" id="L568">            &quot;SNDR&quot;,</span>
+<span class="nc" id="L569">            &quot;SNR&quot;,</span>
+<span class="nc" id="L570">            &quot;SOCP&quot;,</span>
+<span class="nc" id="L571">            &quot;SOI&quot;,</span>
+<span class="nc" id="L572">            &quot;SONET&quot;,</span>
+<span class="nc" id="L573">            &quot;SPS&quot;,</span>
+<span class="nc" id="L574">            &quot;SPT&quot;,</span>
+<span class="nc" id="L575">            &quot;SRAM&quot;,</span>
+<span class="nc" id="L576">            &quot;SQL&quot;,</span>
+<span class="nc" id="L577">            &quot;SQNR&quot;,</span>
+<span class="nc" id="L578">            &quot;STBC&quot;,</span>
+<span class="nc" id="L579">            &quot;SVD&quot;,</span>
+<span class="nc" id="L580">            &quot;SVM&quot;,</span>
+<span class="nc" id="L581">            &quot;SW&quot;,</span>
+<span class="nc" id="L582">            &quot;Schottky&quot;,</span>
+<span class="nc" id="L583">            &quot;SerDes&quot;,</span>
+<span class="nc" id="L584">            &quot;Shannon&quot;,</span>
+<span class="nc" id="L585">            &quot;SiC&quot;,</span>
+<span class="nc" id="L586">            &quot;SiGe&quot;,</span>
+<span class="nc" id="L587">            &quot;SoC&quot;,</span>
+<span class="nc" id="L588">            &quot;SoP&quot;,</span>
+<span class="nc" id="L589">            &quot;Solomon&quot;,</span>
+<span class="nc" id="L590">            &quot;SystemC&quot;,</span>
+<span class="nc" id="L591">            &quot;TCP&quot;,</span>
+<span class="nc" id="L592">            &quot;TDC&quot;,</span>
+<span class="nc" id="L593">            &quot;TDM&quot;,</span>
+<span class="nc" id="L594">            &quot;TDMA&quot;,</span>
+<span class="nc" id="L595">            &quot;TDS&quot;,</span>
+<span class="nc" id="L596">            &quot;TETRA&quot;,</span>
+<span class="nc" id="L597">            &quot;TFT&quot;,</span>
+<span class="nc" id="L598">            &quot;THD&quot;,</span>
+<span class="nc" id="L599">            &quot;THz&quot;,</span>
+<span class="nc" id="L600">            &quot;TLM&quot;,</span>
+<span class="nc" id="L601">            &quot;TLP&quot;,</span>
+<span class="nc" id="L602">            &quot;TPG&quot;,</span>
+<span class="nc" id="L603">            &quot;TQFP&quot;,</span>
+<span class="nc" id="L604">            &quot;TSOP&quot;,</span>
+<span class="nc" id="L605">            &quot;TSPC&quot;,</span>
+<span class="nc" id="L606">            &quot;TTL&quot;,</span>
+<span class="nc" id="L607">            &quot;TV&quot;,</span>
+<span class="nc" id="L608">            &quot;TX&quot;,</span>
+<span class="nc" id="L609">            &quot;Taylor&quot;,</span>
+<span class="nc" id="L610">            &quot;Toeplitz&quot;,</span>
+<span class="nc" id="L611">            &quot;Tukey&quot;,</span>
+<span class="nc" id="L612">            &quot;UAV&quot;,</span>
+<span class="nc" id="L613">            &quot;UHF&quot;,</span>
+<span class="nc" id="L614">            &quot;UKF&quot;,</span>
+<span class="nc" id="L615">            &quot;ULSI&quot;,</span>
+<span class="nc" id="L616">            &quot;UML&quot;,</span>
+<span class="nc" id="L617">            &quot;UMTS&quot;,</span>
+<span class="nc" id="L618">            &quot;UPS&quot;,</span>
+<span class="nc" id="L619">            &quot;USB&quot;,</span>
+<span class="nc" id="L620">            &quot;USRP&quot;,</span>
+<span class="nc" id="L621">            &quot;UV&quot;,</span>
+<span class="nc" id="L622">            &quot;UWB&quot;,</span>
+<span class="nc" id="L623">            &quot;V-BLAST&quot;,</span>
+<span class="nc" id="L624">            &quot;VBLAST&quot;,</span>
+<span class="nc" id="L625">            &quot;VBR&quot;,</span>
+<span class="nc" id="L626">            &quot;VCO&quot;,</span>
+<span class="nc" id="L627">            &quot;VDD&quot;,</span>
+<span class="nc" id="L628">            &quot;VDSL&quot;,</span>
+<span class="nc" id="L629">            &quot;VGA&quot;,</span>
+<span class="nc" id="L630">            &quot;VHDL&quot;,</span>
+<span class="nc" id="L631">            &quot;VHF&quot;,</span>
+<span class="nc" id="L632">            &quot;VLIW&quot;,</span>
+<span class="nc" id="L633">            &quot;VLSI&quot;,</span>
+<span class="nc" id="L634">            &quot;VOD&quot;,</span>
+<span class="nc" id="L635">            &quot;VQ&quot;,</span>
+<span class="nc" id="L636">            &quot;VSB&quot;,</span>
+<span class="nc" id="L637">            &quot;VTOL&quot;,</span>
+<span class="nc" id="L638">            &quot;Vdd&quot;,</span>
+<span class="nc" id="L639">            &quot;Verilog-AMS&quot;,</span>
+<span class="nc" id="L640">            &quot;Verilog-A&quot;,</span>
+<span class="nc" id="L641">            &quot;Verilog&quot;,</span>
+<span class="nc" id="L642">            &quot;Viterbi&quot;,</span>
+<span class="nc" id="L643">            &quot;VoD&quot;,</span>
+<span class="nc" id="L644">            &quot;VoIP&quot;,</span>
+<span class="nc" id="L645">            &quot;Volterra&quot;,</span>
+<span class="nc" id="L646">            &quot;WCDMA&quot;,</span>
+<span class="nc" id="L647">            &quot;WDF&quot;,</span>
+<span class="nc" id="L648">            &quot;WDM&quot;,</span>
+<span class="nc" id="L649">            &quot;WFTA&quot;,</span>
+<span class="nc" id="L650">            &quot;WLAN&quot;,</span>
+<span class="nc" id="L651">            &quot;WLS&quot;,</span>
+<span class="nc" id="L652">            &quot;WPAN&quot;,</span>
+<span class="nc" id="L653">            &quot;WSN&quot;,</span>
+<span class="nc" id="L654">            &quot;WWW&quot;,</span>
+<span class="nc" id="L655">            &quot;Wallace&quot;,</span>
+<span class="nc" id="L656">            &quot;Watt&quot;,</span>
+<span class="nc" id="L657">            &quot;Welch&quot;,</span>
+<span class="nc" id="L658">            &quot;WiFi&quot;,</span>
+<span class="nc" id="L659">            &quot;WiMAX&quot;,</span>
+<span class="nc" id="L660">            &quot;Wiener&quot;,</span>
+<span class="nc" id="L661">            &quot;Winograd&quot;,</span>
+<span class="nc" id="L662">            &quot;XML&quot;,</span>
+<span class="nc" id="L663">            &quot;XNOR&quot;,</span>
+<span class="nc" id="L664">            &quot;XOR&quot;,</span>
+<span class="nc" id="L665">            &quot;Xilinx&quot;,</span>
+<span class="nc" id="L666">            &quot;ZCS&quot;,</span>
+<span class="nc" id="L667">            &quot;ZF&quot;,</span>
+<span class="nc" id="L668">            &quot;ZVS&quot;,</span>
+<span class="nc" id="L669">            &quot;ZigBee&quot;,</span>
+<span class="nc" id="L670">            &quot;Ziv&quot;,</span>
+<span class="nc" id="L671">            &quot;xDSL&quot;</span>
+    };
+
+    // Weekdays and months
+<span class="nc" id="L675">    private static final String[] wordListDayMonth = new String[] {</span>
+<span class="nc" id="L676">            &quot;Monday&quot;,</span>
+<span class="nc" id="L677">            &quot;Tuesday&quot;,</span>
+<span class="nc" id="L678">            &quot;Wednesday&quot;,</span>
+<span class="nc" id="L679">            &quot;Thursday&quot;,</span>
+<span class="nc" id="L680">            &quot;Friday&quot;,</span>
+<span class="nc" id="L681">            &quot;Saturday&quot;,</span>
+<span class="nc" id="L682">            &quot;Sunday&quot;,</span>
+<span class="nc" id="L683">            &quot;January&quot;,</span>
+<span class="nc" id="L684">            &quot;February&quot;,</span>
+<span class="nc" id="L685">            &quot;March&quot;,</span>
+<span class="nc" id="L686">            &quot;April&quot;,</span>
+<span class="nc" id="L687">            &quot;May&quot;,</span>
+<span class="nc" id="L688">            &quot;June&quot;,</span>
+<span class="nc" id="L689">            &quot;July&quot;,</span>
+<span class="nc" id="L690">            &quot;August&quot;,</span>
+<span class="nc" id="L691">            &quot;September&quot;,</span>
+<span class="nc" id="L692">            &quot;October&quot;,</span>
+<span class="nc" id="L693">            &quot;November&quot;,</span>
+<span class="nc" id="L694">            &quot;December&quot;</span>
+    };
+
+<span class="nc" id="L697">    private static final String[] wordListCountries = new String[] {</span>
+<span class="nc" id="L698">            &quot;Andorra&quot;,</span>
+<span class="nc" id="L699">            &quot;United Arab Emirates&quot;,</span>
+<span class="nc" id="L700">            &quot;UAE&quot;,</span>
+<span class="nc" id="L701">            &quot;Afghanistan&quot;,</span>
+<span class="nc" id="L702">            &quot;Antigua and Barbuda&quot;,</span>
+<span class="nc" id="L703">            &quot;Anguilla&quot;,</span>
+<span class="nc" id="L704">            &quot;Albania&quot;,</span>
+<span class="nc" id="L705">            &quot;Armenia&quot;,</span>
+<span class="nc" id="L706">            &quot;Netherlands Antilles&quot;,</span>
+<span class="nc" id="L707">            &quot;Angola&quot;,</span>
+<span class="nc" id="L708">            &quot;Antarctica&quot;,</span>
+<span class="nc" id="L709">            &quot;Argentina&quot;,</span>
+<span class="nc" id="L710">            &quot;American Samoa&quot;,</span>
+<span class="nc" id="L711">            &quot;Austria&quot;,</span>
+<span class="nc" id="L712">            &quot;Australia&quot;,</span>
+<span class="nc" id="L713">            &quot;Aruba&quot;,</span>
+<span class="nc" id="L714">            &quot;Aland Islands&quot;,</span>
+<span class="nc" id="L715">            &quot;Aland&quot;,</span>
+<span class="nc" id="L716">            &quot;Azerbaijan&quot;,</span>
+<span class="nc" id="L717">            &quot;Bosnia and Herzegovina&quot;,</span>
+<span class="nc" id="L718">            &quot;Barbados&quot;,</span>
+<span class="nc" id="L719">            &quot;Bangladesh&quot;,</span>
+<span class="nc" id="L720">            &quot;Belgium&quot;,</span>
+<span class="nc" id="L721">            &quot;Burkina Faso&quot;,</span>
+<span class="nc" id="L722">            &quot;Bulgaria&quot;,</span>
+<span class="nc" id="L723">            &quot;Bahrain&quot;,</span>
+<span class="nc" id="L724">            &quot;Burundi&quot;,</span>
+<span class="nc" id="L725">            &quot;Benin&quot;,</span>
+<span class="nc" id="L726">            &quot;Saint Barthelemy&quot;,</span>
+<span class="nc" id="L727">            &quot;Bermuda&quot;,</span>
+<span class="nc" id="L728">            &quot;Brunei&quot;,</span>
+<span class="nc" id="L729">            &quot;Bolivia&quot;,</span>
+<span class="nc" id="L730">            &quot;British Antarctic Territory&quot;,</span>
+<span class="nc" id="L731">            &quot;Brazil&quot;,</span>
+<span class="nc" id="L732">            &quot;Bahamas&quot;,</span>
+<span class="nc" id="L733">            &quot;Bhutan&quot;,</span>
+<span class="nc" id="L734">            &quot;Bouvet Island&quot;,</span>
+<span class="nc" id="L735">            &quot;Botswana&quot;,</span>
+<span class="nc" id="L736">            &quot;Belarus&quot;,</span>
+<span class="nc" id="L737">            &quot;Belize&quot;,</span>
+<span class="nc" id="L738">            &quot;Canada&quot;,</span>
+<span class="nc" id="L739">            &quot;Cocos Islands&quot;,</span>
+<span class="nc" id="L740">            &quot;Keeling Islands&quot;,</span>
+<span class="nc" id="L741">            &quot;Congo&quot;,</span>
+<span class="nc" id="L742">            &quot;Congo - Kinshasa&quot;,</span>
+<span class="nc" id="L743">            &quot;Central African Republic&quot;,</span>
+<span class="nc" id="L744">            &quot;Congo - Brazzaville&quot;,</span>
+<span class="nc" id="L745">            &quot;Democratic Republic of Congo&quot;,</span>
+<span class="nc" id="L746">            &quot;Switzerland&quot;,</span>
+<span class="nc" id="L747">            &quot;Cote d'Ivoire&quot;,</span>
+<span class="nc" id="L748">            &quot;Cook Islands&quot;,</span>
+<span class="nc" id="L749">            &quot;Chile&quot;,</span>
+<span class="nc" id="L750">            &quot;Cameroon&quot;,</span>
+<span class="nc" id="L751">            &quot;China&quot;,</span>
+<span class="nc" id="L752">            &quot;Colombia&quot;,</span>
+<span class="nc" id="L753">            &quot;Costa Rica&quot;,</span>
+<span class="nc" id="L754">            &quot;Serbia and Montenegro&quot;,</span>
+<span class="nc" id="L755">            &quot;Canton and Enderbury Islands&quot;,</span>
+<span class="nc" id="L756">            &quot;Cuba&quot;,</span>
+<span class="nc" id="L757">            &quot;Cape Verde&quot;,</span>
+<span class="nc" id="L758">            &quot;Christmas Island&quot;,</span>
+<span class="nc" id="L759">            &quot;Cyprus&quot;,</span>
+<span class="nc" id="L760">            &quot;Czech Republic&quot;,</span>
+<span class="nc" id="L761">            &quot;East Germany&quot;,</span>
+<span class="nc" id="L762">            &quot;Germany&quot;,</span>
+<span class="nc" id="L763">            &quot;Djibouti&quot;,</span>
+<span class="nc" id="L764">            &quot;Denmark&quot;,</span>
+<span class="nc" id="L765">            &quot;Dominica&quot;,</span>
+<span class="nc" id="L766">            &quot;Dominican Republic&quot;,</span>
+<span class="nc" id="L767">            &quot;Algeria&quot;,</span>
+<span class="nc" id="L768">            &quot;Ecuador&quot;,</span>
+<span class="nc" id="L769">            &quot;Estonia&quot;,</span>
+<span class="nc" id="L770">            &quot;Egypt&quot;,</span>
+<span class="nc" id="L771">            &quot;Western Sahara&quot;,</span>
+<span class="nc" id="L772">            &quot;Eritrea&quot;,</span>
+<span class="nc" id="L773">            &quot;Spain&quot;,</span>
+<span class="nc" id="L774">            &quot;Ethiopia&quot;,</span>
+<span class="nc" id="L775">            &quot;Finland&quot;,</span>
+<span class="nc" id="L776">            &quot;Fiji&quot;,</span>
+<span class="nc" id="L777">            &quot;Falkland Islands&quot;,</span>
+<span class="nc" id="L778">            &quot;Micronesia&quot;,</span>
+<span class="nc" id="L779">            &quot;Faroe Islands&quot;,</span>
+<span class="nc" id="L780">            &quot;French Southern and Antarctic Territories&quot;,</span>
+<span class="nc" id="L781">            &quot;France&quot;,</span>
+<span class="nc" id="L782">            &quot;Metropolitan France&quot;,</span>
+<span class="nc" id="L783">            &quot;Gabon&quot;,</span>
+<span class="nc" id="L784">            &quot;United Kingdom&quot;,</span>
+<span class="nc" id="L785">            &quot;Great Britain&quot;,</span>
+<span class="nc" id="L786">            &quot;Britain&quot;,</span>
+<span class="nc" id="L787">            &quot;England&quot;,</span>
+<span class="nc" id="L788">            &quot;Wales&quot;,</span>
+<span class="nc" id="L789">            &quot;Scotland&quot;,</span>
+<span class="nc" id="L790">            &quot;Northern Ireland&quot;,</span>
+<span class="nc" id="L791">            &quot;Grenada&quot;,</span>
+<span class="nc" id="L792">            &quot;Georgia&quot;,</span>
+<span class="nc" id="L793">            &quot;French Guiana&quot;,</span>
+<span class="nc" id="L794">            &quot;Guernsey&quot;,</span>
+<span class="nc" id="L795">            &quot;Ghana&quot;,</span>
+<span class="nc" id="L796">            &quot;Gibraltar&quot;,</span>
+<span class="nc" id="L797">            &quot;Greenland&quot;,</span>
+<span class="nc" id="L798">            &quot;Gambia&quot;,</span>
+<span class="nc" id="L799">            &quot;Guinea&quot;,</span>
+<span class="nc" id="L800">            &quot;Guadeloupe&quot;,</span>
+<span class="nc" id="L801">            &quot;Equatorial Guinea&quot;,</span>
+<span class="nc" id="L802">            &quot;Greece&quot;,</span>
+<span class="nc" id="L803">            &quot;South Georgia and the South Sandwich Islands&quot;,</span>
+<span class="nc" id="L804">            &quot;Guatemala&quot;,</span>
+<span class="nc" id="L805">            &quot;Guam&quot;,</span>
+<span class="nc" id="L806">            &quot;Guinea-Bissau&quot;,</span>
+<span class="nc" id="L807">            &quot;Guyana&quot;,</span>
+<span class="nc" id="L808">            &quot;Hong Kong SAR China&quot;,</span>
+<span class="nc" id="L809">            &quot;Heard Island and McDonald Islands&quot;,</span>
+<span class="nc" id="L810">            &quot;Honduras&quot;,</span>
+<span class="nc" id="L811">            &quot;Croatia&quot;,</span>
+<span class="nc" id="L812">            &quot;Haiti&quot;,</span>
+<span class="nc" id="L813">            &quot;Hungary&quot;,</span>
+<span class="nc" id="L814">            &quot;Indonesia&quot;,</span>
+<span class="nc" id="L815">            &quot;Ireland&quot;,</span>
+<span class="nc" id="L816">            &quot;Israel&quot;,</span>
+<span class="nc" id="L817">            &quot;Isle of Man&quot;,</span>
+<span class="nc" id="L818">            &quot;India&quot;,</span>
+<span class="nc" id="L819">            &quot;British Indian Ocean Territory&quot;,</span>
+<span class="nc" id="L820">            &quot;Iraq&quot;,</span>
+<span class="nc" id="L821">            &quot;Iran&quot;,</span>
+<span class="nc" id="L822">            &quot;Iceland&quot;,</span>
+<span class="nc" id="L823">            &quot;Italy&quot;,</span>
+<span class="nc" id="L824">            &quot;Jersey&quot;,</span>
+<span class="nc" id="L825">            &quot;Jamaica&quot;,</span>
+<span class="nc" id="L826">            &quot;Jordan&quot;,</span>
+<span class="nc" id="L827">            &quot;Japan&quot;,</span>
+<span class="nc" id="L828">            &quot;Johnston Island&quot;,</span>
+<span class="nc" id="L829">            &quot;Kenya&quot;,</span>
+<span class="nc" id="L830">            &quot;Kyrgyzstan&quot;,</span>
+<span class="nc" id="L831">            &quot;Cambodia&quot;,</span>
+<span class="nc" id="L832">            &quot;Kiribati&quot;,</span>
+<span class="nc" id="L833">            &quot;Comoros&quot;,</span>
+<span class="nc" id="L834">            &quot;Saint Kitts and Nevis&quot;,</span>
+<span class="nc" id="L835">            &quot;North Korea&quot;,</span>
+<span class="nc" id="L836">            &quot;South Korea&quot;,</span>
+<span class="nc" id="L837">            &quot;Kuwait&quot;,</span>
+<span class="nc" id="L838">            &quot;Cayman Islands&quot;,</span>
+<span class="nc" id="L839">            &quot;Kazakhstan&quot;,</span>
+<span class="nc" id="L840">            &quot;Laos&quot;,</span>
+<span class="nc" id="L841">            &quot;Lebanon&quot;,</span>
+<span class="nc" id="L842">            &quot;Saint Lucia&quot;,</span>
+<span class="nc" id="L843">            &quot;Liechtenstein&quot;,</span>
+<span class="nc" id="L844">            &quot;Sri Lanka&quot;,</span>
+<span class="nc" id="L845">            &quot;Liberia&quot;,</span>
+<span class="nc" id="L846">            &quot;Lesotho&quot;,</span>
+<span class="nc" id="L847">            &quot;Lithuania&quot;,</span>
+<span class="nc" id="L848">            &quot;Luxembourg&quot;,</span>
+<span class="nc" id="L849">            &quot;Latvia&quot;,</span>
+<span class="nc" id="L850">            &quot;Libya&quot;,</span>
+<span class="nc" id="L851">            &quot;Morocco&quot;,</span>
+<span class="nc" id="L852">            &quot;Monaco&quot;,</span>
+<span class="nc" id="L853">            &quot;Moldova&quot;,</span>
+<span class="nc" id="L854">            &quot;Montenegro&quot;,</span>
+<span class="nc" id="L855">            &quot;Saint Martin&quot;,</span>
+<span class="nc" id="L856">            &quot;Madagascar&quot;,</span>
+<span class="nc" id="L857">            &quot;Marshall Islands&quot;,</span>
+<span class="nc" id="L858">            &quot;Midway Islands&quot;,</span>
+<span class="nc" id="L859">            &quot;Macedonia&quot;,</span>
+<span class="nc" id="L860">            &quot;Mali&quot;,</span>
+<span class="nc" id="L861">            &quot;Myanmar&quot;,</span>
+<span class="nc" id="L862">            &quot;Burma&quot;,</span>
+<span class="nc" id="L863">            &quot;Mongolia&quot;,</span>
+<span class="nc" id="L864">            &quot;Macau SAR China&quot;,</span>
+<span class="nc" id="L865">            &quot;Northern Mariana Islands&quot;,</span>
+<span class="nc" id="L866">            &quot;Martinique&quot;,</span>
+<span class="nc" id="L867">            &quot;Mauritania&quot;,</span>
+<span class="nc" id="L868">            &quot;Montserrat&quot;,</span>
+<span class="nc" id="L869">            &quot;Malta&quot;,</span>
+<span class="nc" id="L870">            &quot;Mauritius&quot;,</span>
+<span class="nc" id="L871">            &quot;Maldives&quot;,</span>
+<span class="nc" id="L872">            &quot;Malawi&quot;,</span>
+<span class="nc" id="L873">            &quot;Mexico&quot;,</span>
+<span class="nc" id="L874">            &quot;Malaysia&quot;,</span>
+<span class="nc" id="L875">            &quot;Mozambique&quot;,</span>
+<span class="nc" id="L876">            &quot;Namibia&quot;,</span>
+<span class="nc" id="L877">            &quot;New Caledonia&quot;,</span>
+<span class="nc" id="L878">            &quot;Niger&quot;,</span>
+<span class="nc" id="L879">            &quot;Norfolk Island&quot;,</span>
+<span class="nc" id="L880">            &quot;Nigeria&quot;,</span>
+<span class="nc" id="L881">            &quot;Nicaragua&quot;,</span>
+<span class="nc" id="L882">            &quot;Netherlands&quot;,</span>
+<span class="nc" id="L883">            &quot;Norway&quot;,</span>
+<span class="nc" id="L884">            &quot;Nepal&quot;,</span>
+<span class="nc" id="L885">            &quot;Dronning Maud Land&quot;,</span>
+<span class="nc" id="L886">            &quot;Nauru&quot;,</span>
+<span class="nc" id="L887">            &quot;Neutral Zone&quot;,</span>
+<span class="nc" id="L888">            &quot;Niue&quot;,</span>
+<span class="nc" id="L889">            &quot;New Zealand&quot;,</span>
+<span class="nc" id="L890">            &quot;Oman&quot;,</span>
+<span class="nc" id="L891">            &quot;Panama&quot;,</span>
+<span class="nc" id="L892">            &quot;Pacific Islands Trust Territory&quot;,</span>
+<span class="nc" id="L893">            &quot;Peru&quot;,</span>
+<span class="nc" id="L894">            &quot;French Polynesia&quot;,</span>
+<span class="nc" id="L895">            &quot;Papua New Guinea&quot;,</span>
+<span class="nc" id="L896">            &quot;Philippines&quot;,</span>
+<span class="nc" id="L897">            &quot;Pakistan&quot;,</span>
+<span class="nc" id="L898">            &quot;Poland&quot;,</span>
+<span class="nc" id="L899">            &quot;Saint Pierre and Miquelon&quot;,</span>
+<span class="nc" id="L900">            &quot;Pitcairn Islands&quot;,</span>
+<span class="nc" id="L901">            &quot;Puerto Rico&quot;,</span>
+<span class="nc" id="L902">            &quot;Palestinian Territories&quot;,</span>
+<span class="nc" id="L903">            &quot;Portugal&quot;,</span>
+<span class="nc" id="L904">            &quot;U.S. Miscellaneous Pacific Islands&quot;,</span>
+<span class="nc" id="L905">            &quot;Palau&quot;,</span>
+<span class="nc" id="L906">            &quot;Paraguay&quot;,</span>
+<span class="nc" id="L907">            &quot;Panama Canal Zone&quot;,</span>
+<span class="nc" id="L908">            &quot;Qatar&quot;,</span>
+<span class="nc" id="L909">            &quot;Reunion&quot;,</span>
+<span class="nc" id="L910">            &quot;Romania&quot;,</span>
+<span class="nc" id="L911">            &quot;Serbia&quot;,</span>
+<span class="nc" id="L912">            &quot;Russia&quot;,</span>
+<span class="nc" id="L913">            &quot;Rwanda&quot;,</span>
+<span class="nc" id="L914">            &quot;Saudi Arabia&quot;,</span>
+<span class="nc" id="L915">            &quot;Solomon Islands&quot;,</span>
+<span class="nc" id="L916">            &quot;Seychelles&quot;,</span>
+<span class="nc" id="L917">            &quot;Sudan&quot;,</span>
+<span class="nc" id="L918">            &quot;Sweden&quot;,</span>
+<span class="nc" id="L919">            &quot;Singapore&quot;,</span>
+<span class="nc" id="L920">            &quot;Saint Helena&quot;,</span>
+<span class="nc" id="L921">            &quot;Slovenia&quot;,</span>
+<span class="nc" id="L922">            &quot;Svalbard and Jan Mayen&quot;,</span>
+<span class="nc" id="L923">            &quot;Svalbard&quot;,</span>
+<span class="nc" id="L924">            &quot;Jan Mayen&quot;,</span>
+<span class="nc" id="L925">            &quot;Slovakia&quot;,</span>
+<span class="nc" id="L926">            &quot;Sierra Leone&quot;,</span>
+<span class="nc" id="L927">            &quot;San Marino&quot;,</span>
+<span class="nc" id="L928">            &quot;Senegal&quot;,</span>
+<span class="nc" id="L929">            &quot;Somalia&quot;,</span>
+<span class="nc" id="L930">            &quot;Suriname&quot;,</span>
+<span class="nc" id="L931">            &quot;Sao Tome and Principe&quot;,</span>
+<span class="nc" id="L932">            &quot;Union of Soviet Socialist Republics&quot;,</span>
+<span class="nc" id="L933">            &quot;USSR&quot;,</span>
+<span class="nc" id="L934">            &quot;El Salvador&quot;,</span>
+<span class="nc" id="L935">            &quot;Syria&quot;,</span>
+<span class="nc" id="L936">            &quot;Swaziland&quot;,</span>
+<span class="nc" id="L937">            &quot;Turks and Caicos Islands&quot;,</span>
+<span class="nc" id="L938">            &quot;Chad&quot;,</span>
+<span class="nc" id="L939">            &quot;French Southern Territories&quot;,</span>
+<span class="nc" id="L940">            &quot;Togo&quot;,</span>
+<span class="nc" id="L941">            &quot;Thailand&quot;,</span>
+<span class="nc" id="L942">            &quot;Tajikistan&quot;,</span>
+<span class="nc" id="L943">            &quot;Tokelau&quot;,</span>
+<span class="nc" id="L944">            &quot;Timor-Leste&quot;,</span>
+<span class="nc" id="L945">            &quot;Turkmenistan&quot;,</span>
+<span class="nc" id="L946">            &quot;Tunisia&quot;,</span>
+<span class="nc" id="L947">            &quot;Tonga&quot;,</span>
+<span class="nc" id="L948">            &quot;Turkey&quot;,</span>
+<span class="nc" id="L949">            &quot;Trinidad and Tobago&quot;,</span>
+<span class="nc" id="L950">            &quot;Tuvalu&quot;,</span>
+<span class="nc" id="L951">            &quot;Taiwan&quot;,</span>
+<span class="nc" id="L952">            &quot;Tanzania&quot;,</span>
+<span class="nc" id="L953">            &quot;Ukraine&quot;,</span>
+<span class="nc" id="L954">            &quot;Uganda&quot;,</span>
+<span class="nc" id="L955">            &quot;U.S. Minor Outlying Islands&quot;,</span>
+<span class="nc" id="L956">            &quot;United States&quot;,</span>
+<span class="nc" id="L957">            &quot;USA&quot;,</span>
+<span class="nc" id="L958">            &quot;Uruguay&quot;,</span>
+<span class="nc" id="L959">            &quot;Uzbekistan&quot;,</span>
+<span class="nc" id="L960">            &quot;Vatican City&quot;,</span>
+<span class="nc" id="L961">            &quot;Saint Vincent and the Grenadines&quot;,</span>
+<span class="nc" id="L962">            &quot;North Vietnam&quot;,</span>
+<span class="nc" id="L963">            &quot;Venezuela&quot;,</span>
+<span class="nc" id="L964">            &quot;British Virgin Islands&quot;,</span>
+<span class="nc" id="L965">            &quot;U.S. Virgin Islands&quot;,</span>
+<span class="nc" id="L966">            &quot;Vietnam&quot;,</span>
+<span class="nc" id="L967">            &quot;Vanuatu&quot;,</span>
+<span class="nc" id="L968">            &quot;Wallis and Futuna&quot;,</span>
+<span class="nc" id="L969">            &quot;Wake Island&quot;,</span>
+<span class="nc" id="L970">            &quot;Samoa&quot;,</span>
+<span class="nc" id="L971">            &quot;People's Democratic Republic of Yemen&quot;,</span>
+<span class="nc" id="L972">            &quot;Yemen&quot;,</span>
+<span class="nc" id="L973">            &quot;Yugoslavia&quot;,</span>
+<span class="nc" id="L974">            &quot;Mayotte&quot;,</span>
+<span class="nc" id="L975">            &quot;South Africa&quot;,</span>
+<span class="nc" id="L976">            &quot;Zambia&quot;,</span>
+<span class="nc" id="L977">            &quot;Zimbabwe&quot;,</span>
+<span class="nc" id="L978">            &quot;Asia&quot;,</span>
+<span class="nc" id="L979">            &quot;Oceania&quot;,</span>
+<span class="nc" id="L980">            &quot;Europe&quot;,</span>
+<span class="nc" id="L981">            &quot;America&quot;,</span>
+<span class="nc" id="L982">            &quot;Africa&quot;,</span>
+<span class="nc" id="L983">            &quot;South America&quot;,</span>
+<span class="nc" id="L984">            &quot;North America&quot;</span>
+    };
+
+    // List of all keyword lists
+<span class="nc" id="L988">    private static final String[][] allLists = new String[][] {</span>
+<span class="nc" id="L989">            wordListIEEEXplore,</span>
+<span class="nc" id="L990">            wordListDayMonth,</span>
+<span class="nc" id="L991">            wordListCountries</span>
+    };
+
+<span class="nc" id="L994">    private static final String[][] genericLists = new String[][] {</span>
+<span class="nc" id="L995">            wordListDayMonth,</span>
+<span class="nc" id="L996">            wordListCountries</span>
+<span class="nc" id="L997">    };</span>
+    // @formatter:on
+
+
+    private CaseKeeperList() {
+        // Only static methods
+    }
+
+    /* Return all lists concatenated
+     * Can be done faster once deciding on Java 6.0
+     * see: http://stackoverflow.com/questions/80476/how-to-concatenate-two-arrays-in-java
+     */
+    public static List&lt;String&gt; getAll() {
+<span class="nc" id="L1010">        int length = 0;</span>
+<span class="nc bnc" id="L1011" title="All 2 branches missed.">        for (String[] array : allLists) {</span>
+<span class="nc" id="L1012">            length += array.length;</span>
+        }
+<span class="nc" id="L1014">        List&lt;String&gt; result = new ArrayList&lt;&gt;(length);</span>
+<span class="nc bnc" id="L1015" title="All 2 branches missed.">        for (String[] array : allLists) {</span>
+<span class="nc" id="L1016">            result.addAll(Arrays.asList(array));</span>
+        }
+<span class="nc" id="L1018">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

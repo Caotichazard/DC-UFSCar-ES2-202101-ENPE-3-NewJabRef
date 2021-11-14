@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>DBConnectDialog.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.sql</a> &gt; <span class="el_source">DBConnectDialog.java</span></div><h1>DBConnectDialog.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.sql;
+
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.gui.keyboard.KeyBinding;
+import net.sf.jabref.logic.l10n.Localization;
+
+import com.jgoodies.forms.builder.ButtonBarBuilder;
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+/**
+ * Dialog box for collecting database connection strings from the user
+ *
+ * @author pattonlk
+ */
+public class DBConnectDialog extends JDialog {
+
+<span class="nc" id="L58">    private static List&lt;String&gt; FORMATTED_NAMES = Arrays</span>
+<span class="nc" id="L59">            .stream(DatabaseType.values())</span>
+<span class="nc" id="L60">            .map(DatabaseType::getFormattedName)</span>
+<span class="nc" id="L61">            .collect(Collectors.toList());</span>
+
+    // input fields
+<span class="nc" id="L64">    private final JComboBox&lt;String&gt; cmbServerType = new JComboBox&lt;&gt;();</span>
+<span class="nc" id="L65">    private final JTextField txtServerHostname = new JTextField(40);</span>
+<span class="nc" id="L66">    private final JTextField txtDatabase = new JTextField(40);</span>
+<span class="nc" id="L67">    private final JTextField txtUsername = new JTextField(40);</span>
+<span class="nc" id="L68">    private final JPasswordField pwdPassword = new JPasswordField(40);</span>
+
+<span class="nc" id="L70">    private DBStrings dbStrings = new DBStrings();</span>
+    private boolean connectedToDB;
+
+    /**
+     * Creates a new instance of DBConnectDialog
+     */
+    public DBConnectDialog(JFrame parent, DBStrings dbs) {
+<span class="nc" id="L77">        super(Objects.requireNonNull(parent), Localization.lang(&quot;Connect to SQL database&quot;), true);</span>
+
+<span class="nc" id="L79">        this.setResizable(false);</span>
+<span class="nc" id="L80">        this.setLocationRelativeTo(parent);</span>
+
+<span class="nc" id="L82">        dbStrings = Objects.requireNonNull(dbs);</span>
+
+        // build collections of components
+<span class="nc" id="L85">        ArrayList&lt;JLabel&gt; lhs = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L86">        JLabel lblServerType = new JLabel();</span>
+<span class="nc" id="L87">        lhs.add(lblServerType);</span>
+<span class="nc" id="L88">        JLabel lblServerHostname = new JLabel();</span>
+<span class="nc" id="L89">        lhs.add(lblServerHostname);</span>
+<span class="nc" id="L90">        JLabel lblDatabase = new JLabel();</span>
+<span class="nc" id="L91">        lhs.add(lblDatabase);</span>
+<span class="nc" id="L92">        JLabel lblUsername = new JLabel();</span>
+<span class="nc" id="L93">        lhs.add(lblUsername);</span>
+<span class="nc" id="L94">        JLabel lblPassword = new JLabel();</span>
+<span class="nc" id="L95">        lhs.add(lblPassword);</span>
+
+<span class="nc" id="L97">        ArrayList&lt;JComponent&gt; rhs = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L98">        rhs.add(cmbServerType);</span>
+<span class="nc" id="L99">        rhs.add(txtServerHostname);</span>
+<span class="nc" id="L100">        rhs.add(txtDatabase);</span>
+<span class="nc" id="L101">        rhs.add(txtUsername);</span>
+<span class="nc" id="L102">        rhs.add(pwdPassword);</span>
+
+        // setup label text
+<span class="nc" id="L105">        lblServerType.setText(Localization.lang(&quot;Server type&quot;) + ':');</span>
+<span class="nc" id="L106">        lblServerHostname.setText(Localization.lang(&quot;Server hostname&quot;) + ':');</span>
+<span class="nc" id="L107">        lblDatabase.setText(Localization.lang(&quot;Database&quot;) + ':');</span>
+<span class="nc" id="L108">        lblUsername.setText(Localization.lang(&quot;Username&quot;) + ':');</span>
+<span class="nc" id="L109">        lblPassword.setText(Localization.lang(&quot;Password&quot;) + ':');</span>
+
+        // set label text alignment
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        for (JLabel label : lhs) {</span>
+<span class="nc" id="L113">            label.setHorizontalAlignment(SwingConstants.RIGHT);</span>
+        }
+
+        // set button text
+<span class="nc" id="L117">        JButton btnConnect = new JButton();</span>
+<span class="nc" id="L118">        btnConnect.setText(Localization.lang(&quot;Connect&quot;));</span>
+<span class="nc" id="L119">        JButton btnCancel = new JButton();</span>
+<span class="nc" id="L120">        btnCancel.setText(Localization.lang(&quot;Cancel&quot;));</span>
+
+        // init input fields to current DB strings
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        for (String aSrv : FORMATTED_NAMES) {</span>
+<span class="nc" id="L124">            cmbServerType.addItem(aSrv);</span>
+        }
+
+<span class="nc" id="L127">        cmbServerType.setSelectedItem(dbStrings.getDbPreferences().getServerType().getFormattedName());</span>
+<span class="nc" id="L128">        txtServerHostname.setText(dbStrings.getDbPreferences().getServerHostname());</span>
+<span class="nc" id="L129">        txtDatabase.setText(dbStrings.getDbPreferences().getDatabase());</span>
+<span class="nc" id="L130">        txtUsername.setText(dbStrings.getDbPreferences().getUsername());</span>
+<span class="nc" id="L131">        pwdPassword.setText(dbStrings.getPassword());</span>
+
+        // construct dialog
+<span class="nc" id="L134">        FormBuilder builder = FormBuilder.create().layout(new</span>
+<span class="nc" id="L135">                FormLayout(&quot;right:pref, 4dlu, fill:pref&quot;, &quot;pref, 4dlu, pref, 4dlu, pref, 4dlu, pref, 4dlu, pref&quot;));</span>
+
+<span class="nc" id="L137">        builder.getPanel().setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+
+        // add labels and input fields
+<span class="nc" id="L140">        builder.add(lblServerType).xy(1, 1);</span>
+<span class="nc" id="L141">        builder.add(cmbServerType).xy(3, 1);</span>
+<span class="nc" id="L142">        builder.add(lblServerHostname).xy(1, 3);</span>
+<span class="nc" id="L143">        builder.add(txtServerHostname).xy(3, 3);</span>
+<span class="nc" id="L144">        builder.add(lblDatabase).xy(1, 5);</span>
+<span class="nc" id="L145">        builder.add(txtDatabase).xy(3, 5);</span>
+<span class="nc" id="L146">        builder.add(lblUsername).xy(1, 7);</span>
+<span class="nc" id="L147">        builder.add(txtUsername).xy(3, 7);</span>
+<span class="nc" id="L148">        builder.add(lblPassword).xy(1, 9);</span>
+<span class="nc" id="L149">        builder.add(pwdPassword).xy(3, 9);</span>
+
+        // add the panel to the CENTER of your dialog:
+<span class="nc" id="L152">        getContentPane().add(builder.getPanel(), BorderLayout.CENTER);</span>
+
+        // add buttons are added in a similar way:
+<span class="nc" id="L155">        ButtonBarBuilder bb = new ButtonBarBuilder();</span>
+<span class="nc" id="L156">        bb.addGlue();</span>
+<span class="nc" id="L157">        bb.addButton(btnConnect);</span>
+<span class="nc" id="L158">        bb.addButton(btnCancel);</span>
+<span class="nc" id="L159">        bb.addGlue();</span>
+
+        // add the buttons to the SOUTH of your dialog:
+<span class="nc" id="L162">        getContentPane().add(bb.getPanel(), BorderLayout.SOUTH);</span>
+<span class="nc" id="L163">        pack();</span>
+
+<span class="nc" id="L165">        ActionListener connectAction = e -&gt; {</span>
+<span class="nc" id="L166">            Optional&lt;String&gt; errorMessage = checkInput();</span>
+
+<span class="nc bnc" id="L168" title="All 2 branches missed.">            if (errorMessage.isPresent()) {</span>
+<span class="nc" id="L169">                JOptionPane.showMessageDialog(null, errorMessage.get(), Localization.lang(&quot;Input error&quot;),</span>
+<span class="nc" id="L170">                        JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L171">            } else {</span>
+<span class="nc" id="L172">                storeSettings();</span>
+<span class="nc" id="L173">                setVisible(false);</span>
+<span class="nc" id="L174">                setConnectToDB(true);</span>
+            }
+<span class="nc" id="L176">        };</span>
+
+<span class="nc" id="L178">        btnConnect.addActionListener(connectAction);</span>
+<span class="nc" id="L179">        txtDatabase.addActionListener(connectAction);</span>
+<span class="nc" id="L180">        txtServerHostname.addActionListener(connectAction);</span>
+<span class="nc" id="L181">        txtUsername.addActionListener(connectAction);</span>
+<span class="nc" id="L182">        pwdPassword.addActionListener(connectAction);</span>
+
+<span class="nc" id="L184">        AbstractAction cancelAction = new AbstractAction() {</span>
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L188">                setVisible(false);</span>
+<span class="nc" id="L189">                dispose();</span>
+<span class="nc" id="L190">                setConnectToDB(false);</span>
+<span class="nc" id="L191">            }</span>
+        };
+<span class="nc" id="L193">        btnCancel.addActionListener(cancelAction);</span>
+
+        // Key bindings:
+<span class="nc" id="L196">        ActionMap am = builder.getPanel().getActionMap();</span>
+<span class="nc" id="L197">        InputMap im = builder.getPanel().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);</span>
+<span class="nc" id="L198">        im.put(Globals.getKeyPrefs().getKey(KeyBinding.CLOSE_DIALOG), &quot;close&quot;);</span>
+<span class="nc" id="L199">        am.put(&quot;close&quot;, cancelAction);</span>
+<span class="nc" id="L200">    }</span>
+
+    /**
+     * Checks the user input, and ensures that required fields have entries
+     *
+     * @return Appropriate error message to be displayed to user
+     */
+    private Optional&lt;String&gt; checkInput() {
+
+<span class="nc" id="L209">        String[] fields = {Localization.lang(&quot;Server hostname&quot;), Localization.lang(&quot;Database&quot;),</span>
+<span class="nc" id="L210">                Localization.lang(&quot;Username&quot;)};</span>
+<span class="nc" id="L211">        String[] errors = new String[fields.length];</span>
+<span class="nc" id="L212">        int cnt = 0;</span>
+
+<span class="nc bnc" id="L214" title="All 2 branches missed.">        if (txtServerHostname.getText().trim().isEmpty()) {</span>
+<span class="nc" id="L215">            errors[cnt] = fields[0];</span>
+<span class="nc" id="L216">            cnt++;</span>
+        }
+
+<span class="nc bnc" id="L219" title="All 2 branches missed.">        if (txtDatabase.getText().trim().isEmpty()) {</span>
+<span class="nc" id="L220">            errors[cnt] = fields[1];</span>
+<span class="nc" id="L221">            cnt++;</span>
+        }
+
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        if (txtUsername.getText().trim().isEmpty()) {</span>
+<span class="nc" id="L225">            errors[cnt] = fields[2];</span>
+<span class="nc" id="L226">            cnt++;</span>
+        }
+
+<span class="nc" id="L229">        StringBuilder errMsg = new StringBuilder(Localization.lang(&quot;Please specify the&quot;)).append(' ');</span>
+
+<span class="nc bnc" id="L231" title="All 4 branches missed.">        switch (cnt) {</span>
+        case 0:
+<span class="nc" id="L233">            errMsg = new StringBuilder();</span>
+<span class="nc" id="L234">            break;</span>
+        case 1:
+<span class="nc" id="L236">            errMsg.append(errors[0]).append('.');</span>
+<span class="nc" id="L237">            break;</span>
+        case 2:
+<span class="nc" id="L239">            errMsg.append(errors[0]).append(&quot; and &quot;).append(errors[1]).append('.');</span>
+<span class="nc" id="L240">            break;</span>
+        default: // Will be 3 at most
+<span class="nc" id="L242">            errMsg.append(errors[0]).append(&quot;, &quot;).append(errors[1]).append(&quot;, and &quot;).append(errors[2]).append('.');</span>
+            break;
+        }
+
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        if (errMsg.toString().isEmpty()) {</span>
+<span class="nc" id="L247">            return Optional.empty();</span>
+        } else {
+<span class="nc" id="L249">            return Optional.of(errMsg.toString());</span>
+        }
+    }
+
+    /**
+     * Save user input.
+     */
+    private void storeSettings() {
+<span class="nc" id="L257">        DBStringsPreferences preferences = new DBStringsPreferences(</span>
+<span class="nc" id="L258">                cmbServerType.getSelectedItem().toString(),</span>
+<span class="nc" id="L259">                txtServerHostname.getText(),</span>
+<span class="nc" id="L260">                txtUsername.getText(),</span>
+<span class="nc" id="L261">                txtDatabase.getText());</span>
+
+        // Store these settings so they appear as default next time:
+<span class="nc" id="L264">        preferences.storeToPreferences(Globals.prefs);</span>
+
+<span class="nc" id="L266">        dbStrings.setDbPreferences(preferences);</span>
+
+<span class="nc" id="L268">        char[] pwd = pwdPassword.getPassword();</span>
+<span class="nc" id="L269">        String tmp = new String(pwd);</span>
+<span class="nc" id="L270">        dbStrings.setPassword(tmp);</span>
+<span class="nc" id="L271">        Arrays.fill(pwd, '0');</span>
+
+<span class="nc" id="L273">    }</span>
+
+    public DBStrings getDBStrings() {
+<span class="nc" id="L276">        return dbStrings;</span>
+    }
+
+    public void setDBStrings(DBStrings dbStrings) {
+<span class="nc" id="L280">        this.dbStrings = dbStrings;</span>
+<span class="nc" id="L281">    }</span>
+
+    public boolean isConnectedToDB() {
+<span class="nc" id="L284">        return connectedToDB;</span>
+    }
+
+    private void setConnectToDB(boolean connectToDB) {
+<span class="nc" id="L288">        this.connectedToDB = connectToDB;</span>
+<span class="nc" id="L289">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

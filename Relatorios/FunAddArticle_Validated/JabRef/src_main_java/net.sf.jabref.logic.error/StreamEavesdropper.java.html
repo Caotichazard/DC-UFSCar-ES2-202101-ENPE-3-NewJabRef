@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>StreamEavesdropper.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.error</a> &gt; <span class="el_source">StreamEavesdropper.java</span></div><h1>StreamEavesdropper.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.error;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+
+/**
+ * Allows to eavesdrop on an out and an err stream.
+ * &lt;p/&gt;
+ * It can be used to listen to any messages to the System.out and System.err.
+ */
+public class StreamEavesdropper {
+
+<span class="fc" id="L28">    private final ByteArrayOutputStream errByteStream = new ByteArrayOutputStream();</span>
+<span class="fc" id="L29">    private final ByteArrayOutputStream outByteStream = new ByteArrayOutputStream();</span>
+
+    private final PrintStream systemOut;
+    private final PrintStream systemErr;
+
+
+    public static StreamEavesdropper eavesdropOnSystem() {
+<span class="fc" id="L36">        StreamEavesdropper streamEavesdropper = new StreamEavesdropper(System.out, System.err);</span>
+<span class="fc" id="L37">        System.setOut(streamEavesdropper.getOutStream());</span>
+<span class="fc" id="L38">        System.setErr(streamEavesdropper.getErrStream());</span>
+<span class="fc" id="L39">        return streamEavesdropper;</span>
+    }
+
+<span class="fc" id="L42">    public StreamEavesdropper(PrintStream systemOut, PrintStream systemErr) {</span>
+<span class="fc" id="L43">        this.systemOut = systemOut;</span>
+<span class="fc" id="L44">        this.systemErr = systemErr;</span>
+<span class="fc" id="L45">    }</span>
+
+    public PrintStream getOutStream() {
+<span class="fc" id="L48">        PrintStream consoleOut = new PrintStream(outByteStream);</span>
+<span class="fc" id="L49">        return new TeeStream(consoleOut, systemOut);</span>
+    }
+
+    public PrintStream getErrStream() {
+<span class="fc" id="L53">        PrintStream consoleErr = new PrintStream(errByteStream);</span>
+<span class="fc" id="L54">        return new TeeStream(consoleErr, systemErr);</span>
+    }
+
+    public String getErrorMessages() {
+<span class="nc" id="L58">        return errByteStream.toString();</span>
+    }
+
+    public String getOutput() {
+<span class="nc" id="L62">        return outByteStream.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

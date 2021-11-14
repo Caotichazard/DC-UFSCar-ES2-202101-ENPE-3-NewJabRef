@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>InternalBibtexFields.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.bibtex</a> &gt; <span class="el_source">InternalBibtexFields.java</span></div><h1>InternalBibtexFields.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 Raik Nagel and JabRef contributors
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+//
+// function : Handling of bibtex fields.
+//            All bibtex-field related stuff should be placed here!
+//            Because we can export these informations into additional
+//            config files -&gt; simple extension and definition of new fields....
+//
+// todo     : - handling of identically fields with different names
+//              e.g. LCCN = lib-congress
+//            - group id for each fields, e.g. standard, jurabib, bio....
+//            - add a additional properties functionality into the
+//              BibtexSingleField class
+//
+// modified : r.nagel 25.04.2006
+//            export/import of some definition from/to a xml file
+
+package net.sf.jabref.bibtex;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.specialfields.SpecialFieldsUtils;
+
+public class InternalBibtexFields {
+
+    // some internal fields
+    public static final String SEARCH = &quot;__search&quot;;
+    public static final String GROUPSEARCH = &quot;__groupsearch&quot;;
+    public static final String MARKED = &quot;__markedentry&quot;;
+    public static final String OWNER = &quot;owner&quot;;
+    public static final String TIMESTAMP = &quot;timestamp&quot;;
+    private static final String ENTRYTYPE = &quot;entrytype&quot;;
+    public static final String NUMBER_COL = &quot;#&quot;;
+
+
+    // contains all bibtex-field objects (BibtexSingleField)
+    private final Map&lt;String, BibtexSingleField&gt; fieldSet;
+
+    // contains all known (and public) bibtex fieldnames
+<span class="fc" id="L66">    private final List&lt;String&gt; PUBLIC_FIELDS = new ArrayList&lt;&gt;();</span>
+
+    // Lists of fields with special properties
+<span class="fc" id="L69">    public static final List&lt;String&gt; IEEETRANBSTCTL_NUMERIC_FIELDS = Arrays.asList(&quot;ctlmax_names_forced_etal&quot;,</span>
+<span class="fc" id="L70">            &quot;ctlnames_show_etal&quot;, &quot;ctlalt_stretch_factor&quot;);</span>
+<span class="fc" id="L71">    public static final List&lt;String&gt; IEEETRANBSTCTL_YES_NO_FIELDS = Arrays.asList(&quot;ctluse_article_number&quot;,</span>
+<span class="fc" id="L72">            &quot;ctluse_paper&quot;, &quot;ctluse_url&quot;, &quot;ctluse_forced_etal&quot;, &quot;ctluse_alt_spacing&quot;, &quot;ctldash_repeated_names&quot;);</span>
+<span class="fc" id="L73">    public static final List&lt;String&gt; BIBLATEX_DATE_FIELDS = Arrays.asList(&quot;date&quot;, &quot;eventdate&quot;, &quot;origdate&quot;, &quot;urldate&quot;);</span>
+<span class="fc" id="L74">    public static final List&lt;String&gt; BIBLATEX_PERSON_NAME_FIELDS = Arrays.asList(&quot;author&quot;, &quot;editor&quot;, &quot;editora&quot;,</span>
+<span class="fc" id="L75">            &quot;editorb&quot;, &quot;editorc&quot;, &quot;translator&quot;, &quot;annotator&quot;, &quot;commentator&quot;, &quot;introduction&quot;, &quot;foreword&quot;, &quot;afterword&quot;,</span>
+<span class="fc" id="L76">            &quot;bookauthor&quot;, &quot;holder&quot;, &quot;shortauthor&quot;, &quot;shorteditor&quot;, &quot;sortname&quot;);</span>
+<span class="fc" id="L77">    public static final List&lt;String&gt; BIBLATEX_EDITOR_TYPE_FIELDS = Arrays.asList(&quot;editortype&quot;, &quot;editoratype&quot;,</span>
+<span class="fc" id="L78">            &quot;editorbtype&quot;, &quot;editorctype&quot;);</span>
+<span class="fc" id="L79">    public static final List&lt;String&gt; BIBLATEX_PAGINATION_FIELDS = Arrays.asList(&quot;pagination&quot;, &quot;bookpagination&quot;);</span>
+
+    // singleton instance
+<span class="fc" id="L82">    private static final InternalBibtexFields RUNTIME = new InternalBibtexFields();</span>
+
+<span class="fc" id="L84">    private InternalBibtexFields() {</span>
+<span class="fc" id="L85">        fieldSet = new HashMap&lt;&gt;();</span>
+        BibtexSingleField dummy;
+
+        // FIRST: all standard fields
+        // These are the fields that BibTex might want to treat, so these
+        // must conform to BibTex rules.
+<span class="fc" id="L91">        add(new BibtexSingleField(&quot;address&quot;, true, BibtexSingleField.SMALL_W));</span>
+        // An annotation. It is not used by the standard bibliography styles,
+        // but may be used by others that produce an annotated bibliography.
+        // http://www.ecst.csuchico.edu/~jacobsd/bib/formats/bibtex.html
+<span class="fc" id="L95">        add(new BibtexSingleField(&quot;annote&quot;, true, BibtexSingleField.LARGE_W));</span>
+<span class="fc" id="L96">        add(new BibtexSingleField(&quot;author&quot;, true, BibtexSingleField.MEDIUM_W, 280));</span>
+<span class="fc" id="L97">        add(new BibtexSingleField(&quot;booktitle&quot;, true, 175));</span>
+<span class="fc" id="L98">        add(new BibtexSingleField(&quot;chapter&quot;, true, BibtexSingleField.SMALL_W));</span>
+<span class="fc" id="L99">        add(new BibtexSingleField(&quot;crossref&quot;, true, BibtexSingleField.SMALL_W));</span>
+<span class="fc" id="L100">        add(new BibtexSingleField(&quot;edition&quot;, true, BibtexSingleField.SMALL_W));</span>
+<span class="fc" id="L101">        add(new BibtexSingleField(&quot;editor&quot;, true, BibtexSingleField.MEDIUM_W, 280));</span>
+<span class="fc" id="L102">        add(new BibtexSingleField(&quot;howpublished&quot;, true, BibtexSingleField.MEDIUM_W));</span>
+<span class="fc" id="L103">        add(new BibtexSingleField(&quot;institution&quot;, true, BibtexSingleField.MEDIUM_W));</span>
+
+<span class="fc" id="L105">        dummy = new BibtexSingleField(&quot;journal&quot;, true, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L106">        dummy.setExtras(EnumSet.of(FieldProperties.JOURNAL_NAME));</span>
+<span class="fc" id="L107">        add(dummy);</span>
+<span class="fc" id="L108">        dummy = new BibtexSingleField(&quot;journaltitle&quot;, true, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L109">        dummy.setExtras(EnumSet.of(FieldProperties.JOURNAL_NAME));</span>
+<span class="fc" id="L110">        add(dummy);</span>
+
+<span class="fc" id="L112">        add(new BibtexSingleField(&quot;key&quot;, true));</span>
+<span class="fc" id="L113">        dummy = new BibtexSingleField(&quot;month&quot;, true, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L114">        dummy.setExtras(EnumSet.of(FieldProperties.MONTH));</span>
+<span class="fc" id="L115">        add(dummy);</span>
+<span class="fc" id="L116">        add(new BibtexSingleField(&quot;note&quot;, true, BibtexSingleField.MEDIUM_W));</span>
+<span class="fc" id="L117">        add(new BibtexSingleField(&quot;number&quot;, true, BibtexSingleField.SMALL_W, 60).setNumeric(true));</span>
+<span class="fc" id="L118">        add(new BibtexSingleField(&quot;organization&quot;, true, BibtexSingleField.MEDIUM_W));</span>
+<span class="fc" id="L119">        add(new BibtexSingleField(&quot;pages&quot;, true, BibtexSingleField.SMALL_W));</span>
+<span class="fc" id="L120">        add(new BibtexSingleField(&quot;publisher&quot;, true, BibtexSingleField.MEDIUM_W));</span>
+<span class="fc" id="L121">        add(new BibtexSingleField(&quot;school&quot;, true, BibtexSingleField.MEDIUM_W));</span>
+<span class="fc" id="L122">        add(new BibtexSingleField(&quot;series&quot;, true, BibtexSingleField.SMALL_W));</span>
+<span class="fc" id="L123">        add(new BibtexSingleField(&quot;title&quot;, true, 400));</span>
+<span class="fc" id="L124">        dummy = new BibtexSingleField(&quot;type&quot;, true, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L125">        dummy.getExtras().add(FieldProperties.TYPE);</span>
+<span class="fc" id="L126">        add(dummy);</span>
+<span class="fc" id="L127">        add(new BibtexSingleField(&quot;language&quot;, true, BibtexSingleField.SMALL_W));</span>
+<span class="fc" id="L128">        add(new BibtexSingleField(&quot;volume&quot;, true, BibtexSingleField.SMALL_W, 60).setNumeric(true));</span>
+<span class="fc" id="L129">        add(new BibtexSingleField(&quot;year&quot;, true, BibtexSingleField.SMALL_W, 60).setNumeric(true));</span>
+
+        // custom fields not displayed at editor, but as columns in the UI
+<span class="fc" id="L132">        dummy = new BibtexSingleField(SpecialFieldsUtils.FIELDNAME_RANKING, false);</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (!Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SERIALIZESPECIALFIELDS)) {</span>
+<span class="fc" id="L134">            dummy.setPrivate();</span>
+<span class="fc" id="L135">            dummy.setWriteable(false);</span>
+<span class="fc" id="L136">            dummy.setDisplayable(false);</span>
+        }
+<span class="fc" id="L138">        add(dummy);</span>
+<span class="fc" id="L139">        dummy = new BibtexSingleField(SpecialFieldsUtils.FIELDNAME_PRIORITY, false);</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">        if (!Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SERIALIZESPECIALFIELDS)) {</span>
+<span class="fc" id="L141">            dummy.setPrivate();</span>
+<span class="fc" id="L142">            dummy.setWriteable(false);</span>
+<span class="fc" id="L143">            dummy.setDisplayable(false);</span>
+        }
+<span class="fc" id="L145">        add(dummy);</span>
+<span class="fc" id="L146">        dummy = new BibtexSingleField(SpecialFieldsUtils.FIELDNAME_RELEVANCE, false);</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">        if (!Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SERIALIZESPECIALFIELDS)) {</span>
+<span class="fc" id="L148">            dummy.setPrivate();</span>
+<span class="fc" id="L149">            dummy.setWriteable(false);</span>
+<span class="fc" id="L150">            dummy.setDisplayable(false);</span>
+        }
+<span class="fc" id="L152">        add(dummy);</span>
+<span class="fc" id="L153">        dummy = new BibtexSingleField(SpecialFieldsUtils.FIELDNAME_QUALITY, false);</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">        if (!Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SERIALIZESPECIALFIELDS)) {</span>
+<span class="fc" id="L155">            dummy.setPrivate();</span>
+<span class="fc" id="L156">            dummy.setWriteable(false);</span>
+<span class="fc" id="L157">            dummy.setDisplayable(false);</span>
+        }
+<span class="fc" id="L159">        add(dummy);</span>
+<span class="fc" id="L160">        dummy = new BibtexSingleField(SpecialFieldsUtils.FIELDNAME_READ, false);</span>
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        if (!Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SERIALIZESPECIALFIELDS)) {</span>
+<span class="fc" id="L162">            dummy.setPrivate();</span>
+<span class="fc" id="L163">            dummy.setWriteable(false);</span>
+<span class="fc" id="L164">            dummy.setDisplayable(false);</span>
+        }
+<span class="fc" id="L166">        add(dummy);</span>
+<span class="fc" id="L167">        dummy = new BibtexSingleField(SpecialFieldsUtils.FIELDNAME_PRINTED, false);</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">        if (!Globals.prefs.getBoolean(SpecialFieldsUtils.PREF_SERIALIZESPECIALFIELDS)) {</span>
+<span class="fc" id="L169">            dummy.setPrivate();</span>
+<span class="fc" id="L170">            dummy.setWriteable(false);</span>
+<span class="fc" id="L171">            dummy.setDisplayable(false);</span>
+        }
+<span class="fc" id="L173">        add(dummy);</span>
+
+        // some semi-standard fields
+<span class="fc" id="L176">        dummy = new BibtexSingleField(BibEntry.KEY_FIELD, true);</span>
+<span class="fc" id="L177">        dummy.setPrivate();</span>
+<span class="fc" id="L178">        add(dummy);</span>
+
+<span class="fc" id="L180">        dummy = new BibtexSingleField(&quot;doi&quot;, true, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L181">        dummy.setExtras(EnumSet.of(FieldProperties.DOI));</span>
+<span class="fc" id="L182">        add(dummy);</span>
+<span class="fc" id="L183">        add(new BibtexSingleField(&quot;eid&quot;, true, BibtexSingleField.SMALL_W));</span>
+
+<span class="fc" id="L185">        dummy = new BibtexSingleField(&quot;date&quot;, true);</span>
+<span class="fc" id="L186">        dummy.setPrivate();</span>
+<span class="fc" id="L187">        add(dummy);</span>
+
+<span class="fc" id="L189">        add(new BibtexSingleField(&quot;pmid&quot;, false, BibtexSingleField.SMALL_W, 60).setNumeric(true));</span>
+
+        // additional fields ------------------------------------------------------
+<span class="fc" id="L192">        add(new BibtexSingleField(&quot;location&quot;, false));</span>
+<span class="fc" id="L193">        add(new BibtexSingleField(&quot;abstract&quot;, false, BibtexSingleField.LARGE_W, 400));</span>
+
+<span class="fc" id="L195">        dummy = new BibtexSingleField(&quot;url&quot;, false, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L196">        dummy.setExtras(EnumSet.of(FieldProperties.EXTERNAL));</span>
+<span class="fc" id="L197">        add(dummy);</span>
+
+<span class="fc" id="L199">        add(new BibtexSingleField(&quot;comment&quot;, false, BibtexSingleField.MEDIUM_W));</span>
+<span class="fc" id="L200">        add(new BibtexSingleField(&quot;keywords&quot;, false, BibtexSingleField.SMALL_W));</span>
+
+<span class="fc" id="L202">        dummy = new BibtexSingleField(Globals.FILE_FIELD, false);</span>
+<span class="fc" id="L203">        dummy.setExtras(EnumSet.of(FieldProperties.FILE_EDITOR));</span>
+<span class="fc" id="L204">        add(dummy);</span>
+
+<span class="fc" id="L206">        add(new BibtexSingleField(&quot;search&quot;, false, 75));</span>
+
+        // some BibLatex fields
+<span class="fc" id="L209">        dummy = new BibtexSingleField(&quot;gender&quot;, true, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L210">        dummy.getExtras().add(FieldProperties.GENDER);</span>
+<span class="fc" id="L211">        add(dummy);</span>
+
+        // some internal fields ----------------------------------------------
+<span class="fc" id="L214">        dummy = new BibtexSingleField(InternalBibtexFields.NUMBER_COL, false, 32);</span>
+<span class="fc" id="L215">        dummy.setPrivate();</span>
+<span class="fc" id="L216">        dummy.setWriteable(false);</span>
+<span class="fc" id="L217">        dummy.setDisplayable(false);</span>
+<span class="fc" id="L218">        add(dummy);</span>
+
+<span class="fc" id="L220">        dummy = new BibtexSingleField(InternalBibtexFields.OWNER, false, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L221">        dummy.setExtras(EnumSet.of(FieldProperties.OWNER));</span>
+<span class="fc" id="L222">        dummy.setPrivate();</span>
+<span class="fc" id="L223">        add(dummy);</span>
+
+<span class="fc" id="L225">        dummy = new BibtexSingleField(InternalBibtexFields.TIMESTAMP, false, BibtexSingleField.SMALL_W);</span>
+<span class="fc" id="L226">        dummy.setExtras(EnumSet.of(FieldProperties.DATE));</span>
+<span class="fc" id="L227">        dummy.setPrivate();</span>
+<span class="fc" id="L228">        add(dummy);</span>
+
+<span class="fc" id="L230">        dummy = new BibtexSingleField(InternalBibtexFields.ENTRYTYPE, false, 75);</span>
+<span class="fc" id="L231">        dummy.setPrivate();</span>
+<span class="fc" id="L232">        add(dummy);</span>
+
+<span class="fc" id="L234">        dummy = new BibtexSingleField(InternalBibtexFields.SEARCH, false);</span>
+<span class="fc" id="L235">        dummy.setPrivate();</span>
+<span class="fc" id="L236">        dummy.setWriteable(false);</span>
+<span class="fc" id="L237">        dummy.setDisplayable(false);</span>
+<span class="fc" id="L238">        add(dummy);</span>
+
+<span class="fc" id="L240">        dummy = new BibtexSingleField(InternalBibtexFields.GROUPSEARCH, false);</span>
+<span class="fc" id="L241">        dummy.setPrivate();</span>
+<span class="fc" id="L242">        dummy.setWriteable(false);</span>
+<span class="fc" id="L243">        dummy.setDisplayable(false);</span>
+<span class="fc" id="L244">        add(dummy);</span>
+
+<span class="fc" id="L246">        dummy = new BibtexSingleField(InternalBibtexFields.MARKED, false);</span>
+<span class="fc" id="L247">        dummy.setPrivate();</span>
+<span class="fc" id="L248">        dummy.setWriteable(true); // This field must be written to file!</span>
+<span class="fc" id="L249">        dummy.setDisplayable(false);</span>
+<span class="fc" id="L250">        add(dummy);</span>
+
+        // IEEEtranBSTCTL fields
+<span class="fc bfc" id="L253" title="All 2 branches covered.">        for (String yesNoField : IEEETRANBSTCTL_YES_NO_FIELDS) {</span>
+<span class="fc" id="L254">            dummy = new BibtexSingleField(yesNoField, false);</span>
+<span class="fc" id="L255">            dummy.setExtras(EnumSet.of(FieldProperties.YES_NO));</span>
+<span class="fc" id="L256">            add(dummy);</span>
+        }
+
+<span class="fc bfc" id="L259" title="All 2 branches covered.">        for (String numericField : IEEETRANBSTCTL_NUMERIC_FIELDS) {</span>
+<span class="fc" id="L260">            dummy = new BibtexSingleField(numericField, false).setNumeric(true);</span>
+<span class="fc" id="L261">            dummy.getExtras().add(FieldProperties.INTEGER);</span>
+<span class="fc" id="L262">            add(dummy);</span>
+        }
+
+        // Set all fields with person names
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        for (String fieldText : BIBLATEX_PERSON_NAME_FIELDS) {</span>
+<span class="fc" id="L267">            BibtexSingleField field = fieldSet.get(fieldText);</span>
+<span class="fc bfc" id="L268" title="All 2 branches covered.">            if (field == null) {</span>
+<span class="fc" id="L269">                field = new BibtexSingleField(fieldText, true, BibtexSingleField.SMALL_W);</span>
+            }
+<span class="fc" id="L271">            field.getExtras().add(FieldProperties.PERSON_NAMES);</span>
+<span class="fc" id="L272">            add(field);</span>
+        }
+
+        // Set all fields which should contain editor types
+<span class="fc bfc" id="L276" title="All 2 branches covered.">        for (String fieldText : BIBLATEX_EDITOR_TYPE_FIELDS) {</span>
+<span class="fc" id="L277">            BibtexSingleField field = fieldSet.get(fieldText);</span>
+<span class="pc bpc" id="L278" title="1 of 2 branches missed.">            if (field == null) {</span>
+<span class="fc" id="L279">                field = new BibtexSingleField(fieldText, true, BibtexSingleField.SMALL_W);</span>
+            }
+<span class="fc" id="L281">            field.getExtras().add(FieldProperties.EDITOR_TYPE);</span>
+<span class="fc" id="L282">            add(field);</span>
+        }
+
+        // Set all fields which are pagination fields
+<span class="fc bfc" id="L286" title="All 2 branches covered.">        for (String fieldText : BIBLATEX_PAGINATION_FIELDS) {</span>
+<span class="fc" id="L287">            BibtexSingleField field = fieldSet.get(fieldText);</span>
+<span class="pc bpc" id="L288" title="1 of 2 branches missed.">            if (field == null) {</span>
+<span class="fc" id="L289">                field = new BibtexSingleField(fieldText, true, BibtexSingleField.SMALL_W);</span>
+            }
+<span class="fc" id="L291">            field.getExtras().add(FieldProperties.PAGINATION);</span>
+<span class="fc" id="L292">            add(field);</span>
+        }
+
+        // Set all fields with dates
+<span class="fc bfc" id="L296" title="All 2 branches covered.">        for (String fieldText : BIBLATEX_DATE_FIELDS) {</span>
+<span class="fc" id="L297">            BibtexSingleField field = fieldSet.get(fieldText);</span>
+<span class="fc bfc" id="L298" title="All 2 branches covered.">            if (field == null) {</span>
+<span class="fc" id="L299">                field = new BibtexSingleField(fieldText, true, BibtexSingleField.SMALL_W);</span>
+            }
+<span class="fc" id="L301">            field.getExtras().add(FieldProperties.DATE);</span>
+<span class="fc" id="L302">            add(field);</span>
+        }
+
+        // collect all public fields for the PUBLIC_FIELDS array
+<span class="fc bfc" id="L306" title="All 2 branches covered.">        for (BibtexSingleField sField : fieldSet.values()) {</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">            if (!sField.isPrivate()) {</span>
+<span class="fc" id="L308">                PUBLIC_FIELDS.add(sField.getFieldName());</span>
+                // or export the complete BibtexSingleField ?
+                // BibtexSingleField.toString() { return fieldname ; }
+            }
+        }
+
+        // sort the entries
+<span class="fc" id="L315">        Collections.sort(PUBLIC_FIELDS);</span>
+<span class="fc" id="L316">    }</span>
+
+    /**
+     * Read the &quot;numericFields&quot; string array from preferences, and activate numeric
+     * sorting for all fields listed in the array. If an unknown field name is included,
+     * add a field descriptor for the new field.
+     */
+    public static void setNumericFieldsFromPrefs() {
+<span class="fc" id="L324">        List&lt;String&gt; numFields = Globals.prefs.getStringList(JabRefPreferences.NUMERIC_FIELDS);</span>
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">        if (numFields.isEmpty()) {</span>
+<span class="nc" id="L326">            return;</span>
+        }
+        // Build a Set of field names for the fields that should be sorted numerically:
+<span class="fc" id="L329">        Set&lt;String&gt; nF = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L330">        nF.addAll(numFields);</span>
+        // Look through all registered fields, and activate numeric sorting if necessary:
+<span class="fc bfc" id="L332" title="All 2 branches covered.">        for (String fieldName : InternalBibtexFields.RUNTIME.fieldSet.keySet()) {</span>
+<span class="fc" id="L333">            BibtexSingleField field = InternalBibtexFields.RUNTIME.fieldSet.get(fieldName);</span>
+<span class="fc bfc" id="L334" title="All 4 branches covered.">            if (!field.isNumeric() &amp;&amp; nF.contains(fieldName)) {</span>
+<span class="fc" id="L335">                field.setNumeric(nF.contains(fieldName));</span>
+            }
+<span class="fc" id="L337">            nF.remove(fieldName); // remove, so we clear the set of all standard fields.</span>
+        }
+        // If there are fields left in nF, these must be non-standard fields. Add descriptors for them:
+<span class="fc bfc" id="L340" title="All 2 branches covered.">        for (String fieldName : nF) {</span>
+<span class="fc" id="L341">            BibtexSingleField field = new BibtexSingleField(fieldName, false);</span>
+<span class="fc" id="L342">            field.setNumeric(true);</span>
+<span class="fc" id="L343">            InternalBibtexFields.RUNTIME.fieldSet.put(fieldName, field);</span>
+        }
+
+<span class="fc" id="L346">    }</span>
+
+    /**
+     * insert a field into the internal list
+     */
+    private void add(BibtexSingleField field) {
+        // field == null check
+<span class="fc" id="L353">        String key = field.getFieldName();</span>
+<span class="fc" id="L354">        fieldSet.put(key, field);</span>
+<span class="fc" id="L355">    }</span>
+
+    // --------------------------------------------------------------------------
+    //  the &quot;static area&quot;
+    // --------------------------------------------------------------------------
+    private static Optional&lt;BibtexSingleField&gt; getField(String name) {
+<span class="pc bpc" id="L361" title="1 of 2 branches missed.">        if (name != null) {</span>
+<span class="fc" id="L362">            return Optional.ofNullable(InternalBibtexFields.RUNTIME.fieldSet.get(name.toLowerCase(Locale.ENGLISH)));</span>
+        }
+
+<span class="nc" id="L365">        return Optional.empty();</span>
+    }
+
+    public static Set&lt;FieldProperties&gt; getFieldExtras(String name) {
+<span class="fc" id="L369">        Optional&lt;BibtexSingleField&gt; sField = InternalBibtexFields.getField(name);</span>
+<span class="fc bfc" id="L370" title="All 2 branches covered.">        if (sField.isPresent()) {</span>
+<span class="fc" id="L371">            return sField.get().getExtras();</span>
+        }
+<span class="fc" id="L373">        return EnumSet.noneOf(FieldProperties.class);</span>
+    }
+
+    public static double getFieldWeight(String name) {
+<span class="fc" id="L377">        Optional&lt;BibtexSingleField&gt; sField = InternalBibtexFields.getField(name);</span>
+<span class="fc bfc" id="L378" title="All 2 branches covered.">        if (sField.isPresent()) {</span>
+<span class="fc" id="L379">            return sField.get().getWeight();</span>
+        }
+<span class="fc" id="L381">        return BibtexSingleField.DEFAULT_FIELD_WEIGHT;</span>
+    }
+
+    public static void setFieldWeight(String fieldName, double weight) {
+<span class="nc" id="L385">        Optional&lt;BibtexSingleField&gt; sField = InternalBibtexFields.getField(fieldName);</span>
+<span class="nc bnc" id="L386" title="All 2 branches missed.">        if (sField.isPresent()) {</span>
+<span class="nc" id="L387">            sField.get().setWeight(weight);</span>
+        }
+<span class="nc" id="L389">    }</span>
+
+    public static int getFieldLength(String name) {
+<span class="nc" id="L392">        Optional&lt;BibtexSingleField&gt; sField = InternalBibtexFields.getField(name);</span>
+<span class="nc bnc" id="L393" title="All 2 branches missed.">        if (sField.isPresent()) {</span>
+<span class="nc" id="L394">            return sField.get().getLength();</span>
+        }
+<span class="nc" id="L396">        return BibtexSingleField.DEFAULT_FIELD_LENGTH;</span>
+    }
+
+    public static boolean isWriteableField(String field) {
+<span class="fc" id="L400">        Optional&lt;BibtexSingleField&gt; sField = InternalBibtexFields.getField(field);</span>
+<span class="pc bpc" id="L401" title="2 of 4 branches missed.">        return !sField.isPresent() || sField.get().isWriteable();</span>
+    }
+
+    public static boolean isDisplayableField(String field) {
+<span class="fc" id="L405">        Optional&lt;BibtexSingleField&gt; sField = InternalBibtexFields.getField(field);</span>
+<span class="pc bpc" id="L406" title="2 of 4 branches missed.">        return !sField.isPresent() || sField.get().isDisplayable();</span>
+    }
+
+    /**
+     * Returns true if the given field is a standard Bibtex field.
+     *
+     * @param field a &lt;code&gt;String&lt;/code&gt; value
+     * @return a &lt;code&gt;boolean&lt;/code&gt; value
+     */
+    public static boolean isStandardField(String field) {
+<span class="fc" id="L416">        Optional&lt;BibtexSingleField&gt; sField = InternalBibtexFields.getField(field);</span>
+<span class="pc bpc" id="L417" title="2 of 4 branches missed.">        return sField.isPresent() &amp;&amp; sField.get().isStandard();</span>
+    }
+
+    public static boolean isNumeric(String field) {
+<span class="fc" id="L421">        Optional&lt;BibtexSingleField&gt; sField = InternalBibtexFields.getField(field);</span>
+<span class="pc bpc" id="L422" title="1 of 4 branches missed.">        return sField.isPresent() &amp;&amp; sField.get().isNumeric();</span>
+    }
+
+    /**
+     * returns a List with all fieldnames
+     */
+    public static List&lt;String&gt; getAllFieldNames() {
+<span class="nc" id="L429">        return new ArrayList&lt;&gt;(InternalBibtexFields.RUNTIME.PUBLIC_FIELDS);</span>
+    }
+
+    /**
+     * returns a List with only private fieldnames
+     */
+    public static List&lt;String&gt; getAllPrivateFieldNames() {
+<span class="nc" id="L436">        List&lt;String&gt; pFields = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">        for (BibtexSingleField sField : InternalBibtexFields.RUNTIME.fieldSet.values()) {</span>
+<span class="nc bnc" id="L438" title="All 2 branches missed.">            if (sField.isPrivate()) {</span>
+<span class="nc" id="L439">                pFields.add(sField.getFieldName());</span>
+            }
+        }
+<span class="nc" id="L442">        return pFields;</span>
+
+    }
+
+    /**
+     * returns the fieldname of the entry at index t
+     */
+    public static String getFieldName(int t) {
+<span class="nc" id="L450">        return InternalBibtexFields.RUNTIME.PUBLIC_FIELDS.get(t);</span>
+    }
+
+    /**
+     * returns the number of available fields
+     */
+    public static int numberOfPublicFields() {
+<span class="nc" id="L457">        return InternalBibtexFields.RUNTIME.PUBLIC_FIELDS.size();</span>
+    }
+
+
+    /*
+       public static int getPreferredFieldLength(String name) {
+       int l = DEFAULT_FIELD_LENGTH;
+       Object o = fieldLength.get(name.toLowerCase());
+       if (o != null)
+       l = ((Integer)o).intValue();
+       return l;
+       }*/
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

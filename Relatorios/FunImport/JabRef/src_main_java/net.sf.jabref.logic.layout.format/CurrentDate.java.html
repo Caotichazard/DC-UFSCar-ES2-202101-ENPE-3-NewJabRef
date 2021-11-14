@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CurrentDate.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.layout.format</a> &gt; <span class="el_source">CurrentDate.java</span></div><h1>CurrentDate.java</h1><pre class="source lang-java linenums">/*
+ Copyright (C) 2005-2015 Andreas Rudert, Oscar Gustafsson
+
+ All programs in this directory and
+ subdirectories are published under the GNU General Public License as
+ described below.
+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or (at
+ your option) any later version.
+
+ This program is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ USA
+
+ Further information about the GNU GPL is available at:
+ http://www.gnu.org/copyleft/gpl.ja.html
+*/
+package net.sf.jabref.logic.layout.format;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import net.sf.jabref.logic.layout.LayoutFormatter;
+
+/**
+ * Inserts the current date (the time a database is being exported).
+ *
+ * &lt;p&gt;If a fieldText is given, it must be a valid {@link SimpleDateFormat} pattern.
+ * If none is given, the format pattern will be &lt;code&gt;yyyy-MM-dd hh:mm:ss z&lt;/code&gt;.
+ * This follows ISO-8601. Reason: &lt;a href=&quot;https://xkcd.com/1179/&quot;&gt;https://xkcd.com/1179/&lt;/a&gt;.&lt;/p&gt;
+ *
+ * @author andreas_sf at rudert-home dot de
+ */
+<span class="nc" id="L42">public class CurrentDate implements LayoutFormatter {</span>
+
+    // default time stamp follows ISO-8601. Reason: https://xkcd.com/1179/
+    private static final String DEFAULT_FORMAT = &quot;yyyy-MM-dd hh:mm:ss z&quot;;
+
+
+    /*
+     *  (non-Javadoc)
+     * @see net.sf.jabref.export.layout.LayoutFormatter#format(java.lang.String)
+     */
+    @Override
+    public String format(String fieldText) {
+<span class="nc" id="L54">        String format = CurrentDate.DEFAULT_FORMAT;</span>
+<span class="nc bnc" id="L55" title="All 6 branches missed.">        if ((fieldText != null) &amp;&amp; (fieldText.trim() != null) &amp;&amp; !fieldText.trim().isEmpty()) {</span>
+<span class="nc" id="L56">            format = fieldText;</span>
+        }
+<span class="nc" id="L58">        return new SimpleDateFormat(format).format(new Date());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

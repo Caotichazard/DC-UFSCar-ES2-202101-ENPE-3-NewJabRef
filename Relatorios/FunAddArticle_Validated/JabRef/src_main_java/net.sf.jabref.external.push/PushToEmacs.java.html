@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>PushToEmacs.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.external.push</a> &gt; <span class="el_source">PushToEmacs.java</span></div><h1>PushToEmacs.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.external.push;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+import javax.swing.Icon;
+import javax.swing.JCheckBox;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefExecutorService;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.MetaData;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.IconTheme;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.OS;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Created by IntelliJ IDEA. User: alver Date: Jan 14, 2006 Time: 4:55:23 PM
+ */
+<span class="fc" id="L45">public class PushToEmacs extends AbstractPushToApplication implements PushToApplication {</span>
+
+<span class="fc" id="L47">    private static final Log LOGGER = LogFactory.getLog(PushToEmacs.class);</span>
+
+<span class="fc" id="L49">    private final JTextField additionalParams = new JTextField(30);</span>
+<span class="fc" id="L50">    private final JCheckBox useEmacs23 = new JCheckBox();</span>
+
+
+    @Override
+    public String getApplicationName() {
+<span class="fc" id="L55">        return &quot;Emacs&quot;;</span>
+    }
+
+    @Override
+    public Icon getIcon() {
+<span class="fc" id="L60">        return IconTheme.getImage(&quot;emacs&quot;);</span>
+    }
+
+    @Override
+    public JPanel getSettingsPanel() {
+<span class="nc" id="L65">        additionalParams.setText(Globals.prefs.get(JabRefPreferences.EMACS_ADDITIONAL_PARAMETERS));</span>
+<span class="nc" id="L66">        useEmacs23.setSelected(Globals.prefs.getBoolean(JabRefPreferences.EMACS_23));</span>
+<span class="nc" id="L67">        return super.getSettingsPanel();</span>
+    }
+
+    @Override
+    public void storeSettings() {
+<span class="nc" id="L72">        super.storeSettings();</span>
+<span class="nc" id="L73">        Globals.prefs.put(JabRefPreferences.EMACS_ADDITIONAL_PARAMETERS, additionalParams.getText());</span>
+<span class="nc" id="L74">        Globals.prefs.putBoolean(JabRefPreferences.EMACS_23, useEmacs23.isSelected());</span>
+<span class="nc" id="L75">    }</span>
+
+    @Override
+    protected void initSettingsPanel() {
+<span class="nc" id="L79">        super.initSettingsPanel();</span>
+<span class="nc" id="L80">        builder.appendRows(&quot;2dlu, p, 2dlu, p&quot;);</span>
+<span class="nc" id="L81">        builder.add(Localization.lang(&quot;Additional parameters&quot;) + &quot;:&quot;).xy(1, 3);</span>
+<span class="nc" id="L82">        builder.add(additionalParams).xy(3, 3);</span>
+<span class="nc" id="L83">        builder.add(Localization.lang(&quot;Use EMACS 23 insertion string&quot;) + &quot;:&quot;).xy(1, 5);</span>
+<span class="nc" id="L84">        builder.add(useEmacs23).xy(3, 5);</span>
+<span class="nc" id="L85">        settings = builder.build();</span>
+<span class="nc" id="L86">    }</span>
+
+    @Override
+    public void pushEntries(BibDatabase database, List&lt;BibEntry&gt; entries, String keys, MetaData metaData) {
+
+<span class="nc" id="L91">        couldNotConnect = false;</span>
+<span class="nc" id="L92">        couldNotCall = false;</span>
+<span class="nc" id="L93">        notDefined = false;</span>
+
+<span class="nc" id="L95">        initParameters();</span>
+<span class="nc" id="L96">        commandPath = Globals.prefs.get(commandPathPreferenceKey);</span>
+
+<span class="nc bnc" id="L98" title="All 4 branches missed.">        if ((commandPath == null) || commandPath.trim().isEmpty()) {</span>
+<span class="nc" id="L99">            notDefined = true;</span>
+<span class="nc" id="L100">            return;</span>
+        }
+
+<span class="nc" id="L103">        commandPath = Globals.prefs.get(commandPathPreferenceKey);</span>
+<span class="nc" id="L104">        String[] addParams = Globals.prefs.get(JabRefPreferences.EMACS_ADDITIONAL_PARAMETERS).split(&quot; &quot;);</span>
+        try {
+<span class="nc" id="L106">            String[] com = new String[addParams.length + 2];</span>
+<span class="nc" id="L107">            com[0] = commandPath;</span>
+<span class="nc" id="L108">            System.arraycopy(addParams, 0, com, 1, addParams.length);</span>
+            String prefix;
+            String suffix;
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (Globals.prefs.getBoolean(JabRefPreferences.EMACS_23)) {</span>
+<span class="nc" id="L112">                prefix = &quot;(with-current-buffer (window-buffer) (insert &quot;;</span>
+<span class="nc" id="L113">                suffix = &quot;))&quot;;</span>
+<span class="nc" id="L114">            } else {</span>
+<span class="nc" id="L115">                prefix = &quot;(insert &quot;;</span>
+<span class="nc" id="L116">                suffix = &quot;)&quot;;</span>
+            }
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            com[com.length - 1] = OS.WINDOWS ?</span>
+            // Windows gnuclient escaping:
+            // java string: &quot;(insert \\\&quot;\\\\cite{Blah2001}\\\&quot;)&quot;;
+            // so cmd receives: (insert \&quot;\\cite{Blah2001}\&quot;)
+            // so emacs receives: (insert &quot;\cite{Blah2001}&quot;)
+<span class="nc" id="L124">            prefix.concat(&quot;\\\&quot;\\&quot; + getCiteCommand().replaceAll(&quot;\\\\&quot;, &quot;\\\\\\\\&quot;) + &quot;{&quot; + keys + &quot;}\\\&quot;&quot;).concat(suffix) :</span>
+            // Linux gnuclient escaping:
+            // java string: &quot;(insert \&quot;\\\\cite{Blah2001}\&quot;)&quot;
+            // so sh receives: (insert &quot;\\cite{Blah2001}&quot;)
+            // so emacs receives: (insert &quot;\cite{Blah2001}&quot;)
+<span class="nc" id="L129">            prefix.concat(&quot;\&quot;&quot; + getCiteCommand().replaceAll(&quot;\\\\&quot;, &quot;\\\\\\\\&quot;) + &quot;{&quot; + keys + &quot;}\&quot;&quot;).concat(suffix);</span>
+
+<span class="nc" id="L131">            final Process p = Runtime.getRuntime().exec(com);</span>
+
+<span class="nc" id="L133">            JabRefExecutorService.INSTANCE.executeAndWait(() -&gt; {</span>
+<span class="nc" id="L134">                try (InputStream out = p.getErrorStream()) {</span>
+                    int c;
+<span class="nc" id="L136">                    StringBuilder sb = new StringBuilder();</span>
+                    try {
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                        while ((c = out.read()) != -1) {</span>
+<span class="nc" id="L139">                            sb.append((char) c);</span>
+                        }
+<span class="nc" id="L141">                    } catch (IOException e) {</span>
+<span class="nc" id="L142">                        LOGGER.warn(&quot;Could not read from stderr.&quot;, e);</span>
+                    }
+                    // Error stream has been closed. See if there were any errors:
+<span class="nc bnc" id="L145" title="All 2 branches missed.">                    if (!sb.toString().trim().isEmpty()) {</span>
+<span class="nc" id="L146">                        LOGGER.warn(&quot;Push to Emacs error: &quot; + sb);</span>
+<span class="nc" id="L147">                        couldNotConnect = true;</span>
+                    }
+<span class="nc" id="L149">                } catch (IOException e) {</span>
+<span class="nc" id="L150">                    LOGGER.warn(&quot;File problem.&quot;, e);</span>
+                }
+<span class="nc" id="L152">            });</span>
+<span class="nc" id="L153">        } catch (IOException excep) {</span>
+<span class="nc" id="L154">            couldNotCall = true;</span>
+<span class="nc" id="L155">            LOGGER.warn(&quot;Problem pushing to Emacs.&quot;, excep);</span>
+        }
+<span class="nc" id="L157">    }</span>
+
+    @Override
+    public void operationCompleted(BasePanel panel) {
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (couldNotConnect) {</span>
+<span class="nc" id="L162">            JOptionPane.showMessageDialog(panel.frame(), &quot;&lt;HTML&gt;&quot; +</span>
+<span class="nc" id="L163">                    Localization.lang(&quot;Could not connect to a running gnuserv process. Make sure that &quot;</span>
+                            + &quot;Emacs or XEmacs is running,&lt;BR&gt;and that the server has been started &quot;
+<span class="nc" id="L165">                            + &quot;(by running the command 'server-start'/'gnuserv-start').&quot;) + &quot;&lt;/HTML&gt;&quot;,</span>
+<span class="nc" id="L166">                    Localization.lang(&quot;Error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        } else if (couldNotCall) {</span>
+<span class="nc" id="L168">            JOptionPane.showMessageDialog(panel.frame(),</span>
+<span class="nc" id="L169">                    Localization.lang(&quot;Could not run the gnuclient/emacsclient program. Make sure you have &quot;</span>
+                            + &quot;the emacsclient/gnuclient program installed and available in the PATH.&quot;),
+<span class="nc" id="L171">                    Localization.lang(&quot;Error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L172">        } else {</span>
+<span class="nc" id="L173">            super.operationCompleted(panel);</span>
+        }
+<span class="nc" id="L175">    }</span>
+
+    @Override
+    protected void initParameters() {
+<span class="nc" id="L179">        commandPathPreferenceKey = JabRefPreferences.EMACS_PATH;</span>
+<span class="nc" id="L180">    }</span>
+
+    @Override
+    protected String getCommandName() {
+<span class="nc" id="L184">        return &quot;gnuclient &quot; + Localization.lang(&quot;or&quot;) + &quot; emacsclient&quot;;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>Util.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.util</a> &gt; <span class="el_source">Util.java</span></div><h1>Util.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    Copyright (C) 2015 Oliver Kopp
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+// created by : Morten O. Alver 2003
+
+package net.sf.jabref.util;
+
+import java.awt.Component;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.swing.JOptionPane;
+
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.gui.worker.AbstractWorker;
+import net.sf.jabref.gui.worker.CallBack;
+import net.sf.jabref.gui.worker.Worker;
+import net.sf.jabref.logic.groups.AbstractGroup;
+import net.sf.jabref.logic.groups.KeywordGroup;
+import net.sf.jabref.logic.l10n.Localization;
+
+/**
+ * utility functions
+ */
+<span class="nc" id="L41">public class Util {</span>
+
+    /**
+     * Run an AbstractWorker's methods using Spin features to put each method on the correct thread.
+     *
+     * @param worker The worker to run.
+     * @throws Throwable
+     */
+    public static void runAbstractWorker(AbstractWorker worker) throws Throwable {
+        // This part uses Spin's features:
+<span class="nc" id="L51">        Worker wrk = worker.getWorker();</span>
+        // The Worker returned by getWorker() has been wrapped
+        // by Spin.off(), which makes its methods be run in
+        // a different thread from the EDT.
+<span class="nc" id="L55">        CallBack clb = worker.getCallBack();</span>
+
+<span class="nc" id="L57">        worker.init(); // This method runs in this same thread, the EDT.</span>
+        // Useful for initial GUI actions, like printing a message.
+
+        // The CallBack returned by getCallBack() has been wrapped
+        // by Spin.over(), which makes its methods be run on
+        // the EDT.
+<span class="nc" id="L63">        wrk.run(); // Runs the potentially time-consuming action</span>
+        // without freezing the GUI. The magic is that THIS line
+        // of execution will not continue until run() is finished.
+<span class="nc" id="L66">        clb.update(); // Runs the update() method on the EDT.</span>
+<span class="nc" id="L67">    }</span>
+
+
+    public static boolean warnAssignmentSideEffects(AbstractGroup group, Component parent) {
+<span class="nc" id="L71">        return warnAssignmentSideEffects(Collections.singletonList(group), parent);</span>
+    }
+
+    /**
+     * Warns the user of undesired side effects of an explicit assignment/removal of entries to/from this group.
+     * Currently there are four types of groups: AllEntriesGroup, SearchGroup - do not support explicit assignment.
+     * ExplicitGroup - never modifies entries. KeywordGroup - only this modifies entries upon assignment/removal.
+     * Modifications are acceptable unless they affect a standard field (such as &quot;author&quot;) besides the &quot;keywords&quot; field.
+     *
+     * @param parent The Component used as a parent when displaying a confirmation dialog.
+     * @return true if the assignment has no undesired side effects, or the user chose to perform it anyway. false
+     * otherwise (this indicates that the user has aborted the assignment).
+     */
+    public static boolean warnAssignmentSideEffects(List&lt;AbstractGroup&gt; groups, Component parent) {
+<span class="nc" id="L85">        List&lt;String&gt; affectedFields = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        for (AbstractGroup group : groups) {</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            if (group instanceof KeywordGroup) {</span>
+<span class="nc" id="L88">                KeywordGroup kg = (KeywordGroup) group;</span>
+<span class="nc" id="L89">                String field = kg.getSearchField().toLowerCase();</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">                if (&quot;keywords&quot;.equals(field)) {</span>
+<span class="nc" id="L91">                    continue; // this is not undesired</span>
+                }
+<span class="nc" id="L93">                int len = InternalBibtexFields.numberOfPublicFields();</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                for (int i = 0; i &lt; len; ++i) {</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">                    if (field.equals(InternalBibtexFields.getFieldName(i))) {</span>
+<span class="nc" id="L96">                        affectedFields.add(field);</span>
+<span class="nc" id="L97">                        break;</span>
+                    }
+                }
+            }
+        }
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (affectedFields.isEmpty()) {</span>
+<span class="nc" id="L103">            return true; // no side effects</span>
+        }
+
+        // show a warning, then return
+<span class="nc" id="L107">        StringBuilder message = new StringBuilder(</span>
+<span class="nc" id="L108">                Localization.lang(&quot;This action will modify the following field(s) in at least one entry each:&quot;))</span>
+<span class="nc" id="L109">                        .append('\n');</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        for (String affectedField : affectedFields) {</span>
+<span class="nc" id="L111">            message.append(affectedField).append('\n');</span>
+        }
+<span class="nc" id="L113">        message.append(Localization.lang(&quot;This could cause undesired changes to your entries.&quot;)).append('\n')</span>
+<span class="nc" id="L114">                .append(&quot;It is recommended that you change the grouping field in your group definition to \&quot;keywords\&quot; or a non-standard name.&quot;)</span>
+<span class="nc" id="L115">                .append(&quot;\n\n&quot;).append(Localization.lang(&quot;Do you still want to continue?&quot;));</span>
+<span class="nc" id="L116">        int choice = JOptionPane.showConfirmDialog(parent, message, Localization.lang(&quot;Warning&quot;),</span>
+<span class="nc" id="L117">                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        return choice != JOptionPane.NO_OPTION;</span>
+
+        // if (groups instanceof KeywordGroup) {
+        // KeywordGroup kg = (KeywordGroup) groups;
+        // String field = kg.getSearchField().toLowerCase();
+        // if (field.equals(&quot;keywords&quot;))
+        // return true; // this is not undesired
+        // for (int i = 0; i &lt; GUIGlobals.ALL_FIELDS.length; ++i) {
+        // if (field.equals(GUIGlobals.ALL_FIELDS[i])) {
+        // // show a warning, then return
+        // String message = Globals ...
+        // .lang(
+        // &quot;This action will modify the \&quot;%0\&quot; field &quot;
+        // + &quot;of your entries.\nThis could cause undesired changes to &quot;
+        // + &quot;your entries, so it is\nrecommended that you change the grouping
+        // field &quot;
+        // + &quot;in your group\ndefinition to \&quot;keywords\&quot; or a non-standard name.&quot;
+        // + &quot;\n\nDo you still want to continue?&quot;,
+        // field);
+        // int choice = JOptionPane.showConfirmDialog(parent, message,
+        // Globals.lang(&quot;Warning&quot;), JOptionPane.YES_NO_OPTION,
+        // JOptionPane.WARNING_MESSAGE);
+        // return choice != JOptionPane.NO_OPTION;
+        // }
+        // }
+        // }
+        // return true; // found no side effects
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

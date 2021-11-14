@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FieldContentParser.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.importer.fileformat</a> &gt; <span class="el_source">FieldContentParser.java</span></div><h1>FieldContentParser.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2011 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.importer.fileformat;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.logic.util.strings.StringUtil;
+
+/**
+ * This class provides the reformatting needed when reading BibTeX fields formatted
+ * in JabRef style. The reformatting must undo all formatting done by JabRef when
+ * writing the same fields.
+ */
+public class FieldContentParser {
+    private final HashSet&lt;String&gt; multiLineFields;
+
+    // 's' matches a space, tab, new line, carriage return.
+<span class="fc" id="L35">    private static final Pattern WHITESPACE = Pattern.compile(&quot;\\s+&quot;);</span>
+
+<span class="fc" id="L37">    public FieldContentParser() {</span>
+<span class="fc" id="L38">        multiLineFields = new HashSet&lt;&gt;();</span>
+        // the following two are also coded in net.sf.jabref.exporter.LatexFieldFormatter.format(String, String)
+<span class="fc" id="L40">        multiLineFields.add(&quot;abstract&quot;);</span>
+<span class="fc" id="L41">        multiLineFields.add(&quot;review&quot;);</span>
+        // the file field should not be formatted, therefore we treat it as a multi line field
+<span class="fc" id="L43">        List&lt;String&gt; nonWrappableFields = Globals.prefs.getStringList(JabRefPreferences.NON_WRAPPABLE_FIELDS);</span>
+<span class="fc" id="L44">        multiLineFields.addAll(nonWrappableFields);</span>
+<span class="fc" id="L45">    }</span>
+
+    /**
+     * Performs the reformatting
+     *
+     * @param fieldContent the content to format
+     * @param bibtexField the name of the bibtex field
+     * @return the formatted field content.
+     */
+    public String format(String fieldContent, String bibtexField) {
+
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (multiLineFields.contains(bibtexField)) {</span>
+            // Unify line breaks
+<span class="nc" id="L58">            return StringUtil.unifyLineBreaksToConfiguredLineBreaks(fieldContent);</span>
+        }
+
+<span class="fc" id="L61">        return WHITESPACE.matcher(fieldContent).replaceAll(&quot; &quot;);</span>
+    }
+
+    public String format(StringBuilder fieldContent, String bibtexField) {
+<span class="fc" id="L65">        return format(fieldContent.toString(), bibtexField);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

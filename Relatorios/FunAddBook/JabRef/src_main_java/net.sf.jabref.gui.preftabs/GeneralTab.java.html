@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>GeneralTab.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.preftabs</a> &gt; <span class="el_source">GeneralTab.java</span></div><h1>GeneralTab.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.preftabs;
+
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+
+import javax.swing.BorderFactory;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.help.HelpAction;
+import net.sf.jabref.gui.help.HelpFiles;
+import net.sf.jabref.logic.l10n.Encodings;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.database.BibDatabaseMode;
+
+import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+import static net.sf.jabref.logic.l10n.Languages.LANGUAGES;
+
+class GeneralTab extends JPanel implements PrefsTab {
+
+    private final JCheckBox defSort;
+    private final JCheckBox ctrlClick;
+    private final JCheckBox useOwner;
+    private final JCheckBox overwriteOwner;
+    private final JCheckBox keyDuplicateWarningDialog;
+    private final JCheckBox keyEmptyWarningDialog;
+    private final JCheckBox enforceLegalKeys;
+    private final JCheckBox confirmDelete;
+    private final JCheckBox memoryStick;
+    private final JCheckBox inspectionWarnDupli;
+    private final JCheckBox useTimeStamp;
+    private final JCheckBox updateTimeStamp;
+    private final JCheckBox overwriteTimeStamp;
+    private final JCheckBox markImportedEntries;
+    private final JCheckBox unmarkAllEntriesBeforeImporting;
+    private final JTextField defOwnerField;
+
+    private final JTextField timeStampFormat;
+    private final JTextField timeStampField;
+    private final JabRefPreferences prefs;
+<span class="nc" id="L70">    private final JComboBox&lt;String&gt; language = new JComboBox&lt;&gt;(LANGUAGES.keySet().toArray(new String[LANGUAGES.keySet().size()]));</span>
+    private final JComboBox&lt;Charset&gt; encodings;
+    private final JComboBox&lt;BibDatabaseMode&gt; biblatexMode;
+
+<span class="nc" id="L74">    public class DefaultBibModeRenderer extends DefaultListCellRenderer {</span>
+        @Override
+        public Component getListCellRendererComponent(JList&lt;?&gt; list, Object value, int index, boolean isSelected,
+                boolean cellHasFocus) {
+<span class="nc" id="L78">            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);</span>
+<span class="nc" id="L79">            setText(((BibDatabaseMode) value).getFormattedName());</span>
+<span class="nc" id="L80">            return this;</span>
+        }
+    }
+
+
+<span class="nc" id="L85">    public GeneralTab(JabRefPreferences prefs) {</span>
+<span class="nc" id="L86">        this.prefs = prefs;</span>
+<span class="nc" id="L87">        setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L89">        biblatexMode = new JComboBox&lt;&gt;(BibDatabaseMode.values());</span>
+<span class="nc" id="L90">        biblatexMode.setRenderer(new DefaultBibModeRenderer());</span>
+
+<span class="nc" id="L92">        memoryStick = new JCheckBox(Localization.lang(&quot;Load and Save preferences from/to jabref.xml on start-up (memory stick mode)&quot;));</span>
+<span class="nc" id="L93">        defSort = new JCheckBox(Localization.lang(&quot;Sort automatically&quot;));</span>
+<span class="nc" id="L94">        ctrlClick = new JCheckBox(Localization.lang(&quot;Open right-click menu with Ctrl+left button&quot;));</span>
+<span class="nc" id="L95">        useOwner = new JCheckBox(Localization.lang(&quot;Mark new entries with owner name&quot;) + ':');</span>
+<span class="nc" id="L96">        updateTimeStamp = new JCheckBox(Localization.lang(&quot;Update timestamp on modification&quot;));</span>
+<span class="nc" id="L97">        useTimeStamp = new JCheckBox(Localization.lang(&quot;Mark new entries with addition date&quot;) + &quot;. &quot;</span>
+<span class="nc" id="L98">                + Localization.lang(&quot;Date format&quot;) + ':');</span>
+<span class="nc" id="L99">        useTimeStamp.addChangeListener(e -&gt; updateTimeStamp.setEnabled(useTimeStamp.isSelected()));</span>
+<span class="nc" id="L100">        overwriteOwner = new JCheckBox(Localization.lang(&quot;Overwrite&quot;));</span>
+<span class="nc" id="L101">        overwriteTimeStamp = new JCheckBox(Localization.lang(&quot;Overwrite&quot;));</span>
+<span class="nc" id="L102">        overwriteOwner.setToolTipText(Localization.lang(&quot;If a pasted or imported entry already has &quot;</span>
+                + &quot;the field set, overwrite.&quot;));
+<span class="nc" id="L104">        overwriteTimeStamp.setToolTipText(Localization.lang(&quot;If a pasted or imported entry already has &quot;</span>
+                + &quot;the field set, overwrite.&quot;));
+<span class="nc" id="L106">        keyDuplicateWarningDialog = new JCheckBox(Localization.lang(&quot;Show warning dialog when a duplicate BibTeX key is entered&quot;));</span>
+<span class="nc" id="L107">        keyEmptyWarningDialog = new JCheckBox(Localization.lang(&quot;Show warning dialog when an empty BibTeX key is entered&quot;));</span>
+<span class="nc" id="L108">        enforceLegalKeys = new JCheckBox(Localization.lang(&quot;Enforce legal characters in BibTeX keys&quot;));</span>
+<span class="nc" id="L109">        confirmDelete = new JCheckBox(Localization.lang(&quot;Show confirmation dialog when deleting entries&quot;));</span>
+
+<span class="nc" id="L111">        markImportedEntries = new JCheckBox(Localization.lang(&quot;Mark entries imported into an existing database&quot;));</span>
+<span class="nc" id="L112">        unmarkAllEntriesBeforeImporting = new JCheckBox(Localization.lang(&quot;Unmark all entries before importing new entries into an existing database&quot;));</span>
+<span class="nc" id="L113">        defOwnerField = new JTextField();</span>
+<span class="nc" id="L114">        timeStampFormat = new JTextField();</span>
+<span class="nc" id="L115">        timeStampField = new JTextField();</span>
+<span class="nc" id="L116">        inspectionWarnDupli = new JCheckBox(Localization.lang(&quot;Warn about unresolved duplicates when closing inspection window&quot;));</span>
+
+<span class="nc" id="L118">        encodings = new JComboBox&lt;&gt;();</span>
+<span class="nc" id="L119">        encodings.setModel(new DefaultComboBoxModel&lt;&gt;(Encodings.ENCODINGS));</span>
+
+<span class="nc" id="L121">        FormLayout layout = new FormLayout</span>
+<span class="nc" id="L122">                (&quot;8dlu, 1dlu, left:170dlu, 4dlu, fill:pref, 4dlu, fill:pref, 4dlu, left:pref, 4dlu, left:pref, 4dlu, left:pref&quot;, &quot;&quot;);</span>
+<span class="nc" id="L123">        DefaultFormBuilder builder = new DefaultFormBuilder(layout);</span>
+
+<span class="nc" id="L125">        builder.appendSeparator(Localization.lang(&quot;General&quot;));</span>
+<span class="nc" id="L126">        builder.nextLine();</span>
+<span class="nc" id="L127">        builder.append(inspectionWarnDupli, 13);</span>
+<span class="nc" id="L128">        builder.nextLine();</span>
+<span class="nc" id="L129">        builder.append(ctrlClick, 13);</span>
+<span class="nc" id="L130">        builder.nextLine();</span>
+<span class="nc" id="L131">        builder.append(confirmDelete, 13);</span>
+<span class="nc" id="L132">        builder.nextLine();</span>
+<span class="nc" id="L133">        builder.append(keyDuplicateWarningDialog, 13);</span>
+<span class="nc" id="L134">        builder.nextLine();</span>
+<span class="nc" id="L135">        builder.append(keyEmptyWarningDialog, 13);</span>
+<span class="nc" id="L136">        builder.nextLine();</span>
+<span class="nc" id="L137">        builder.append(enforceLegalKeys, 13);</span>
+<span class="nc" id="L138">        builder.nextLine();</span>
+<span class="nc" id="L139">        builder.append(memoryStick, 13);</span>
+
+        // Create a new panel with its own FormLayout for the last items:
+<span class="nc" id="L142">        builder.append(useOwner, 3);</span>
+<span class="nc" id="L143">        builder.append(defOwnerField);</span>
+<span class="nc" id="L144">        builder.append(overwriteOwner);</span>
+<span class="nc" id="L145">        builder.append(new JPanel(), 3);</span>
+
+<span class="nc" id="L147">        JButton help = new HelpAction(HelpFiles.OWNER).getHelpButton();</span>
+<span class="nc" id="L148">        builder.append(help);</span>
+<span class="nc" id="L149">        builder.nextLine();</span>
+
+<span class="nc" id="L151">        builder.append(useTimeStamp, 3);</span>
+<span class="nc" id="L152">        builder.append(timeStampFormat);</span>
+<span class="nc" id="L153">        builder.append(overwriteTimeStamp);</span>
+<span class="nc" id="L154">        builder.append(Localization.lang(&quot;Field name&quot;) + ':');</span>
+<span class="nc" id="L155">        builder.append(timeStampField);</span>
+
+<span class="nc" id="L157">        help = new HelpAction(HelpFiles.TIMESTAMP).getHelpButton();</span>
+<span class="nc" id="L158">        builder.append(help);</span>
+<span class="nc" id="L159">        builder.nextLine();</span>
+
+<span class="nc" id="L161">        builder.append(new JPanel());</span>
+<span class="nc" id="L162">        builder.append(updateTimeStamp, 2);</span>
+<span class="nc" id="L163">        builder.nextLine();</span>
+
+<span class="nc" id="L165">        builder.append(markImportedEntries, 13);</span>
+<span class="nc" id="L166">        builder.nextLine();</span>
+<span class="nc" id="L167">        builder.append(unmarkAllEntriesBeforeImporting, 13);</span>
+<span class="nc" id="L168">        builder.nextLine();</span>
+        JLabel lab;
+<span class="nc" id="L170">        lab = new JLabel(Localization.lang(&quot;Language&quot;) + ':');</span>
+<span class="nc" id="L171">        builder.append(lab, 3);</span>
+<span class="nc" id="L172">        builder.append(language);</span>
+<span class="nc" id="L173">        builder.nextLine();</span>
+<span class="nc" id="L174">        lab = new JLabel(Localization.lang(&quot;Default encoding&quot;) + ':');</span>
+<span class="nc" id="L175">        builder.append(lab, 3);</span>
+<span class="nc" id="L176">        builder.append(encodings);</span>
+
+<span class="nc" id="L178">        builder.nextLine();</span>
+<span class="nc" id="L179">        builder.appendSeparator(Localization.lang(&quot;Default bibliography mode&quot;));</span>
+<span class="nc" id="L180">        builder.append(new JPanel());</span>
+<span class="nc" id="L181">        builder.append(biblatexMode);</span>
+
+<span class="nc" id="L183">        JPanel pan = builder.getPanel();</span>
+<span class="nc" id="L184">        pan.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));</span>
+<span class="nc" id="L185">        add(pan, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L187">    }</span>
+
+    @Override
+    public void setValues() {
+<span class="nc" id="L191">        defSort.setSelected(prefs.getBoolean(JabRefPreferences.DEFAULT_AUTO_SORT));</span>
+<span class="nc" id="L192">        ctrlClick.setSelected(prefs.getBoolean(JabRefPreferences.CTRL_CLICK));</span>
+<span class="nc" id="L193">        useOwner.setSelected(prefs.getBoolean(JabRefPreferences.USE_OWNER));</span>
+<span class="nc" id="L194">        overwriteOwner.setSelected(prefs.getBoolean(JabRefPreferences.OVERWRITE_OWNER));</span>
+<span class="nc" id="L195">        useTimeStamp.setSelected(prefs.getBoolean(JabRefPreferences.USE_TIME_STAMP));</span>
+<span class="nc" id="L196">        overwriteTimeStamp.setSelected(prefs.getBoolean(JabRefPreferences.OVERWRITE_TIME_STAMP));</span>
+<span class="nc" id="L197">        updateTimeStamp.setSelected(prefs.getBoolean(JabRefPreferences.UPDATE_TIMESTAMP));</span>
+<span class="nc" id="L198">        updateTimeStamp.setEnabled(useTimeStamp.isSelected());</span>
+<span class="nc" id="L199">        keyDuplicateWarningDialog.setSelected(prefs.getBoolean(JabRefPreferences.DIALOG_WARNING_FOR_DUPLICATE_KEY));</span>
+<span class="nc" id="L200">        keyEmptyWarningDialog.setSelected(prefs.getBoolean(JabRefPreferences.DIALOG_WARNING_FOR_EMPTY_KEY));</span>
+<span class="nc" id="L201">        enforceLegalKeys.setSelected(prefs.getBoolean(JabRefPreferences.ENFORCE_LEGAL_BIBTEX_KEY));</span>
+<span class="nc" id="L202">        memoryStick.setSelected(prefs.getBoolean(JabRefPreferences.MEMORY_STICK_MODE));</span>
+<span class="nc" id="L203">        confirmDelete.setSelected(prefs.getBoolean(JabRefPreferences.CONFIRM_DELETE));</span>
+<span class="nc" id="L204">        defOwnerField.setText(prefs.get(JabRefPreferences.DEFAULT_OWNER));</span>
+<span class="nc" id="L205">        timeStampFormat.setText(prefs.get(JabRefPreferences.TIME_STAMP_FORMAT));</span>
+<span class="nc" id="L206">        timeStampField.setText(prefs.get(JabRefPreferences.TIME_STAMP_FIELD));</span>
+<span class="nc" id="L207">        inspectionWarnDupli.setSelected(prefs.getBoolean(JabRefPreferences.WARN_ABOUT_DUPLICATES_IN_INSPECTION));</span>
+<span class="nc" id="L208">        markImportedEntries.setSelected(prefs.getBoolean(JabRefPreferences.MARK_IMPORTED_ENTRIES));</span>
+<span class="nc" id="L209">        unmarkAllEntriesBeforeImporting.setSelected(prefs.getBoolean(JabRefPreferences.UNMARK_ALL_ENTRIES_BEFORE_IMPORTING));</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">        if(Globals.prefs.getBoolean(JabRefPreferences.BIBLATEX_DEFAULT_MODE)) {</span>
+<span class="nc" id="L211">            biblatexMode.setSelectedItem(BibDatabaseMode.BIBLATEX);</span>
+<span class="nc" id="L212">        } else {</span>
+<span class="nc" id="L213">            biblatexMode.setSelectedItem(BibDatabaseMode.BIBTEX);</span>
+        }
+
+<span class="nc" id="L216">        Charset enc = Globals.prefs.getDefaultEncoding();</span>
+<span class="nc" id="L217">        encodings.setSelectedItem(enc);</span>
+
+<span class="nc" id="L219">        String oldLan = prefs.get(JabRefPreferences.LANGUAGE);</span>
+
+        // Language choice
+<span class="nc" id="L222">        int ilk = 0;</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">        for (String lan : LANGUAGES.values()) {</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">            if (lan.equals(oldLan)) {</span>
+<span class="nc" id="L225">                language.setSelectedIndex(ilk);</span>
+            }
+<span class="nc" id="L227">            ilk++;</span>
+        }
+
+<span class="nc" id="L230">    }</span>
+
+    @Override
+    public void storeSettings() {
+<span class="nc" id="L234">        prefs.putBoolean(JabRefPreferences.USE_OWNER, useOwner.isSelected());</span>
+<span class="nc" id="L235">        prefs.putBoolean(JabRefPreferences.OVERWRITE_OWNER, overwriteOwner.isSelected());</span>
+<span class="nc" id="L236">        prefs.putBoolean(JabRefPreferences.USE_TIME_STAMP, useTimeStamp.isSelected());</span>
+<span class="nc" id="L237">        prefs.putBoolean(JabRefPreferences.OVERWRITE_TIME_STAMP, overwriteTimeStamp.isSelected());</span>
+<span class="nc" id="L238">        prefs.putBoolean(JabRefPreferences.UPDATE_TIMESTAMP, updateTimeStamp.isSelected());</span>
+<span class="nc" id="L239">        prefs.putBoolean(JabRefPreferences.DIALOG_WARNING_FOR_DUPLICATE_KEY, keyDuplicateWarningDialog.isSelected());</span>
+<span class="nc" id="L240">        prefs.putBoolean(JabRefPreferences.DIALOG_WARNING_FOR_EMPTY_KEY, keyEmptyWarningDialog.isSelected());</span>
+<span class="nc" id="L241">        prefs.putBoolean(JabRefPreferences.ENFORCE_LEGAL_BIBTEX_KEY, enforceLegalKeys.isSelected());</span>
+<span class="nc bnc" id="L242" title="All 4 branches missed.">        if (prefs.getBoolean(JabRefPreferences.MEMORY_STICK_MODE) &amp;&amp; !memoryStick.isSelected()) {</span>
+<span class="nc" id="L243">            JOptionPane.showMessageDialog(null, Localization.lang(&quot;To disable the memory stick mode&quot;</span>
+                            + &quot; rename or remove the jabref.xml file in the same folder as JabRef.&quot;),
+<span class="nc" id="L245">                    Localization.lang(&quot;Memory Stick Mode&quot;),</span>
+<span class="nc" id="L246">                    JOptionPane.INFORMATION_MESSAGE);</span>
+        }
+<span class="nc" id="L248">        prefs.putBoolean(JabRefPreferences.MEMORY_STICK_MODE, memoryStick.isSelected());</span>
+<span class="nc" id="L249">        prefs.putBoolean(JabRefPreferences.CONFIRM_DELETE, confirmDelete.isSelected());</span>
+<span class="nc" id="L250">        prefs.putBoolean(JabRefPreferences.CTRL_CLICK, ctrlClick.isSelected());</span>
+<span class="nc" id="L251">        prefs.putBoolean(JabRefPreferences.WARN_ABOUT_DUPLICATES_IN_INSPECTION, inspectionWarnDupli.isSelected());</span>
+<span class="nc" id="L252">        String owner = defOwnerField.getText().trim();</span>
+<span class="nc" id="L253">        prefs.put(JabRefPreferences.DEFAULT_OWNER, owner);</span>
+<span class="nc" id="L254">        prefs.WRAPPED_USERNAME = '[' + owner + ']';</span>
+<span class="nc" id="L255">        prefs.put(JabRefPreferences.TIME_STAMP_FORMAT, timeStampFormat.getText().trim());</span>
+<span class="nc" id="L256">        prefs.put(JabRefPreferences.TIME_STAMP_FIELD, timeStampField.getText().trim());</span>
+<span class="nc" id="L257">        prefs.setDefaultEncoding((Charset) encodings.getSelectedItem());</span>
+<span class="nc" id="L258">        prefs.putBoolean(JabRefPreferences.MARK_IMPORTED_ENTRIES, markImportedEntries.isSelected());</span>
+<span class="nc" id="L259">        prefs.putBoolean(JabRefPreferences.UNMARK_ALL_ENTRIES_BEFORE_IMPORTING, unmarkAllEntriesBeforeImporting.isSelected());</span>
+<span class="nc bnc" id="L260" title="All 2 branches missed.">        prefs.putBoolean(JabRefPreferences.BIBLATEX_DEFAULT_MODE, biblatexMode.getSelectedItem() == BibDatabaseMode.BIBLATEX);</span>
+
+<span class="nc bnc" id="L262" title="All 2 branches missed.">        if (!LANGUAGES.get(language.getSelectedItem()).equals(prefs.get(JabRefPreferences.LANGUAGE))) {</span>
+<span class="nc" id="L263">            prefs.put(JabRefPreferences.LANGUAGE, LANGUAGES.get(language.getSelectedItem()));</span>
+<span class="nc" id="L264">            Localization.setLanguage(LANGUAGES.get(language.getSelectedItem()));</span>
+            // Update any defaults that might be language dependent:
+<span class="nc" id="L266">            Globals.prefs.setLanguageDependentDefaultValues();</span>
+            // Warn about restart needed:
+<span class="nc" id="L268">            JOptionPane.showMessageDialog(null,</span>
+<span class="nc" id="L269">                    Localization.lang(&quot;You have changed the language setting.&quot;)</span>
+<span class="nc" id="L270">                            .concat(&quot; &quot;)</span>
+<span class="nc" id="L271">                            .concat(Localization.lang(&quot;You must restart JabRef for this to come into effect.&quot;)),</span>
+<span class="nc" id="L272">                    Localization.lang(&quot;Changed language settings&quot;),</span>
+<span class="nc" id="L273">                    JOptionPane.WARNING_MESSAGE);</span>
+        }
+<span class="nc" id="L275">    }</span>
+
+    @Override
+    public boolean validateSettings() {
+        try {
+            // Test if date format is legal:
+<span class="nc" id="L281">            new SimpleDateFormat(timeStampFormat.getText());</span>
+
+<span class="nc" id="L283">        } catch (IllegalArgumentException ex2) {</span>
+<span class="nc" id="L284">            JOptionPane.showMessageDialog</span>
+<span class="nc" id="L285">                    (null, Localization.lang(&quot;The chosen date format for new entries is not valid&quot;),</span>
+<span class="nc" id="L286">                            Localization.lang(&quot;Invalid date format&quot;),</span>
+<span class="nc" id="L287">                            JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L288">            return false;</span>
+        }
+<span class="nc" id="L290">        return true;</span>
+    }
+
+    @Override
+    public String getTabName() {
+<span class="nc" id="L295">        return Localization.lang(&quot;General&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

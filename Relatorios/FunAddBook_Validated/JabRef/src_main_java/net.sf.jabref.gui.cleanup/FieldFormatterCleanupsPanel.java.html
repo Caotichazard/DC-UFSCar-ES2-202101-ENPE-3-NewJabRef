@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FieldFormatterCleanupsPanel.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:55:25)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.cleanup</a> &gt; <span class="el_source">FieldFormatterCleanupsPanel.java</span></div><h1>FieldFormatterCleanupsPanel.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.cleanup;
+
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JList;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.ListSelectionModel;
+import javax.swing.UIManager;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
+
+import net.sf.jabref.MetaData;
+import net.sf.jabref.bibtex.InternalBibtexFields;
+import net.sf.jabref.exporter.FieldFormatterCleanups;
+import net.sf.jabref.logic.cleanup.FieldFormatterCleanup;
+import net.sf.jabref.logic.formatter.Formatter;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.model.entry.BibEntry;
+
+import com.jgoodies.forms.builder.FormBuilder;
+import com.jgoodies.forms.layout.FormLayout;
+
+public class FieldFormatterCleanupsPanel extends JPanel {
+
+<span class="nc" id="L56">    private static final String DESCRIPTION = Localization.lang(&quot;Description&quot;) + &quot;: &quot;;</span>
+    private final JCheckBox cleanupEnabled;
+    private FieldFormatterCleanups fieldFormatterCleanups;
+    private JList&lt;?&gt; actionsList;
+    private JComboBox&lt;?&gt; formattersCombobox;
+    private JComboBox&lt;String&gt; selectFieldCombobox;
+    private JButton addButton;
+    private JTextArea descriptionAreaText;
+    private JButton removeButton;
+    private JButton resetButton;
+
+    private final FieldFormatterCleanups defaultFormatters;
+
+
+<span class="nc" id="L70">    public FieldFormatterCleanupsPanel(String description, FieldFormatterCleanups defaultFormatters) {</span>
+<span class="nc" id="L71">        this.defaultFormatters = Objects.requireNonNull(defaultFormatters);</span>
+<span class="nc" id="L72">        cleanupEnabled = new JCheckBox(description);</span>
+<span class="nc" id="L73">    }</span>
+
+    public void setValues(MetaData metaData) {
+<span class="nc" id="L76">        Objects.requireNonNull(metaData);</span>
+<span class="nc" id="L77">        Optional&lt;FieldFormatterCleanups&gt; saveActions = metaData.getSaveActions();</span>
+<span class="nc" id="L78">        setValues(saveActions.orElse(FieldFormatterCleanups.DEFAULT_SAVE_ACTIONS));</span>
+<span class="nc" id="L79">    }</span>
+
+    public void setValues(FieldFormatterCleanups formatterCleanups) {
+<span class="nc" id="L82">        fieldFormatterCleanups = formatterCleanups;</span>
+
+        // first clear existing content
+<span class="nc" id="L85">        this.removeAll();</span>
+
+<span class="nc" id="L87">        List&lt;FieldFormatterCleanup&gt; configuredActions = fieldFormatterCleanups.getConfiguredActions();</span>
+        //The copy is necessary because the original List is unmodifiable
+<span class="nc" id="L89">        List&lt;FieldFormatterCleanup&gt; actionsToDisplay = new ArrayList&lt;&gt;(configuredActions);</span>
+<span class="nc" id="L90">        buildLayout(actionsToDisplay);</span>
+
+<span class="nc" id="L92">    }</span>
+
+    private void buildLayout(List&lt;FieldFormatterCleanup&gt; actionsToDisplay) {
+<span class="nc" id="L95">        FormBuilder builder = FormBuilder.create().layout(new FormLayout(</span>
+<span class="nc" id="L96">                &quot;left:pref, 13dlu, left:pref:grow, 4dlu, pref, 4dlu, pref&quot;,</span>
+<span class="nc" id="L97">                &quot;pref, 2dlu, pref, 2dlu, pref, 4dlu, pref, 2dlu, pref, 2dlu, pref, 2dlu, pref, 2dlu, pref, 2dlu, fill:pref:grow, 2dlu&quot;));</span>
+<span class="nc" id="L98">        builder.add(cleanupEnabled).xyw(1, 1, 7);</span>
+
+<span class="nc" id="L100">        actionsList = new JList&lt;&gt;(new CleanupActionsListModel(actionsToDisplay));</span>
+<span class="nc" id="L101">        actionsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="nc" id="L102">        actionsList.addMouseMotionListener(new MouseMotionAdapter() {</span>
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+<span class="nc" id="L106">                super.mouseMoved(e);</span>
+<span class="nc" id="L107">                CleanupActionsListModel m = (CleanupActionsListModel) actionsList.getModel();</span>
+<span class="nc" id="L108">                int index = actionsList.locationToIndex(e.getPoint());</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">                if (index &gt; -1) {</span>
+<span class="nc" id="L110">                    actionsList.setToolTipText(m.getElementAt(index).getFormatter().getDescription());</span>
+                }
+<span class="nc" id="L112">            }</span>
+        });
+
+<span class="nc" id="L115">        actionsList.getModel().addListDataListener(new ListDataListener() {</span>
+
+            @Override
+            public void intervalRemoved(ListDataEvent e) {
+                //index0 is sufficient, because of SingleSelection
+<span class="nc bnc" id="L120" title="All 2 branches missed.">                if (e.getIndex0() == 0) {</span>
+                    //when an item gets deleted, the next one becomes the new 0
+<span class="nc" id="L122">                    actionsList.setSelectedIndex(e.getIndex0());</span>
+                }
+<span class="nc bnc" id="L124" title="All 2 branches missed.">                if (e.getIndex0() &gt; 0) {</span>
+<span class="nc" id="L125">                    actionsList.setSelectedIndex(e.getIndex0() - 1);</span>
+                }
+
+<span class="nc" id="L128">            }</span>
+
+            @Override
+            public void intervalAdded(ListDataEvent e) {
+                //empty, not needed
+
+<span class="nc" id="L134">            }</span>
+
+            @Override
+            public void contentsChanged(ListDataEvent e) {
+                //empty, not needed
+
+<span class="nc" id="L140">            }</span>
+        });
+
+<span class="nc" id="L143">        builder.add(actionsList).xyw(3, 5, 5);</span>
+
+<span class="nc" id="L145">        resetButton = new JButton(Localization.lang(&quot;Reset&quot;));</span>
+<span class="nc" id="L146">        resetButton.addActionListener(e -&gt; ((CleanupActionsListModel) actionsList.getModel()).reset(defaultFormatters));</span>
+
+<span class="nc" id="L148">        removeButton = new JButton(Localization.lang(&quot;Remove selected&quot;));</span>
+<span class="nc" id="L149">        removeButton.addActionListener(</span>
+<span class="nc" id="L150">                e -&gt; ((CleanupActionsListModel) actionsList.getModel()).removeAtIndex(actionsList.getSelectedIndex()));</span>
+
+<span class="nc" id="L152">        builder.add(removeButton).xy(7, 11);</span>
+<span class="nc" id="L153">        builder.add(resetButton).xy(3, 11);</span>
+<span class="nc" id="L154">        builder.add(getSelectorPanel()).xyw(3, 15, 5);</span>
+
+<span class="nc" id="L156">        makeDescriptionTextAreaLikeJLabel();</span>
+<span class="nc" id="L157">        builder.add(descriptionAreaText).xyw(3, 17, 5);</span>
+<span class="nc" id="L158">        this.setLayout(new BorderLayout());</span>
+<span class="nc" id="L159">        this.add(builder.getPanel(), BorderLayout.WEST);</span>
+
+<span class="nc" id="L161">        updateDescription();</span>
+
+        // make sure the layout is set according to the checkbox
+<span class="nc" id="L164">        cleanupEnabled.addActionListener(new EnablementStatusListener(fieldFormatterCleanups.isEnabled()));</span>
+<span class="nc" id="L165">        cleanupEnabled.setSelected(fieldFormatterCleanups.isEnabled());</span>
+
+<span class="nc" id="L167">    }</span>
+
+    /**
+     * Create a TextArea that looks and behaves like a JLabel. Has the advantage of supporting multine and wordwrap
+     */
+    private void makeDescriptionTextAreaLikeJLabel() {
+
+<span class="nc" id="L174">        descriptionAreaText = new JTextArea(DESCRIPTION);</span>
+<span class="nc" id="L175">        descriptionAreaText.setLineWrap(true);</span>
+<span class="nc" id="L176">        descriptionAreaText.setWrapStyleWord(true);</span>
+<span class="nc" id="L177">        descriptionAreaText.setColumns(6);</span>
+<span class="nc" id="L178">        descriptionAreaText.setEditable(false);</span>
+<span class="nc" id="L179">        descriptionAreaText.setOpaque(false);</span>
+<span class="nc" id="L180">        descriptionAreaText.setFocusable(false);</span>
+<span class="nc" id="L181">        descriptionAreaText.setCursor(null);</span>
+<span class="nc" id="L182">        descriptionAreaText.setFont(UIManager.getFont(&quot;Label.font&quot;));</span>
+
+<span class="nc" id="L184">    }</span>
+
+    private void updateDescription() {
+<span class="nc" id="L187">        FieldFormatterCleanup formatterCleanup = getFieldFormatterCleanup();</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (formatterCleanup != null) {</span>
+<span class="nc" id="L189">            descriptionAreaText.setText(DESCRIPTION + formatterCleanup.getFormatter().getDescription());</span>
+<span class="nc" id="L190">        } else {</span>
+<span class="nc" id="L191">            Formatter selectedFormatter = getFieldFormatter();</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">            if (selectedFormatter != null) {</span>
+<span class="nc" id="L193">                descriptionAreaText.setText(DESCRIPTION + selectedFormatter.getDescription());</span>
+<span class="nc" id="L194">            } else {</span>
+<span class="nc" id="L195">                descriptionAreaText.setText(DESCRIPTION);</span>
+            }
+        }
+<span class="nc" id="L198">    }</span>
+
+    /**
+     * This panel contains the two comboboxes and the Add button
+     * @return Returns the created JPanel
+     */
+    private JPanel getSelectorPanel() {
+<span class="nc" id="L205">        FormBuilder builder = FormBuilder.create()</span>
+<span class="nc" id="L206">                .layout(new FormLayout(&quot;left:pref:grow, 4dlu, left:pref:grow, 4dlu, pref:grow, 4dlu, right:pref&quot;,</span>
+<span class="nc" id="L207">                        &quot;pref, 2dlu, pref:grow, 2dlu&quot;));</span>
+
+<span class="nc" id="L209">        List&lt;String&gt; fieldNames = new ArrayList&lt;&gt;(InternalBibtexFields.getAllFieldNames());</span>
+<span class="nc" id="L210">        fieldNames.add(BibEntry.KEY_FIELD);</span>
+<span class="nc" id="L211">        fieldNames.add(&quot;all&quot;);</span>
+<span class="nc" id="L212">        Collections.sort(fieldNames);</span>
+<span class="nc" id="L213">        String[] allPlusKey = fieldNames.toArray(new String[fieldNames.size()]);</span>
+
+<span class="nc" id="L215">        selectFieldCombobox = new JComboBox&lt;&gt;(allPlusKey);</span>
+<span class="nc" id="L216">        selectFieldCombobox.setEditable(true);</span>
+<span class="nc" id="L217">        builder.add(selectFieldCombobox).xy(1, 1);</span>
+
+<span class="nc" id="L219">        List&lt;String&gt; formatterNames = fieldFormatterCleanups.getAvailableFormatters().stream()</span>
+<span class="nc" id="L220">                .map(Formatter::getName).collect(Collectors.toList());</span>
+<span class="nc" id="L221">        List&lt;String&gt; formatterDescriptions = fieldFormatterCleanups.getAvailableFormatters().stream()</span>
+<span class="nc" id="L222">                .map(Formatter::getDescription).collect(Collectors.toList());</span>
+<span class="nc" id="L223">        formattersCombobox = new JComboBox&lt;&gt;(formatterNames.toArray());</span>
+<span class="nc" id="L224">        formattersCombobox.setRenderer(new DefaultListCellRenderer() {</span>
+
+            @Override
+            public Component getListCellRendererComponent(JList&lt;?&gt; list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+<span class="nc bnc" id="L229" title="All 6 branches missed.">                if ((-1 &lt; index) &amp;&amp; (index &lt; formatterDescriptions.size()) &amp;&amp; (value != null)) {</span>
+<span class="nc" id="L230">                    setToolTipText(formatterDescriptions.get(index));</span>
+
+                }
+<span class="nc" id="L233">                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);</span>
+            }
+        });
+<span class="nc" id="L236">        formattersCombobox.addItemListener(e -&gt; updateDescription());</span>
+<span class="nc" id="L237">        builder.add(formattersCombobox).xy(3, 1);</span>
+
+<span class="nc" id="L239">        addButton = new JButton(Localization.lang(&quot;Add&quot;));</span>
+<span class="nc" id="L240">        addButton.addActionListener(e -&gt; {</span>
+<span class="nc" id="L241">            FieldFormatterCleanup newAction = getFieldFormatterCleanup();</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">            if (newAction == null) {</span>
+<span class="nc" id="L243">                return;</span>
+            }
+
+<span class="nc" id="L246">            ((CleanupActionsListModel) actionsList.getModel()).addCleanupAction(newAction);</span>
+
+<span class="nc" id="L248">        });</span>
+<span class="nc" id="L249">        builder.add(addButton).xy(5, 1);</span>
+
+<span class="nc" id="L251">        return builder.getPanel();</span>
+    }
+
+    public void storeSettings(MetaData metaData) {
+<span class="nc" id="L255">        Objects.requireNonNull(metaData);</span>
+
+<span class="nc" id="L257">        FieldFormatterCleanups formatterCleanups = getFormatterCleanups();</span>
+
+        // if all actions have been removed, remove the save actions from the MetaData
+<span class="nc bnc" id="L260" title="All 2 branches missed.">        if (formatterCleanups.getConfiguredActions().isEmpty()) {</span>
+<span class="nc" id="L261">            metaData.clearSaveActions();</span>
+<span class="nc" id="L262">            return;</span>
+        }
+
+<span class="nc" id="L265">        metaData.setSaveActions(formatterCleanups);</span>
+<span class="nc" id="L266">    }</span>
+
+    public FieldFormatterCleanups getFormatterCleanups() {
+<span class="nc" id="L269">        List&lt;FieldFormatterCleanup&gt; actions = ((CleanupActionsListModel) actionsList.getModel()).getAllActions();</span>
+<span class="nc" id="L270">        return new FieldFormatterCleanups(cleanupEnabled.isSelected(), actions);</span>
+    }
+
+    public boolean hasChanged() {
+<span class="nc bnc" id="L274" title="All 2 branches missed.">        return !fieldFormatterCleanups.equals(getFormatterCleanups());</span>
+    }
+
+    public boolean isDefaultSaveActions() {
+<span class="nc" id="L278">        return FieldFormatterCleanups.DEFAULT_SAVE_ACTIONS.equals(getFormatterCleanups());</span>
+    }
+
+    private FieldFormatterCleanup getFieldFormatterCleanup() {
+<span class="nc" id="L282">        Formatter selectedFormatter = getFieldFormatter();</span>
+
+<span class="nc" id="L284">        String fieldKey = selectFieldCombobox.getSelectedItem().toString();</span>
+<span class="nc" id="L285">        return new FieldFormatterCleanup(fieldKey, selectedFormatter);</span>
+
+    }
+
+    private Formatter getFieldFormatter() {
+<span class="nc" id="L290">        Formatter selectedFormatter = null;</span>
+<span class="nc" id="L291">        String selectedFormatterName = formattersCombobox.getSelectedItem().toString();</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">        for (Formatter formatter : fieldFormatterCleanups.getAvailableFormatters()) {</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">            if (formatter.getName().equals(selectedFormatterName)) {</span>
+<span class="nc" id="L294">                selectedFormatter = formatter;</span>
+<span class="nc" id="L295">                break;</span>
+            }
+        }
+<span class="nc" id="L298">        return selectedFormatter;</span>
+    }
+
+
+    class EnablementStatusListener implements ActionListener {
+
+<span class="nc" id="L304">        public EnablementStatusListener(boolean initialStatus) {</span>
+<span class="nc" id="L305">            setStatus(initialStatus);</span>
+<span class="nc" id="L306">        }</span>
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L310">            boolean enablementStatus = cleanupEnabled.isSelected();</span>
+<span class="nc" id="L311">            setStatus(enablementStatus);</span>
+
+<span class="nc" id="L313">        }</span>
+
+        private void setStatus(boolean status) {
+<span class="nc" id="L316">            actionsList.setEnabled(status);</span>
+<span class="nc" id="L317">            selectFieldCombobox.setEnabled(status);</span>
+<span class="nc" id="L318">            formattersCombobox.setEnabled(status);</span>
+<span class="nc" id="L319">            addButton.setEnabled(status);</span>
+<span class="nc" id="L320">            removeButton.setEnabled(status);</span>
+<span class="nc" id="L321">            resetButton.setEnabled(status);</span>
+
+<span class="nc" id="L323">        }</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:55:25)</div></body></html>

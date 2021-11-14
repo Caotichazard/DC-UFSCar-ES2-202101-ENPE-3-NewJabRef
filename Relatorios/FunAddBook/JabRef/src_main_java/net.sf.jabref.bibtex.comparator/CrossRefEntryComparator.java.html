@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CrossRefEntryComparator.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (4 de out. de 2021 09:14:42)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.bibtex.comparator</a> &gt; <span class="el_source">CrossRefEntryComparator.java</span></div><h1>CrossRefEntryComparator.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.bibtex.comparator;
+
+import java.util.Comparator;
+
+import net.sf.jabref.model.entry.BibEntry;
+
+/**
+ * Compares Bibtex entries based on their 'crossref' fields. Entries including
+ * this field are deemed smaller than entries without this field. This serves
+ * the purpose of always placing referenced entries after referring entries in
+ * the .bib file. After this criterion comes comparisons of individual fields.
+ */
+<span class="fc" id="L28">public class CrossRefEntryComparator implements Comparator&lt;BibEntry&gt; {</span>
+
+    private static final String CROSS_REF_FIELD = &quot;crossref&quot;;
+
+
+    @Override
+    public int compare(BibEntry e1, BibEntry e2) {
+
+<span class="fc" id="L36">        Boolean b1 = e1.hasField(CrossRefEntryComparator.CROSS_REF_FIELD);</span>
+<span class="fc" id="L37">        Boolean b2 = e2.hasField(CrossRefEntryComparator.CROSS_REF_FIELD);</span>
+
+<span class="pc bpc" id="L39" title="2 of 4 branches missed.">        if ((!b1) &amp;&amp; (!b2)) {</span>
+<span class="fc" id="L40">            return 0; // secComparator.compare(e1, e2);</span>
+        }
+<span class="nc bnc" id="L42" title="All 4 branches missed.">        if (b1 &amp;&amp; b2) {</span>
+<span class="nc" id="L43">            return 0; // secComparator.compare(e1, e2);</span>
+        }
+<span class="nc bnc" id="L45" title="All 2 branches missed.">        if (!b1) {</span>
+<span class="nc" id="L46">            return 1;</span>
+        } else {
+<span class="nc" id="L48">            return -1;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (4 de out. de 2021 09:14:42)</div></body></html>

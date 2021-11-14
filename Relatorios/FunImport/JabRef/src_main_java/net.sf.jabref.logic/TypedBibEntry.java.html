@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>TypedBibEntry.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic</a> &gt; <span class="el_source">TypedBibEntry.java</span></div><h1>TypedBibEntry.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.Globals;
+import net.sf.jabref.model.EntryTypes;
+import net.sf.jabref.model.database.BibDatabase;
+import net.sf.jabref.model.database.BibDatabaseMode;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.EntryType;
+import net.sf.jabref.model.entry.EntryUtil;
+import net.sf.jabref.model.entry.FileField;
+import net.sf.jabref.model.entry.ParsedFileField;
+
+public class TypedBibEntry {
+
+    private final BibEntry entry;
+    private final Optional&lt;BibDatabase&gt; database;
+    private final BibDatabaseMode mode;
+
+    public TypedBibEntry(BibEntry entry, BibDatabaseMode mode) {
+<span class="nc" id="L41">        this(entry, Optional.empty(), mode);</span>
+<span class="nc" id="L42">    }</span>
+
+<span class="nc" id="L44">    public TypedBibEntry(BibEntry entry, Optional&lt;BibDatabase&gt; database, BibDatabaseMode mode) {</span>
+<span class="nc" id="L45">        this.entry = Objects.requireNonNull(entry);</span>
+<span class="nc" id="L46">        this.database = Objects.requireNonNull(database);</span>
+<span class="nc" id="L47">        this.mode = mode;</span>
+<span class="nc" id="L48">    }</span>
+
+    public TypedBibEntry(BibEntry entry, BibDatabaseContext databaseContext) {
+<span class="nc" id="L51">        this(entry, databaseContext.getDatabase(), databaseContext.getMode());</span>
+<span class="nc" id="L52">    }</span>
+
+    public TypedBibEntry(BibEntry entry, BibDatabase database, BibDatabaseMode mode) {
+<span class="nc" id="L55">        this(entry, Optional.of(database), mode);</span>
+<span class="nc" id="L56">    }</span>
+
+    /**
+     * Returns true if this entry contains the fields it needs to be
+     * complete.
+     */
+    public boolean hasAllRequiredFields() {
+<span class="nc" id="L63">        Optional&lt;EntryType&gt; type = EntryTypes.getType(entry.getType(), this.mode);</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if(type.isPresent()) {</span>
+<span class="nc" id="L65">            return entry.allFieldsPresent(type.get().getRequiredFields(), database.orElse(null));</span>
+        } else {
+<span class="nc" id="L67">            return true;</span>
+        }
+    }
+
+    /**
+     * Gets the display name for the type of the entry.
+     */
+    public String getTypeForDisplay() {
+<span class="nc" id="L75">        Optional&lt;EntryType&gt; entryType = EntryTypes.getType(entry.getType(), mode);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (entryType.isPresent()) {</span>
+<span class="nc" id="L77">            return entryType.get().getName();</span>
+        } else {
+<span class="nc" id="L79">            return EntryUtil.capitalizeFirst(entry.getType());</span>
+        }
+    }
+
+    /**
+     * Gets a list of linked files.
+     *
+     * @return the list of linked files, is never null but can be empty
+     */
+    public List&lt;ParsedFileField&gt; getFiles() {
+        //Extract the path
+<span class="nc" id="L90">        Optional&lt;String&gt; oldValue = entry.getFieldOptional(Globals.FILE_FIELD);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (!oldValue.isPresent()) {</span>
+<span class="nc" id="L92">            return new ArrayList&lt;&gt;();</span>
+        }
+
+<span class="nc" id="L95">        return FileField.parse(oldValue.get());</span>
+    }
+
+    public Optional&lt;FieldChange&gt; setFiles(List&lt;ParsedFileField&gt; files) {
+
+<span class="nc" id="L100">        Optional&lt;String&gt; oldValue = entry.getFieldOptional(Globals.FILE_FIELD);</span>
+<span class="nc" id="L101">        String newValue = FileField.getStringRepresentation(files);</span>
+
+<span class="nc bnc" id="L103" title="All 4 branches missed.">        if(oldValue.isPresent() &amp;&amp; oldValue.get().equals(newValue)) {</span>
+<span class="nc" id="L104">            return Optional.empty();</span>
+        }
+
+<span class="nc" id="L107">        entry.setField(Globals.FILE_FIELD, newValue);</span>
+<span class="nc" id="L108">        return Optional.of(new FieldChange(entry, Globals.FILE_FIELD, oldValue.orElse(&quot;&quot;), newValue));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

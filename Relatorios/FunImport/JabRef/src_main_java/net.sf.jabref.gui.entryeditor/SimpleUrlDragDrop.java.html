@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>SimpleUrlDragDrop.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.entryeditor</a> &gt; <span class="el_source">SimpleUrlDragDrop.java</span></div><h1>SimpleUrlDragDrop.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.entryeditor;
+
+import java.awt.Component;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTargetDragEvent;
+import java.awt.dnd.DropTargetDropEvent;
+import java.awt.dnd.DropTargetEvent;
+import java.awt.dnd.DropTargetListener;
+import java.awt.event.ActionEvent;
+import java.io.IOException;
+import java.net.URL;
+
+import javax.swing.JOptionPane;
+
+import net.sf.jabref.gui.fieldeditors.FieldEditor;
+import net.sf.jabref.logic.l10n.Localization;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * @author Erik Putrycz erik.putrycz-at-nrc-cnrc.gc.ca
+ */
+
+class SimpleUrlDragDrop implements DropTargetListener {
+<span class="nc" id="L44">    private static final Log LOGGER = LogFactory.getLog(SimpleUrlDragDrop.class);</span>
+
+    private final FieldEditor editor;
+
+    private final EntryEditor.StoreFieldAction storeFieldAction;
+
+
+<span class="nc" id="L51">    public SimpleUrlDragDrop(FieldEditor editor, EntryEditor.StoreFieldAction storeFieldAction) {</span>
+<span class="nc" id="L52">        this.editor = editor;</span>
+<span class="nc" id="L53">        this.storeFieldAction = storeFieldAction;</span>
+<span class="nc" id="L54">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#dragEnter(java.awt.dnd.DropTargetDragEvent)
+     */
+    @Override
+    public void dragEnter(DropTargetDragEvent dtde) {
+        // Ignored
+<span class="nc" id="L64">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#dragOver(java.awt.dnd.DropTargetDragEvent)
+     */
+    @Override
+    public void dragOver(DropTargetDragEvent dtde) {
+        // Ignored
+<span class="nc" id="L74">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#dropActionChanged(java.awt.dnd.DropTargetDragEvent)
+     */
+    @Override
+    public void dropActionChanged(DropTargetDragEvent dtde) {
+        // Ignored
+<span class="nc" id="L84">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#dragExit(java.awt.dnd.DropTargetEvent)
+     */
+    @Override
+    public void dragExit(DropTargetEvent dte) {
+        // Ignored
+<span class="nc" id="L94">    }</span>
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.awt.dnd.DropTargetListener#drop(java.awt.dnd.DropTargetDropEvent)
+     */
+    @Override
+    public void drop(DropTargetDropEvent event) {
+<span class="nc" id="L103">        Transferable tsf = event.getTransferable();</span>
+<span class="nc" id="L104">        event.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);</span>
+        //try with an URL
+<span class="nc" id="L106">        DataFlavor dataFlavor = null;</span>
+        try {
+<span class="nc" id="L108">            dataFlavor = new DataFlavor(&quot;application/x-java-url; class=java.net.URL&quot;);</span>
+<span class="nc" id="L109">        } catch (ClassNotFoundException e) {</span>
+<span class="nc" id="L110">            LOGGER.warn(&quot;Could not find DropTargetDropEvent class&quot;, e);</span>
+        }
+        try {
+<span class="nc" id="L113">            URL url = (URL) tsf.getTransferData(dataFlavor);</span>
+            //insert URL
+<span class="nc" id="L115">            editor.setText(url.toString());</span>
+<span class="nc" id="L116">            storeFieldAction.actionPerformed(new ActionEvent(editor, 0, &quot;&quot;));</span>
+<span class="nc" id="L117">        } catch (UnsupportedFlavorException nfe) {</span>
+            // if not an URL
+<span class="nc" id="L119">            JOptionPane.showMessageDialog((Component) editor,</span>
+<span class="nc" id="L120">                    Localization.lang(&quot;Operation not supported&quot;),</span>
+<span class="nc" id="L121">                    Localization.lang(&quot;Drag and Drop Error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L122">            LOGGER.warn(&quot;Could not perform drage and drop&quot;, nfe);</span>
+<span class="nc" id="L123">        } catch (IOException ioex) {</span>
+<span class="nc" id="L124">            LOGGER.warn(&quot;Could not perform drage and drop&quot;, ioex);</span>
+        }
+<span class="nc" id="L126">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

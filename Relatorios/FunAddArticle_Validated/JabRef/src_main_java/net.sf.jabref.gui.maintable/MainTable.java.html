@@ -1,0 +1,679 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>MainTable.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.maintable</a> &gt; <span class="el_source">MainTable.java</span></div><h1>MainTable.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.maintable;
+
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JViewport;
+import javax.swing.TransferHandler;
+import javax.swing.plaf.TableUI;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumnModel;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.bibtex.BibtexSingleField;
+import net.sf.jabref.bibtex.comparator.FieldComparator;
+import net.sf.jabref.gui.BasePanel;
+import net.sf.jabref.gui.EntryMarker;
+import net.sf.jabref.gui.GUIGlobals;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.gui.groups.EntryTableTransferHandler;
+import net.sf.jabref.gui.groups.GroupMatcher;
+import net.sf.jabref.gui.renderer.CompleteRenderer;
+import net.sf.jabref.gui.renderer.GeneralRenderer;
+import net.sf.jabref.gui.renderer.IncompleteRenderer;
+import net.sf.jabref.gui.search.matchers.SearchMatcher;
+import net.sf.jabref.gui.util.comparator.FirstColumnComparator;
+import net.sf.jabref.gui.util.comparator.IconComparator;
+import net.sf.jabref.gui.util.comparator.RankingFieldComparator;
+import net.sf.jabref.logic.TypedBibEntry;
+import net.sf.jabref.model.EntryTypes;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.EntryType;
+import net.sf.jabref.specialfields.SpecialFieldsUtils;
+
+import ca.odell.glazedlists.EventList;
+import ca.odell.glazedlists.SortedList;
+import ca.odell.glazedlists.event.ListEventListener;
+import ca.odell.glazedlists.matchers.Matcher;
+import ca.odell.glazedlists.swing.DefaultEventSelectionModel;
+import ca.odell.glazedlists.swing.GlazedListsSwing;
+import ca.odell.glazedlists.swing.TableComparatorChooser;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * The central table which displays the bibtex entries.
+ *
+ * User: alver
+ * Date: Oct 12, 2005
+ * Time: 10:29:39 PM
+ *
+ */
+public class MainTable extends JTable {
+
+
+
+<span class="fc" id="L86">    private static final Log LOGGER = LogFactory.getLog(MainTable.class);</span>
+
+    private final MainTableFormat tableFormat;
+    private final BasePanel panel;
+
+    private final boolean tableColorCodes;
+    private final DefaultEventSelectionModel&lt;BibEntry&gt; localSelectionModel;
+    private final TableComparatorChooser&lt;BibEntry&gt; comparatorChooser;
+    private final JScrollPane pane;
+
+    // needed to activate/deactivate the listener
+    private final PersistenceTableColumnListener tableColumnListener;
+    private final MainTableDataModel model;
+
+    public MainTableDataModel getTableModel() {
+<span class="fc" id="L101">        return model;</span>
+    }
+
+    // Enum used to define how a cell should be rendered.
+<span class="fc" id="L105">    private enum CellRendererMode {</span>
+<span class="fc" id="L106">        REQUIRED,</span>
+<span class="fc" id="L107">        OPTIONAL,</span>
+<span class="fc" id="L108">        OTHER</span>
+    }
+    private static GeneralRenderer defRenderer;
+    private static GeneralRenderer reqRenderer;
+    private static GeneralRenderer optRenderer;
+    private static GeneralRenderer grayedOutRenderer;
+    private static GeneralRenderer veryGrayedOutRenderer;
+
+    private static List&lt;GeneralRenderer&gt; markedRenderers;
+
+    private static IncompleteRenderer incRenderer;
+    private static CompleteRenderer compRenderer;
+    private static CompleteRenderer grayedOutNumberRenderer;
+    private static CompleteRenderer veryGrayedOutNumberRenderer;
+
+    private static List&lt;CompleteRenderer&gt; markedNumberRenderers;
+
+
+    static {
+<span class="fc" id="L127">        MainTable.updateRenderers();</span>
+<span class="fc" id="L128">    }</span>
+
+
+    public MainTable(MainTableFormat tableFormat, MainTableDataModel model, JabRefFrame frame,
+            BasePanel panel) {
+<span class="fc" id="L133">        super();</span>
+<span class="fc" id="L134">        this.model = model;</span>
+
+<span class="fc" id="L136">        addFocusListener(Globals.focusListener);</span>
+<span class="fc" id="L137">        setAutoResizeMode(Globals.prefs.getInt(JabRefPreferences.AUTO_RESIZE_MODE));</span>
+
+<span class="fc" id="L139">        this.tableFormat = tableFormat;</span>
+<span class="fc" id="L140">        this.panel = panel;</span>
+
+
+<span class="fc" id="L143">        setModel(GlazedListsSwing</span>
+<span class="fc" id="L144">                .eventTableModelWithThreadProxyList(model.getTableRows(), tableFormat));</span>
+
+<span class="fc" id="L146">        tableColorCodes = Globals.prefs.getBoolean(JabRefPreferences.TABLE_COLOR_CODES_ON);</span>
+<span class="fc" id="L147">        localSelectionModel = (DefaultEventSelectionModel&lt;BibEntry&gt;) GlazedListsSwing</span>
+<span class="fc" id="L148">                .eventSelectionModelWithThreadProxyList(model.getTableRows());</span>
+<span class="fc" id="L149">        setSelectionModel(localSelectionModel);</span>
+<span class="fc" id="L150">        pane = new JScrollPane(this);</span>
+<span class="fc" id="L151">        pane.setBorder(BorderFactory.createEmptyBorder());</span>
+<span class="fc" id="L152">        pane.getViewport().setBackground(Globals.prefs.getColor(JabRefPreferences.TABLE_BACKGROUND));</span>
+<span class="fc" id="L153">        setGridColor(Globals.prefs.getColor(JabRefPreferences.GRID_COLOR));</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.TABLE_SHOW_GRID)) {</span>
+<span class="nc" id="L155">            setShowGrid(true);</span>
+<span class="nc" id="L156">        } else {</span>
+<span class="fc" id="L157">            setShowGrid(false);</span>
+<span class="fc" id="L158">            setIntercellSpacing(new Dimension(0, 0));</span>
+        }
+
+<span class="fc" id="L161">        this.setTableHeader(new PreventDraggingJTableHeader(this, tableFormat));</span>
+
+<span class="fc" id="L163">        comparatorChooser = this.createTableComparatorChooser(this, model.getSortedForUserDefinedTableColumnSorting(),</span>
+<span class="fc" id="L164">                TableComparatorChooser.MULTIPLE_COLUMN_KEYBOARD);</span>
+
+<span class="fc" id="L166">        this.tableColumnListener = new PersistenceTableColumnListener(this);</span>
+
+        // set table header render AFTER creation of comparatorChooser (this enables sort arrow rendering)
+<span class="fc" id="L169">        this.getTableHeader().setDefaultRenderer(new MainTableHeaderRenderer(this.getTableHeader().getDefaultRenderer()));</span>
+
+        // TODO: Figure out, whether this call is needed.
+<span class="fc" id="L172">        getSelected();</span>
+
+        // enable DnD
+<span class="fc" id="L175">        setDragEnabled(true);</span>
+<span class="fc" id="L176">        TransferHandler xfer = new EntryTableTransferHandler(this, frame, panel);</span>
+<span class="fc" id="L177">        setTransferHandler(xfer);</span>
+<span class="fc" id="L178">        pane.setTransferHandler(xfer);</span>
+
+<span class="fc" id="L180">        setupComparatorChooser();</span>
+<span class="fc" id="L181">        model.updateMarkingState(Globals.prefs.getBoolean(JabRefPreferences.FLOAT_MARKED_ENTRIES));</span>
+<span class="fc" id="L182">        setWidths();</span>
+<span class="fc" id="L183">    }</span>
+
+    public void addSelectionListener(ListEventListener&lt;BibEntry&gt; listener) {
+<span class="fc" id="L186">        getSelected().addListEventListener(listener);</span>
+<span class="fc" id="L187">    }</span>
+
+    public JScrollPane getPane() {
+<span class="fc" id="L190">        return pane;</span>
+    }
+
+    @Override
+    public String getToolTipText(MouseEvent e) {
+
+        // Set tooltip text for all columns which are not fully displayed
+
+<span class="fc" id="L198">        String toolTipText = null;</span>
+<span class="fc" id="L199">        Point p = e.getPoint();</span>
+<span class="fc" id="L200">        int col = columnAtPoint(p);</span>
+<span class="fc" id="L201">        int row = rowAtPoint(p);</span>
+<span class="fc" id="L202">        Component comp = prepareRenderer(getCellRenderer(row, col), row, col);</span>
+
+<span class="fc" id="L204">        Rectangle bounds = getCellRect(row, col, false);</span>
+
+<span class="fc" id="L206">        Dimension d = comp.getPreferredSize();</span>
+<span class="pc bpc" id="L207" title="4 of 6 branches missed.">        if ((d != null) &amp;&amp; (d.width &gt; bounds.width) &amp;&amp; (getValueAt(row, col) != null)) {</span>
+<span class="nc" id="L208">            toolTipText = getValueAt(row, col).toString();</span>
+        }
+<span class="fc" id="L210">        return toolTipText;</span>
+    }
+
+    @Override
+    public TableCellRenderer getCellRenderer(int row, int column) {
+
+<span class="fc" id="L216">        int score = -3;</span>
+<span class="fc" id="L217">        DefaultTableCellRenderer renderer = MainTable.defRenderer;</span>
+
+<span class="fc" id="L219">        CellRendererMode status = getCellStatus(row, column);</span>
+
+<span class="pc bpc" id="L221" title="5 of 6 branches missed.">        if (!(model.getSearchState() == MainTableDataModel.DisplayOption.FLOAT) || matches(row, model.getSearchState() != MainTableDataModel.DisplayOption.DISABLED ? SearchMatcher.INSTANCE : null)) {</span>
+<span class="fc" id="L222">            score++;</span>
+        }
+<span class="pc bpc" id="L224" title="5 of 6 branches missed.">        if (!(model.getGroupingState() == MainTableDataModel.DisplayOption.FLOAT) || matches(row, model.getGroupingState() != MainTableDataModel.DisplayOption.DISABLED ? GroupMatcher.INSTANCE : null)) {</span>
+<span class="fc" id="L225">            score += 2;</span>
+        }
+
+        // Now, a grayed out renderer is for entries with -1, and
+        // a very grayed out one for entries with -2
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">        if (score &lt; -1) {</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">            if (column == 0) {</span>
+<span class="nc" id="L232">                MainTable.veryGrayedOutNumberRenderer.setNumber(row);</span>
+<span class="nc" id="L233">                renderer = MainTable.veryGrayedOutNumberRenderer;</span>
+<span class="nc" id="L234">            } else {</span>
+<span class="nc" id="L235">                renderer = MainTable.veryGrayedOutRenderer;</span>
+            }
+<span class="nc" id="L237">        }</span>
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        else if (score == -1) {</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">            if (column == 0) {</span>
+<span class="nc" id="L240">                MainTable.grayedOutNumberRenderer.setNumber(row);</span>
+<span class="nc" id="L241">                renderer = MainTable.grayedOutNumberRenderer;</span>
+<span class="nc" id="L242">            } else {</span>
+<span class="nc" id="L243">                renderer = MainTable.grayedOutRenderer;</span>
+            }
+<span class="nc" id="L245">        }</span>
+
+<span class="fc bfc" id="L247" title="All 2 branches covered.">        else if (column == 0) {</span>
+<span class="fc bfc" id="L248" title="All 2 branches covered.">            if (isComplete(row)) {</span>
+<span class="fc" id="L249">                MainTable.compRenderer.setNumber(row);</span>
+<span class="fc" id="L250">                int marking = isMarked(row);</span>
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">                if (marking &gt; 0) {</span>
+<span class="nc" id="L252">                    marking = Math.min(marking, EntryMarker.MARK_COLOR_LEVELS);</span>
+<span class="nc" id="L253">                    renderer = MainTable.markedNumberRenderers.get(marking - 1);</span>
+<span class="nc" id="L254">                    MainTable.markedNumberRenderers.get(marking - 1).setNumber(row);</span>
+<span class="nc" id="L255">                } else {</span>
+<span class="fc" id="L256">                    renderer = MainTable.compRenderer;</span>
+                }
+<span class="fc" id="L258">            } else {</span>
+                // Return a renderer with red background if the entry is incomplete.
+<span class="fc" id="L260">                MainTable.incRenderer.setNumber(row);</span>
+<span class="fc" id="L261">                renderer = MainTable.incRenderer;</span>
+            }
+<span class="fc" id="L263">            renderer.setHorizontalAlignment(JLabel.CENTER);</span>
+<span class="pc bpc" id="L264" title="1 of 2 branches missed.">        } else if (tableColorCodes) {</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">            if (status == CellRendererMode.REQUIRED) {</span>
+<span class="nc" id="L266">                renderer = MainTable.reqRenderer;</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">            } else if (status == CellRendererMode.OPTIONAL) {</span>
+<span class="nc" id="L268">                renderer = MainTable.optRenderer;</span>
+            }
+        }
+
+        // For MARKED feature:
+<span class="fc" id="L273">        int marking = isMarked(row);</span>
+<span class="pc bpc" id="L274" title="1 of 4 branches missed.">        if ((column != 0) &amp;&amp; (marking &gt; 0)) {</span>
+<span class="nc" id="L275">            marking = Math.min(marking, EntryMarker.MARK_COLOR_LEVELS);</span>
+<span class="nc" id="L276">            renderer = MainTable.markedRenderers.get(marking - 1);</span>
+        }
+
+<span class="fc" id="L279">        return renderer;</span>
+
+    }
+
+    private void setWidths() {
+        // Setting column widths:
+<span class="fc" id="L285">        int ncWidth = Globals.prefs.getInt(JabRefPreferences.NUMBER_COL_WIDTH);</span>
+<span class="fc" id="L286">        List&lt;String&gt; widthsFromPreferences = Globals.prefs.getStringList(JabRefPreferences.COLUMN_WIDTHS);</span>
+<span class="fc" id="L287">        TableColumnModel cm = getColumnModel();</span>
+<span class="fc" id="L288">        cm.getColumn(0).setPreferredWidth(ncWidth);</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">        for (int i = 1; i &lt; cm.getColumnCount(); i++) {</span>
+<span class="fc" id="L290">            MainTableColumn mainTableColumn = tableFormat.getTableColumn(cm.getColumn(i).getModelIndex());</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">            if (SpecialFieldsUtils.FIELDNAME_RANKING.equals(mainTableColumn.getColumnName())) {</span>
+<span class="fc" id="L292">                cm.getColumn(i).setPreferredWidth(GUIGlobals.WIDTH_ICON_COL_RANKING);</span>
+<span class="fc" id="L293">                cm.getColumn(i).setMinWidth(GUIGlobals.WIDTH_ICON_COL_RANKING);</span>
+<span class="fc" id="L294">                cm.getColumn(i).setMaxWidth(GUIGlobals.WIDTH_ICON_COL_RANKING);</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">            } else if (mainTableColumn.isIconColumn()) {</span>
+<span class="fc" id="L296">                cm.getColumn(i).setPreferredWidth(GUIGlobals.WIDTH_ICON_COL);</span>
+<span class="fc" id="L297">                cm.getColumn(i).setMinWidth(GUIGlobals.WIDTH_ICON_COL);</span>
+<span class="fc" id="L298">                cm.getColumn(i).setMaxWidth(GUIGlobals.WIDTH_ICON_COL);</span>
+<span class="fc" id="L299">            } else {</span>
+<span class="fc" id="L300">                List&lt;String&gt; allColumns = Globals.prefs.getStringList(JabRefPreferences.COLUMN_NAMES);</span>
+                // find index of current mainTableColumn in allColumns
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">                for (int j = 0; j &lt; allColumns.size(); j++) {</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">                    if (allColumns.get(j).equalsIgnoreCase(mainTableColumn.getDisplayName())) {</span>
+                        try {
+                            // set preferred width by using found index j in the width array
+<span class="fc" id="L306">                            cm.getColumn(i).setPreferredWidth(Integer.parseInt(widthsFromPreferences.get(j)));</span>
+<span class="pc" id="L307">                        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L308">                            LOGGER.info(&quot;Exception while setting column widths. Choosing default.&quot;, e);</span>
+<span class="nc" id="L309">                            cm.getColumn(i).setPreferredWidth(BibtexSingleField.DEFAULT_FIELD_LENGTH);</span>
+                        }
+<span class="nc" id="L311">                        break;</span>
+                    }
+                }
+            }
+        }
+<span class="fc" id="L316">    }</span>
+
+    public BibEntry getEntryAt(int row) {
+<span class="fc" id="L319">        return model.getTableRows().get(row);</span>
+    }
+
+    /**
+     * @return the return value is never null
+     */
+    public List&lt;BibEntry&gt; getSelectedEntries() {
+<span class="fc" id="L326">        return new ArrayList&lt;&gt;(getSelected());</span>
+    }
+
+    private List&lt;Boolean&gt; getCurrentSortOrder() {
+<span class="nc" id="L330">        List&lt;Boolean&gt; order = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L331">        List&lt;Integer&gt; sortCols = comparatorChooser.getSortingColumns();</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">        for (Integer i : sortCols) {</span>
+<span class="nc" id="L333">            order.add(comparatorChooser.isColumnReverse(i));</span>
+        }
+<span class="nc" id="L335">        return order;</span>
+    }
+
+    private List&lt;String&gt; getCurrentSortFields() {
+<span class="nc" id="L339">        List&lt;Integer&gt; sortCols = comparatorChooser.getSortingColumns();</span>
+<span class="nc" id="L340">        List&lt;String&gt; fields = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        for (Integer i : sortCols) {</span>
+            // TODO check whether this really works
+<span class="nc" id="L343">            String name = tableFormat.getColumnName(i);</span>
+            //TODO OLD
+            // String name = tableFormat.getColumnType(i);
+<span class="nc bnc" id="L346" title="All 2 branches missed.">            if (name != null) {</span>
+<span class="nc" id="L347">                fields.add(name.toLowerCase());</span>
+            }
+        }
+<span class="nc" id="L350">        return fields;</span>
+    }
+
+    /**
+     * This method sets up what Comparators are used for the various table columns.
+     * The ComparatorChooser enables and disables such Comparators as the user clicks
+     * columns, but this is where the Comparators are defined. Also, the ComparatorChooser
+     * is initialized with the sort order defined in Preferences.
+     */
+    private void setupComparatorChooser() {
+        // First column:
+<span class="fc" id="L361">        List&lt;Comparator&gt; comparators = comparatorChooser.getComparatorsForColumn(0);</span>
+<span class="fc" id="L362">        comparators.clear();</span>
+<span class="fc" id="L363">        comparators.add(new FirstColumnComparator(panel.getBibDatabaseContext()));</span>
+
+<span class="fc bfc" id="L365" title="All 2 branches covered.">        for (int i = 1; i &lt; tableFormat.getColumnCount(); i++) {</span>
+<span class="fc" id="L366">            MainTableColumn tableColumn = tableFormat.getTableColumn(i);</span>
+
+<span class="fc" id="L368">            comparators = comparatorChooser.getComparatorsForColumn(i);</span>
+<span class="fc" id="L369">            comparators.clear();</span>
+
+<span class="fc bfc" id="L371" title="All 2 branches covered.">            if (SpecialFieldsUtils.FIELDNAME_RANKING.equals(tableColumn.getColumnName())) {</span>
+<span class="fc" id="L372">                comparators.add(new RankingFieldComparator());</span>
+<span class="fc bfc" id="L373" title="All 2 branches covered.">            } else if (tableColumn.isIconColumn()) {</span>
+<span class="fc" id="L374">                comparators.add(new IconComparator(tableColumn.getBibtexFields()));</span>
+<span class="fc" id="L375">            } else {</span>
+<span class="fc" id="L376">                comparators = comparatorChooser.getComparatorsForColumn(i);</span>
+<span class="fc" id="L377">                comparators.clear();</span>
+<span class="fc" id="L378">                comparators.add(new FieldComparator(tableFormat.getColumnName(i).toLowerCase()));</span>
+            }
+        }
+
+        // Set initial sort columns:
+
+        // Default sort order:
+<span class="fc" id="L385">        String[] sortFields = new String[] {</span>
+<span class="fc" id="L386">                Globals.prefs.get(JabRefPreferences.TABLE_PRIMARY_SORT_FIELD),</span>
+<span class="fc" id="L387">                Globals.prefs.get(JabRefPreferences.TABLE_SECONDARY_SORT_FIELD),</span>
+<span class="fc" id="L388">                Globals.prefs.get(JabRefPreferences.TABLE_TERTIARY_SORT_FIELD)</span>
+        };
+<span class="fc" id="L390">        boolean[] sortDirections = new boolean[] {</span>
+<span class="fc" id="L391">                Globals.prefs.getBoolean(JabRefPreferences.TABLE_PRIMARY_SORT_DESCENDING),</span>
+<span class="fc" id="L392">                Globals.prefs.getBoolean(JabRefPreferences.TABLE_SECONDARY_SORT_DESCENDING),</span>
+<span class="fc" id="L393">                Globals.prefs.getBoolean(JabRefPreferences.TABLE_TERTIARY_SORT_DESCENDING)</span>
+        }; // descending
+
+<span class="fc" id="L396">        model.getSortedForUserDefinedTableColumnSorting().getReadWriteLock().writeLock().lock();</span>
+        try {
+<span class="fc bfc" id="L398" title="All 2 branches covered.">            for (int i = 0; i &lt; sortFields.length; i++) {</span>
+<span class="fc" id="L399">                int index = -1;</span>
+
+                // TODO where is this prefix set?
+//                if (!sortFields[i].startsWith(MainTableFormat.ICON_COLUMN_PREFIX))
+<span class="pc bpc" id="L403" title="1 of 2 branches missed.">                if (sortFields[i].startsWith(&quot;iconcol:&quot;)) {</span>
+<span class="nc bnc" id="L404" title="All 2 branches missed.">                    for (int j = 0; j &lt; tableFormat.getColumnCount(); j++) {</span>
+<span class="nc bnc" id="L405" title="All 2 branches missed.">                        if (sortFields[i].equals(tableFormat.getColumnName(j))) {</span>
+<span class="nc" id="L406">                            index = j;</span>
+<span class="nc" id="L407">                            break;</span>
+                        }
+                    }
+<span class="nc" id="L410">                } else {</span>
+<span class="fc" id="L411">                    index = tableFormat.getColumnIndex(sortFields[i]);</span>
+                }
+<span class="pc bpc" id="L413" title="1 of 2 branches missed.">                if (index &gt;= 0) {</span>
+<span class="nc" id="L414">                    comparatorChooser.appendComparator(index, 0, sortDirections[i]);</span>
+                }
+            }
+<span class="fc" id="L417">        } finally {</span>
+<span class="fc" id="L418">            model.getSortedForUserDefinedTableColumnSorting().getReadWriteLock().writeLock().unlock();</span>
+        }
+
+        // Add action listener so we can remember the sort order:
+<span class="fc" id="L422">        comparatorChooser.addSortActionListener(e -&gt; {</span>
+            // Get the information about the current sort order:
+<span class="nc" id="L424">            List&lt;String&gt; fields = getCurrentSortFields();</span>
+<span class="nc" id="L425">            List&lt;Boolean&gt; order = getCurrentSortOrder();</span>
+            // Update preferences:
+<span class="nc" id="L427">            int count = Math.min(fields.size(), order.size());</span>
+<span class="nc bnc" id="L428" title="All 2 branches missed.">            if (count &gt;= 1) {</span>
+<span class="nc" id="L429">                Globals.prefs.put(JabRefPreferences.TABLE_PRIMARY_SORT_FIELD, fields.get(0));</span>
+<span class="nc" id="L430">                Globals.prefs.putBoolean(JabRefPreferences.TABLE_PRIMARY_SORT_DESCENDING, order.get(0));</span>
+            }
+<span class="nc bnc" id="L432" title="All 2 branches missed.">            if (count &gt;= 2) {</span>
+<span class="nc" id="L433">                Globals.prefs.put(JabRefPreferences.TABLE_SECONDARY_SORT_FIELD, fields.get(1));</span>
+<span class="nc" id="L434">                Globals.prefs.putBoolean(JabRefPreferences.TABLE_SECONDARY_SORT_DESCENDING, order.get(1));</span>
+<span class="nc" id="L435">            } else {</span>
+<span class="nc" id="L436">                Globals.prefs.put(JabRefPreferences.TABLE_SECONDARY_SORT_FIELD, &quot;&quot;);</span>
+<span class="nc" id="L437">                Globals.prefs.putBoolean(JabRefPreferences.TABLE_SECONDARY_SORT_DESCENDING, false);</span>
+            }
+<span class="nc bnc" id="L439" title="All 2 branches missed.">            if (count &gt;= 3) {</span>
+<span class="nc" id="L440">                Globals.prefs.put(JabRefPreferences.TABLE_TERTIARY_SORT_FIELD, fields.get(2));</span>
+<span class="nc" id="L441">                Globals.prefs.putBoolean(JabRefPreferences.TABLE_TERTIARY_SORT_DESCENDING, order.get(2));</span>
+<span class="nc" id="L442">            } else {</span>
+<span class="nc" id="L443">                Globals.prefs.put(JabRefPreferences.TABLE_TERTIARY_SORT_FIELD, &quot;&quot;);</span>
+<span class="nc" id="L444">                Globals.prefs.putBoolean(JabRefPreferences.TABLE_TERTIARY_SORT_DESCENDING, false);</span>
+            }
+<span class="nc" id="L446">        });</span>
+
+<span class="fc" id="L448">    }</span>
+
+    private CellRendererMode getCellStatus(int row, int col) {
+        try {
+<span class="fc" id="L452">            BibEntry be = getEntryAt(row);</span>
+<span class="fc" id="L453">            Optional&lt;EntryType&gt; type = EntryTypes.getType(be.getType(), panel.getBibDatabaseContext().getMode());</span>
+<span class="pc bpc" id="L454" title="1 of 2 branches missed.">            if(type.isPresent()) {</span>
+<span class="fc" id="L455">                String columnName = getColumnName(col).toLowerCase();</span>
+<span class="fc bfc" id="L456" title="All 4 branches covered.">                if (columnName.equals(BibEntry.KEY_FIELD) || type.get().getRequiredFieldsFlat().contains(columnName)) {</span>
+<span class="fc" id="L457">                    return CellRendererMode.REQUIRED;</span>
+                }
+<span class="pc bpc" id="L459" title="1 of 2 branches missed.">                if (type.get().getOptionalFields().contains(columnName)) {</span>
+<span class="nc" id="L460">                    return CellRendererMode.OPTIONAL;</span>
+                }
+            }
+<span class="fc" id="L463">            return CellRendererMode.OTHER;</span>
+<span class="nc" id="L464">        } catch (NullPointerException ex) {</span>
+<span class="nc" id="L465">            return CellRendererMode.OTHER;</span>
+        }
+    }
+
+    /**
+     * Use with caution! If you modify an entry in the table, the selection changes
+     *
+     * You can avoid it with
+     *   &lt;code&gt;.getSelected().getReadWriteLock().writeLock().lock()&lt;/code&gt;
+     *   and then &lt;code&gt;.unlock()&lt;/code&gt;
+     */
+    public EventList&lt;BibEntry&gt; getSelected() {
+<span class="fc" id="L477">        return localSelectionModel.getSelected();</span>
+    }
+
+    /**
+     * Selects the given row
+     *
+     * @param row the row to select
+     */
+    public void setSelected(int row) {
+<span class="nc" id="L486">        localSelectionModel.setSelectionInterval(row, row);</span>
+<span class="nc" id="L487">    }</span>
+
+    public int findEntry(BibEntry entry) {
+<span class="fc" id="L490">        return model.getTableRows().indexOf(entry);</span>
+    }
+
+    /**
+     * method to check whether a MainTableColumn at the modelIndex refers to the file field (either as a specific
+     * file extension filter or not)
+     *
+     * @param modelIndex model index of the column to check
+     * @return true if the column shows the &quot;file&quot; field; false otherwise
+     */
+    public boolean isFileColumn(int modelIndex) {
+<span class="nc bnc" id="L501" title="All 2 branches missed.">        return (tableFormat.getTableColumn(modelIndex) != null) &amp;&amp; tableFormat.getTableColumn(modelIndex)</span>
+<span class="nc bnc" id="L502" title="All 2 branches missed.">                .getBibtexFields().contains(Globals.FILE_FIELD);</span>
+    }
+
+    private boolean matches(int row, Matcher&lt;BibEntry&gt; m) {
+<span class="nc" id="L506">        return m.matches(getBibEntry(row));</span>
+    }
+
+    private boolean isComplete(int row) {
+        try {
+<span class="fc" id="L511">            BibEntry entry = getBibEntry(row);</span>
+<span class="fc" id="L512">            TypedBibEntry typedEntry = new TypedBibEntry(entry, Optional.of(panel.getDatabase()), panel.getBibDatabaseContext().getMode());</span>
+<span class="fc" id="L513">            return typedEntry.hasAllRequiredFields();</span>
+<span class="nc" id="L514">        } catch (NullPointerException ex) {</span>
+<span class="nc" id="L515">            return true;</span>
+        }
+    }
+
+    private int isMarked(int row) {
+        try {
+<span class="fc" id="L521">            BibEntry be = getBibEntry(row);</span>
+<span class="fc" id="L522">            return EntryMarker.isMarked(be);</span>
+<span class="nc" id="L523">        } catch (NullPointerException ex) {</span>
+<span class="nc" id="L524">            return 0;</span>
+        }
+    }
+
+    private BibEntry getBibEntry(int row) {
+<span class="fc" id="L529">        return model.getTableRows().get(row);</span>
+    }
+
+    public void scrollTo(int y) {
+<span class="nc" id="L533">        JScrollBar scb = pane.getVerticalScrollBar();</span>
+<span class="nc" id="L534">        scb.setValue(y * scb.getUnitIncrement(1));</span>
+<span class="nc" id="L535">    }</span>
+
+    public void showFloatSearch() {
+<span class="nc" id="L538">        this.getTableModel().updateSearchState(MainTableDataModel.DisplayOption.FLOAT);</span>
+
+<span class="nc" id="L540">        scrollTo(0);</span>
+<span class="nc" id="L541">    }</span>
+
+    /**
+     * updateFont
+     */
+    public void updateFont() {
+<span class="fc" id="L547">        setFont(GUIGlobals.currentFont);</span>
+<span class="fc" id="L548">        setRowHeight(Globals.prefs.getInt(JabRefPreferences.TABLE_ROW_PADDING) + GUIGlobals.currentFont.getSize());</span>
+<span class="fc" id="L549">    }</span>
+
+    public void ensureVisible(int row) {
+<span class="fc" id="L552">        JScrollBar vert = pane.getVerticalScrollBar();</span>
+<span class="fc" id="L553">        int y = row * getRowHeight();</span>
+<span class="pc bpc" id="L554" title="4 of 6 branches missed.">        if ((y &lt; vert.getValue()) || ((y &gt; (vert.getValue() + vert.getVisibleAmount())) &amp;&amp; !(model.getSearchState() == MainTableDataModel.DisplayOption.FLOAT))) {</span>
+<span class="nc" id="L555">            scrollToCenter(row, 1);</span>
+        }
+
+<span class="fc" id="L558">    }</span>
+
+    public void scrollToCenter(int rowIndex, int vColIndex) {
+<span class="nc bnc" id="L561" title="All 2 branches missed.">        if (!(this.getParent() instanceof JViewport)) {</span>
+<span class="nc" id="L562">            return;</span>
+        }
+
+<span class="nc" id="L565">        JViewport viewport = (JViewport) this.getParent();</span>
+
+        // This rectangle is relative to the table where the
+        // northwest corner of cell (0,0) is always (0,0).
+<span class="nc" id="L569">        Rectangle rect = this.getCellRect(rowIndex, vColIndex, true);</span>
+
+        // The location of the view relative to the table
+<span class="nc" id="L572">        Rectangle viewRect = viewport.getViewRect();</span>
+
+        // Translate the cell location so that it is relative
+        // to the view, assuming the northwest corner of the
+        // view is (0,0).
+<span class="nc" id="L577">        rect.setLocation(rect.x - viewRect.x, rect.y - viewRect.y);</span>
+
+        // Calculate location of rect if it were at the center of view
+<span class="nc" id="L580">        int centerX = (viewRect.width - rect.width) / 2;</span>
+<span class="nc" id="L581">        int centerY = (viewRect.height - rect.height) / 2;</span>
+
+        // Fake the location of the cell so that scrollRectToVisible
+        // will move the cell to the center
+<span class="nc bnc" id="L585" title="All 2 branches missed.">        if (rect.x &lt; centerX) {</span>
+<span class="nc" id="L586">            centerX = -centerX;</span>
+        }
+<span class="nc bnc" id="L588" title="All 2 branches missed.">        if (rect.y &lt; centerY) {</span>
+<span class="nc" id="L589">            centerY = -centerY;</span>
+        }
+<span class="nc" id="L591">        rect.translate(centerX, centerY);</span>
+
+        // Scroll the area into view.
+<span class="nc" id="L594">        viewport.scrollRectToVisible(rect);</span>
+
+<span class="nc" id="L596">        revalidate();</span>
+<span class="nc" id="L597">        repaint();</span>
+<span class="nc" id="L598">    }</span>
+
+
+
+    public static void updateRenderers() {
+
+<span class="fc" id="L604">        MainTable.defRenderer = new GeneralRenderer(Globals.prefs.getColor(JabRefPreferences.TABLE_BACKGROUND),</span>
+<span class="fc" id="L605">                Globals.prefs.getColor(JabRefPreferences.TABLE_TEXT));</span>
+<span class="fc" id="L606">        Color sel = MainTable.defRenderer.getTableCellRendererComponent</span>
+<span class="fc" id="L607">                (new JTable(), &quot;&quot;, true, false, 0, 0).getBackground();</span>
+<span class="fc" id="L608">        MainTable.reqRenderer = new GeneralRenderer(Globals.prefs.getColor(JabRefPreferences.TABLE_REQ_FIELD_BACKGROUND), Globals.prefs.getColor(JabRefPreferences.TABLE_TEXT));</span>
+<span class="fc" id="L609">        MainTable.optRenderer = new GeneralRenderer(Globals.prefs.getColor(JabRefPreferences.TABLE_OPT_FIELD_BACKGROUND), Globals.prefs.getColor(JabRefPreferences.TABLE_TEXT));</span>
+<span class="fc" id="L610">        MainTable.incRenderer = new IncompleteRenderer();</span>
+<span class="fc" id="L611">        MainTable.compRenderer = new CompleteRenderer(Globals.prefs.getColor(JabRefPreferences.TABLE_BACKGROUND));</span>
+<span class="fc" id="L612">        MainTable.grayedOutNumberRenderer = new CompleteRenderer(Globals.prefs.getColor(JabRefPreferences.GRAYED_OUT_BACKGROUND));</span>
+<span class="fc" id="L613">        MainTable.veryGrayedOutNumberRenderer = new CompleteRenderer(Globals.prefs.getColor(JabRefPreferences.VERY_GRAYED_OUT_BACKGROUND));</span>
+<span class="fc" id="L614">        MainTable.grayedOutRenderer = new GeneralRenderer(Globals.prefs.getColor(JabRefPreferences.GRAYED_OUT_BACKGROUND),</span>
+<span class="fc" id="L615">                Globals.prefs.getColor(JabRefPreferences.GRAYED_OUT_TEXT), MainTable.mixColors(Globals.prefs.getColor(JabRefPreferences.GRAYED_OUT_BACKGROUND),</span>
+<span class="fc" id="L616">                        sel));</span>
+<span class="fc" id="L617">        MainTable.veryGrayedOutRenderer = new GeneralRenderer(Globals.prefs.getColor(JabRefPreferences.VERY_GRAYED_OUT_BACKGROUND),</span>
+<span class="fc" id="L618">                Globals.prefs.getColor(JabRefPreferences.VERY_GRAYED_OUT_TEXT), MainTable.mixColors(Globals.prefs.getColor(JabRefPreferences.VERY_GRAYED_OUT_BACKGROUND),</span>
+<span class="fc" id="L619">                        sel));</span>
+
+<span class="fc" id="L621">        MainTable.markedRenderers = new ArrayList&lt;&gt;(EntryMarker.MARK_COLOR_LEVELS);</span>
+<span class="fc" id="L622">        MainTable.markedNumberRenderers = new ArrayList&lt;&gt;(EntryMarker.MARK_COLOR_LEVELS);</span>
+<span class="fc bfc" id="L623" title="All 2 branches covered.">        for (int i = 0; i &lt; EntryMarker.MARK_COLOR_LEVELS; i++) {</span>
+<span class="fc" id="L624">            Color c = Globals.prefs.getColor(JabRefPreferences.MARKED_ENTRY_BACKGROUND + i);</span>
+<span class="fc" id="L625">            MainTable.markedRenderers.add(new GeneralRenderer(c, Globals.prefs.getColor(JabRefPreferences.TABLE_TEXT),</span>
+<span class="fc" id="L626">                    MainTable.mixColors(Globals.prefs.getColor(JabRefPreferences.MARKED_ENTRY_BACKGROUND + i), sel)));</span>
+<span class="fc" id="L627">            MainTable.markedNumberRenderers.add(new CompleteRenderer(c));</span>
+        }
+
+<span class="fc" id="L630">    }</span>
+
+    private static Color mixColors(Color one, Color two) {
+<span class="fc" id="L633">        return new Color((one.getRed() + two.getRed()) / 2, (one.getGreen() + two.getGreen()) / 2,</span>
+<span class="fc" id="L634">                (one.getBlue() + two.getBlue()) / 2);</span>
+    }
+
+    private TableComparatorChooser&lt;BibEntry&gt; createTableComparatorChooser(JTable table, SortedList&lt;BibEntry&gt; list,
+                                                                             Object sortingStrategy) {
+<span class="fc" id="L639">        return TableComparatorChooser.install(table, list, sortingStrategy);</span>
+    }
+
+    /**
+     * Morten Alver: This override is a workaround NullPointerException when
+     * dragging stuff into the table. I found this in a forum, but have no idea
+     * why it works.
+     * @param newUI
+     */
+    @Override
+    public void setUI(TableUI newUI) {
+<span class="fc" id="L650">        super.setUI(newUI);</span>
+<span class="fc" id="L651">        TransferHandler handler = getTransferHandler();</span>
+<span class="fc" id="L652">        setTransferHandler(null);</span>
+<span class="fc" id="L653">        setTransferHandler(handler);</span>
+
+<span class="fc" id="L655">    }</span>
+
+    /**
+     * Find out which column is set as sort column.
+     * @param number The position in the sort hierarchy (primary, secondary, etc.)
+     * @return The sort column number.
+     */
+    public int getSortingColumn(int number) {
+<span class="nc" id="L663">        List&lt;Integer&gt; l = comparatorChooser.getSortingColumns();</span>
+<span class="nc bnc" id="L664" title="All 2 branches missed.">        if (l.size() &lt;= number) {</span>
+<span class="nc" id="L665">            return -1;</span>
+        } else {
+<span class="nc" id="L667">            return l.get(number);</span>
+        }
+    }
+
+    public PersistenceTableColumnListener getTableColumnListener() {
+<span class="nc" id="L672">        return tableColumnListener;</span>
+    }
+
+    public MainTableColumn getMainTableColumn(int modelIndex) {
+<span class="fc" id="L676">        return tableFormat.getTableColumn(modelIndex);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

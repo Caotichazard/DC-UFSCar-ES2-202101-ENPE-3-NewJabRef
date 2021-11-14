@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FileDialogs.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui</a> &gt; <span class="el_source">FileDialogs.java</span></div><h1>FileDialogs.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.logic.util.OS;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: alver
+ * Date: Apr 14, 2009
+ * Time: 7:24:07 PM
+ * To change this template use File | Settings | File Templates.
+ */
+<span class="nc" id="L38">public class FileDialogs {</span>
+
+    /**
+     * Will return the names of multiple files selected in the given directory
+     * and the given extensions.
+     *
+     * Will return an empty String array if no entry is found.
+     *
+     * @param owner
+     * @param directory
+     * @param extension
+     * @param updateWorkingdirectory
+     * @return an array of selected file paths, or an empty array if no selection is made.
+     */
+    public static List&lt;String&gt; getMultipleFiles(JFrame owner, File directory, String extension,
+            boolean updateWorkingdirectory) {
+
+<span class="nc" id="L55">        OpenFileFilter off = null;</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (extension == null) {</span>
+<span class="nc" id="L57">            off = new OpenFileFilter();</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        } else if (!extension.isEmpty()) {</span>
+<span class="nc" id="L59">            off = new OpenFileFilter(extension);</span>
+        }
+
+<span class="nc" id="L62">        Object files = FileDialogs.getNewFileImpl(owner, directory, extension, null, off, JFileChooser.OPEN_DIALOG, updateWorkingdirectory, false, true, null);</span>
+
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (files instanceof String[]) {</span>
+<span class="nc" id="L65">            return Arrays.asList((String[]) files);</span>
+        }
+        // Fix for:
+        // http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1538769&amp;group_id=92314&amp;atid=600306
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (files != null) {</span>
+<span class="nc" id="L70">            return Arrays.asList((String) files);</span>
+        }
+<span class="nc" id="L72">        return Collections.emptyList();</span>
+    }
+
+    public static String getNewFile(JFrame owner, File directory, String extension, int dialogType, boolean updateWorkingDirectory) {
+<span class="nc" id="L76">        return FileDialogs.getNewFile(owner, directory, extension, null, dialogType, updateWorkingDirectory, false, null);</span>
+    }
+
+    public static String getNewFile(JFrame owner, File directory, String extension, int dialogType, boolean updateWorkingDirectory, JComponent accessory) {
+<span class="nc" id="L80">        return FileDialogs.getNewFile(owner, directory, extension, null, dialogType, updateWorkingDirectory, false, accessory);</span>
+    }
+
+    public static String getNewFile(JFrame owner, File directory, String extension, String description, int dialogType, boolean updateWorkingDirectory) {
+<span class="nc" id="L84">        return FileDialogs.getNewFile(owner, directory, extension, description, dialogType, updateWorkingDirectory, false, null);</span>
+    }
+
+    public static String getNewDir(JFrame owner, File directory, String extension, int dialogType, boolean updateWorkingDirectory) {
+<span class="nc" id="L88">        return FileDialogs.getNewFile(owner, directory, extension, null, dialogType, updateWorkingDirectory, true, null);</span>
+    }
+
+    public static String getNewDir(JFrame owner, File directory, String extension, String description, int dialogType, boolean updateWorkingDirectory) {
+<span class="nc" id="L92">        return FileDialogs.getNewFile(owner, directory, extension, description, dialogType, updateWorkingDirectory, true, null);</span>
+    }
+
+    private static String getNewFile(JFrame owner, File directory, String extension, String description, int dialogType, boolean updateWorkingDirectory, boolean dirOnly, JComponent accessory) {
+
+<span class="nc" id="L97">        OpenFileFilter off = null;</span>
+
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        if (extension == null) {</span>
+<span class="nc" id="L100">            off = new OpenFileFilter();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        } else if (!extension.isEmpty()) {</span>
+<span class="nc" id="L102">            off = new OpenFileFilter(extension);</span>
+        }
+
+<span class="nc" id="L105">        return (String) FileDialogs.getNewFileImpl(owner, directory, extension, description, off, dialogType, updateWorkingDirectory, dirOnly, false, accessory);</span>
+    }
+
+    private static Object getNewFileImpl(JFrame owner, File directory, String extension, String description, OpenFileFilter off, int dialogType, boolean updateWorkingDirectory, boolean dirOnly, boolean multipleSelection, JComponent accessory) {
+
+        // Added the !dirOnly condition below as a workaround to the native file dialog
+        // not supporting directory selection:
+<span class="nc bnc" id="L112" title="All 4 branches missed.">        if (!dirOnly &amp;&amp; OS.OS_X) {</span>
+<span class="nc" id="L113">            return FileDialogs.getNewFileForMac(owner, directory, dialogType, updateWorkingDirectory);</span>
+        }
+
+        JFileChooser fc;
+        try {
+<span class="nc" id="L118">            fc = new JFileChooser(directory);//JabRefFileChooser(directory);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            if (accessory != null) {</span>
+<span class="nc" id="L120">                fc.setAccessory(accessory);</span>
+            }
+<span class="nc" id="L122">        } catch (InternalError errl) {</span>
+            // This try/catch clause was added because a user reported an
+            // InternalError getting thrown on WinNT, presumably because of a
+            // bug in JGoodies Windows PLAF. This clause can be removed if the
+            // bug is fixed, but for now we just resort to the native file
+            // dialog, using the same method as is always used on Mac:
+<span class="nc" id="L128">            return FileDialogs.getNewFileForMac(owner, directory, dialogType, updateWorkingDirectory);</span>
+        }
+
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (dirOnly) {</span>
+<span class="nc" id="L132">            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);</span>
+        }
+
+<span class="nc" id="L135">        fc.setMultiSelectionEnabled(multipleSelection);</span>
+
+<span class="nc" id="L137">        fc.addChoosableFileFilter(off);</span>
+<span class="nc" id="L138">        fc.setDialogType(dialogType);</span>
+        int dialogResult;
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (dialogType == JFileChooser.OPEN_DIALOG) {</span>
+<span class="nc" id="L141">            dialogResult = fc.showOpenDialog(owner);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        } else if (dialogType == JFileChooser.SAVE_DIALOG) {</span>
+<span class="nc" id="L143">            dialogResult = fc.showSaveDialog(owner);</span>
+<span class="nc" id="L144">        } else {</span>
+<span class="nc" id="L145">            dialogResult = fc.showDialog(owner, description);</span>
+        }
+
+        // the getSelectedFile method returns a valid fileselection
+        // (if something is selected) indepentently from dialog return status
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (dialogResult != JFileChooser.APPROVE_OPTION) {</span>
+<span class="nc" id="L151">            return null;</span>
+        }
+
+        // okay button
+<span class="nc" id="L155">        File selectedFile = fc.getSelectedFile();</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (selectedFile == null) { // cancel</span>
+<span class="nc" id="L157">            return null;</span>
+        }
+
+        // If this is a save dialog, and the user has not chosen &quot;All files&quot; as
+        // filter
+        // we enforce the given extension. But only if extension is not null.
+<span class="nc bnc" id="L163" title="All 8 branches missed.">        if ((extension != null) &amp;&amp; (dialogType == JFileChooser.SAVE_DIALOG) &amp;&amp; (fc.getFileFilter() == off) &amp;&amp; !off.accept(selectedFile)) {</span>
+
+            // add the first extension if there are multiple extensions
+<span class="nc" id="L166">            selectedFile = new File(selectedFile.getPath() + extension.split(&quot;[, ]+&quot;, 0)[0]);</span>
+        }
+
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (updateWorkingDirectory) {</span>
+<span class="nc" id="L170">            Globals.prefs.put(JabRefPreferences.WORKING_DIRECTORY, selectedFile.getPath());</span>
+        }
+
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (multipleSelection) {</span>
+<span class="nc" id="L174">            File[] files = fc.getSelectedFiles();</span>
+<span class="nc" id="L175">            String[] filenames = new String[files.length];</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">            for (int i = 0; i &lt; files.length; i++) {</span>
+<span class="nc" id="L177">                filenames[i] = files[i].getAbsolutePath();</span>
+            }
+<span class="nc" id="L179">            return filenames;</span>
+        } else {
+<span class="nc" id="L181">            return selectedFile.getAbsolutePath();</span>
+        }
+    }
+
+    private static String getNewFileForMac(JFrame owner, File directory, int dialogType,
+            boolean updateWorkingDirectory) {
+
+<span class="nc" id="L188">        java.awt.FileDialog fc = new java.awt.FileDialog(owner);</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (directory != null) {</span>
+<span class="nc" id="L191">            fc.setDirectory(directory.getParent());</span>
+        }
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (dialogType == JFileChooser.OPEN_DIALOG) {</span>
+<span class="nc" id="L194">            fc.setMode(java.awt.FileDialog.LOAD);</span>
+<span class="nc" id="L195">        } else {</span>
+<span class="nc" id="L196">            fc.setMode(java.awt.FileDialog.SAVE);</span>
+        }
+
+<span class="nc" id="L199">        fc.setVisible(true);</span>
+
+<span class="nc bnc" id="L201" title="All 2 branches missed.">        if (fc.getFile() == null) {</span>
+<span class="nc" id="L202">            return null;</span>
+        } else {
+<span class="nc bnc" id="L204" title="All 2 branches missed.">            if (updateWorkingDirectory) {</span>
+<span class="nc" id="L205">                Globals.prefs.put(JabRefPreferences.WORKING_DIRECTORY, fc.getDirectory() + fc.getFile());</span>
+            }
+<span class="nc" id="L207">            return fc.getDirectory() + fc.getFile();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

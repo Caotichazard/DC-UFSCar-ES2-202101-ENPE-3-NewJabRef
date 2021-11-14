@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>RenamePdfCleanup.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.cleanup</a> &gt; <span class="el_source">RenamePdfCleanup.java</span></div><h1>RenamePdfCleanup.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.cleanup;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import net.sf.jabref.BibDatabaseContext;
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.logic.TypedBibEntry;
+import net.sf.jabref.logic.journals.JournalAbbreviationRepository;
+import net.sf.jabref.logic.util.io.FileUtil;
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.ParsedFileField;
+
+public class RenamePdfCleanup implements CleanupJob {
+
+    private final BibDatabaseContext databaseContext;
+    private final Boolean onlyRelativePaths;
+    private int unsuccessfulRenames;
+    private final JournalAbbreviationRepository repository;
+
+
+<span class="nc" id="L39">    public RenamePdfCleanup(Boolean onlyRelativePaths, BibDatabaseContext databaseContext,</span>
+            JournalAbbreviationRepository repository) {
+<span class="nc" id="L41">        this.databaseContext = Objects.requireNonNull(databaseContext);</span>
+<span class="nc" id="L42">        this.onlyRelativePaths = onlyRelativePaths;</span>
+<span class="nc" id="L43">        this.repository = repository;</span>
+<span class="nc" id="L44">    }</span>
+
+    @Override
+    public List&lt;FieldChange&gt; cleanup(BibEntry entry) {
+<span class="nc" id="L48">        TypedBibEntry typedEntry = new TypedBibEntry(entry, databaseContext);</span>
+<span class="nc" id="L49">        List&lt;ParsedFileField&gt; fileList = typedEntry.getFiles();</span>
+<span class="nc" id="L50">        List&lt;ParsedFileField&gt; newFileList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L51">        boolean changed = false;</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        for (ParsedFileField flEntry : fileList) {</span>
+<span class="nc" id="L53">            String realOldFilename = flEntry.getLink();</span>
+
+<span class="nc bnc" id="L55" title="All 4 branches missed.">            if (onlyRelativePaths &amp;&amp; (new File(realOldFilename).isAbsolute())) {</span>
+<span class="nc" id="L56">                continue;</span>
+            }
+
+<span class="nc" id="L59">            StringBuilder newFilename = new StringBuilder(</span>
+<span class="nc" id="L60">                    FileUtil.getLinkedFileName(databaseContext.getDatabase(), entry, repository));</span>
+            //String oldFilename = bes.getField(GUIGlobals.FILE_FIELD); // would have to be stored for undoing purposes
+
+            //Add extension to newFilename
+<span class="nc" id="L64">            newFilename.append('.').append(FileUtil.getFileExtension(realOldFilename).orElse(&quot;pdf&quot;));</span>
+
+            //get new Filename with path
+            //Create new Path based on old Path and new filename
+<span class="nc" id="L68">            Optional&lt;File&gt; expandedOldFile = FileUtil.expandFilename(realOldFilename,</span>
+<span class="nc" id="L69">                    databaseContext.getFileDirectory());</span>
+<span class="nc bnc" id="L70" title="All 4 branches missed.">            if ((!expandedOldFile.isPresent()) || (expandedOldFile.get().getParent() == null)) {</span>
+                // something went wrong. Just skip this entry
+<span class="nc" id="L72">                continue;</span>
+            }
+<span class="nc" id="L74">            String newPath = expandedOldFile.get().getParent().concat(System.getProperty(&quot;file.separator&quot;))</span>
+<span class="nc" id="L75">                    .concat(newFilename.toString());</span>
+
+<span class="nc" id="L77">            String expandedOldFilePath = expandedOldFile.get().toString();</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">            Boolean pathsDifferOnlyByCase = newPath.equalsIgnoreCase(expandedOldFilePath) &amp;&amp; !newPath.equals(</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">                    expandedOldFilePath);</span>
+<span class="nc bnc" id="L80" title="All 4 branches missed.">            if (new File(newPath).exists() &amp;&amp; ! pathsDifferOnlyByCase) {</span>
+                // we do not overwrite files
+                // Since File.exists is sometimes not case-sensitive, the check pathsDifferOnlyByCase ensures that we
+                // nonetheless rename files to a new name which just differs by case.
+                // TODO: we could check here if the newPath file is linked with the current entry. And if not, we could add a link
+<span class="nc" id="L85">                continue;</span>
+            }
+
+            //do rename
+<span class="nc" id="L89">            boolean renameSuccessful = FileUtil.renameFile(expandedOldFilePath, newPath);</span>
+
+<span class="nc bnc" id="L91" title="All 2 branches missed.">            if (renameSuccessful) {</span>
+<span class="nc" id="L92">                changed = true;</span>
+
+                //Change the path for this entry
+<span class="nc" id="L95">                String description = flEntry.getDescription();</span>
+<span class="nc" id="L96">                String type = flEntry.getFileType();</span>
+
+                // we cannot use &quot;newPath&quot; to generate a FileListEntry as newPath is absolute, but we want to keep relative paths whenever possible
+<span class="nc" id="L99">                File parent = (new File(realOldFilename)).getParentFile();</span>
+                String newFileEntryFileName;
+<span class="nc bnc" id="L101" title="All 4 branches missed.">                if ((parent == null) || databaseContext.getFileDirectory().contains(parent.getAbsolutePath())) {</span>
+<span class="nc" id="L102">                    newFileEntryFileName = newFilename.toString();</span>
+<span class="nc" id="L103">                } else {</span>
+<span class="nc" id="L104">                    newFileEntryFileName = parent.toString().concat(System.getProperty(&quot;file.separator&quot;)).concat(</span>
+<span class="nc" id="L105">                            newFilename.toString());</span>
+                }
+<span class="nc" id="L107">                newFileList.add(new ParsedFileField(description, newFileEntryFileName, type));</span>
+<span class="nc" id="L108">            } else {</span>
+<span class="nc" id="L109">                unsuccessfulRenames++;</span>
+            }
+        }
+
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (changed) {</span>
+<span class="nc" id="L114">            Optional&lt;FieldChange&gt; change = typedEntry.setFiles(newFileList);</span>
+            //we put an undo of the field content here
+            //the file is not being renamed back, which leads to inconsistencies
+            //if we put a null undo object here, the change by &quot;doMakePathsRelative&quot; would overwrite the field value nevertheless.
+<span class="nc bnc" id="L118" title="All 2 branches missed.">            if(change.isPresent()) {</span>
+<span class="nc" id="L119">                return Collections.singletonList(change.get());</span>
+            } else {
+<span class="nc" id="L121">                return Collections.emptyList();</span>
+            }
+        }
+
+<span class="nc" id="L125">        return new ArrayList&lt;&gt;();</span>
+    }
+
+    public int getUnsuccessfulRenames() {
+<span class="nc" id="L129">        return unsuccessfulRenames;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>FileHistoryMenu.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.menus</a> &gt; <span class="el_source">FileHistoryMenu.java</span></div><h1>FileHistoryMenu.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package net.sf.jabref.gui.menus;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+
+import net.sf.jabref.JabRefExecutorService;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.gui.JabRefFrame;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.io.FileHistory;
+
+public class FileHistoryMenu extends JMenu implements ActionListener {
+
+    private final FileHistory history;
+    private final JabRefFrame frame;
+
+
+<span class="fc" id="L38">    public FileHistoryMenu(JabRefPreferences prefs, JabRefFrame frame) {</span>
+<span class="fc" id="L39">        String name = Localization.menuTitle(&quot;Recent files&quot;);</span>
+<span class="fc" id="L40">        int i = name.indexOf('&amp;');</span>
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">        if (i &gt;= 0) {</span>
+<span class="fc" id="L42">            setText(name.substring(0, i) + name.substring(i + 1));</span>
+<span class="fc" id="L43">            char mnemonic = Character.toUpperCase(name.charAt(i + 1));</span>
+<span class="fc" id="L44">            setMnemonic((int) mnemonic);</span>
+<span class="fc" id="L45">        } else {</span>
+<span class="nc" id="L46">            setText(name);</span>
+        }
+
+<span class="fc" id="L49">        this.frame = frame;</span>
+<span class="fc" id="L50">        history = new FileHistory(prefs);</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        if (history.size() &gt; 0) {</span>
+<span class="fc" id="L52">            setItems();</span>
+<span class="fc" id="L53">        } else {</span>
+<span class="nc" id="L54">            setEnabled(false);</span>
+        }
+<span class="fc" id="L56">    }</span>
+
+    /**
+     * Adds the filename to the top of the menu. If it already is in
+     * the menu, it is merely moved to the top.
+     *
+     * @param filename a &lt;code&gt;String&lt;/code&gt; value
+     */
+    public void newFile(String filename) {
+<span class="nc" id="L65">        history.newFile(filename);</span>
+<span class="nc" id="L66">        setItems();</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (!isEnabled()) {</span>
+<span class="nc" id="L68">            setEnabled(true);</span>
+        }
+<span class="nc" id="L70">    }</span>
+
+    private void setItems() {
+<span class="fc" id="L73">        removeAll();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        for (int count = 0; count &lt; history.size(); count++) {</span>
+<span class="fc" id="L75">            addItem(history.getFileName(count), count + 1);</span>
+        }
+<span class="fc" id="L77">    }</span>
+
+    private void addItem(String filename, int num) {
+<span class="fc" id="L80">        String number = Integer.toString(num);</span>
+<span class="fc" id="L81">        JMenuItem item = new JMenuItem(number + &quot;. &quot; + filename);</span>
+<span class="fc" id="L82">        char mnemonic = Character.toUpperCase(number.charAt(0));</span>
+<span class="fc" id="L83">        item.setMnemonic((int) mnemonic);</span>
+<span class="fc" id="L84">        item.addActionListener(this);</span>
+<span class="fc" id="L85">        add(item);</span>
+        //history.addFirst(item);
+<span class="fc" id="L87">    }</span>
+
+
+    public void storeHistory() {
+<span class="fc" id="L91">        history.storeHistory();</span>
+<span class="fc" id="L92">    }</span>
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+<span class="nc" id="L96">        String name = ((JMenuItem) e.getSource()).getText();</span>
+<span class="nc" id="L97">        int pos = name.indexOf(' ');</span>
+<span class="nc" id="L98">        name = name.substring(pos + 1);</span>
+<span class="nc" id="L99">        final File fileToOpen = new File(name);</span>
+
+        // the existence check has to be done here (and not in open.openIt) as we have to call &quot;removeItem&quot; if the file does not exist
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (!fileToOpen.exists()) {</span>
+<span class="nc" id="L103">            JOptionPane.showMessageDialog(frame, Localization.lang(&quot;File not found&quot;) + &quot;: &quot; + fileToOpen.getName(),</span>
+<span class="nc" id="L104">                    Localization.lang(&quot;Error&quot;), JOptionPane.ERROR_MESSAGE);</span>
+<span class="nc" id="L105">            history.removeItem(name);</span>
+<span class="nc" id="L106">            setItems();</span>
+<span class="nc" id="L107">            return;</span>
+        }
+<span class="nc" id="L109">        JabRefExecutorService.INSTANCE.execute(() -&gt; frame.getOpenDatabaseAction().openFile(fileToOpen, true));</span>
+
+<span class="nc" id="L111">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>EntryEditorTabList.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 10:35:43)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.gui.entryeditor</a> &gt; <span class="el_source">EntryEditorTabList.java</span></div><h1>EntryEditorTabList.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2016 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.gui.entryeditor;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+
+/**
+ * Class for holding the information about customizable entry editor tabs.
+ */
+public final class EntryEditorTabList {
+
+    private List&lt;List&lt;String&gt;&gt; list;
+    private List&lt;String&gt; names;
+
+<span class="fc" id="L33">    public EntryEditorTabList() {</span>
+<span class="fc" id="L34">        init();</span>
+<span class="fc" id="L35">    }</span>
+
+    private void init() {
+<span class="fc" id="L38">        list = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L39">        names = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L40">        int i = 0;</span>
+        String name;
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">        if (Globals.prefs.hasKey(JabRefPreferences.CUSTOM_TAB_NAME + 0)) {</span>
+            // The user has modified from the default values:
+<span class="nc bnc" id="L44" title="All 2 branches missed.">            while (Globals.prefs.hasKey(JabRefPreferences.CUSTOM_TAB_NAME + i)) {</span>
+<span class="nc" id="L45">                name = Globals.prefs.get(JabRefPreferences.CUSTOM_TAB_NAME + i);</span>
+<span class="nc" id="L46">                List&lt;String&gt; entry = Arrays</span>
+<span class="nc" id="L47">                        .asList(Globals.prefs.get(JabRefPreferences.CUSTOM_TAB_FIELDS + i).split(&quot;;&quot;));</span>
+<span class="nc" id="L48">                names.add(name);</span>
+<span class="nc" id="L49">                list.add(entry);</span>
+<span class="nc" id="L50">                i++;</span>
+            }
+<span class="nc" id="L52">        } else {</span>
+            // Nothing set, so we use the default values:
+<span class="fc bfc" id="L54" title="All 2 branches covered.">            while (Globals.prefs.get(JabRefPreferences.CUSTOM_TAB_NAME + &quot;_def&quot; + i) != null) {</span>
+<span class="fc" id="L55">                name = Globals.prefs.get(JabRefPreferences.CUSTOM_TAB_NAME + &quot;_def&quot; + i);</span>
+<span class="fc" id="L56">                List&lt;String&gt; entry = Arrays</span>
+<span class="fc" id="L57">                        .asList(Globals.prefs.get(JabRefPreferences.CUSTOM_TAB_FIELDS + &quot;_def&quot; + i).split(&quot;;&quot;));</span>
+<span class="fc" id="L58">                names.add(name);</span>
+<span class="fc" id="L59">                list.add(entry);</span>
+<span class="fc" id="L60">                i++;</span>
+            }
+        }
+<span class="fc" id="L63">    }</span>
+
+    public int getTabCount() {
+<span class="fc" id="L66">        return list.size();</span>
+    }
+
+    public String getTabName(int tab) {
+<span class="fc" id="L70">        return names.get(tab);</span>
+    }
+
+    public List&lt;String&gt; getTabFields(int tab) {
+<span class="fc" id="L74">        return list.get(tab);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 10:35:43)</div></body></html>

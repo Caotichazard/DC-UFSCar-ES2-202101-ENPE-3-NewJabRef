@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>BibDatabaseModeDetection.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">Merged (4 de out. de 2021 08:56:09)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.model.database</a> &gt; <span class="el_source">BibDatabaseModeDetection.java</span></div><h1>BibDatabaseModeDetection.java</h1><pre class="source lang-java linenums">package net.sf.jabref.model.database;
+
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import net.sf.jabref.model.entry.BibEntry;
+import net.sf.jabref.model.entry.BibLatexEntryTypes;
+import net.sf.jabref.model.entry.BibtexEntryTypes;
+import net.sf.jabref.model.entry.EntryType;
+
+<span class="nc" id="L13">public class BibDatabaseModeDetection {</span>
+<span class="nc" id="L14">    private static final List&lt;EntryType&gt; bibtex = BibtexEntryTypes.ALL;</span>
+<span class="nc" id="L15">    private static final List&lt;EntryType&gt; biblatex = BibLatexEntryTypes.ALL;</span>
+<span class="nc" id="L16">    private static final List&lt;String&gt; exclusiveBiblatex = filterEntryTypesNames(biblatex, isNotIncludedIn(bibtex));</span>
+
+    /**
+     * Tries to infer the database type by examining a BibDatabase database.
+     *
+     * All checks are based on the case-insensitive comparison of entry tag names.
+     * Only standard BibTex and Biblatex entry types are considered in the decision process.
+     *
+     * 1. Check if any of the entries is a type exclusive to Biblatex
+     * 2. Check if any exclusive Biblatex fields are present
+     * 3. Otherwise return BibTex
+     *
+     * @param database a BibDatabase database
+     * @return the inferred database type
+     */
+    public static BibDatabaseMode inferMode(BibDatabase database) {
+<span class="nc" id="L32">        final Stream&lt;String&gt; entryTypes = database.getEntries().stream().map(BibEntry::getType);</span>
+
+        // type-based check
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (entryTypes.anyMatch(type -&gt; exclusiveBiblatex.contains(type.toLowerCase()))) {</span>
+<span class="nc" id="L36">            return BibDatabaseMode.BIBLATEX;</span>
+        } else {
+            // field-based check
+<span class="nc" id="L39">            return BibDatabaseMode.BIBTEX;</span>
+        }
+    }
+
+    private static List&lt;String&gt; filterEntryTypesNames(List&lt;EntryType&gt; types, Predicate&lt;EntryType&gt; predicate) {
+<span class="nc" id="L44">        return types.stream().filter(predicate).map(type -&gt; type.getName().toLowerCase()).collect(Collectors.toList());</span>
+    }
+
+    private static Predicate&lt;EntryType&gt; isNotIncludedIn(List&lt;EntryType&gt; collection) {
+<span class="nc" id="L48">        return entry -&gt; collection.stream().noneMatch(c -&gt; c.getName().equalsIgnoreCase(entry.getName()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>Merged (4 de out. de 2021 08:56:09)</div></body></html>

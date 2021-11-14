@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>KeywordGroup.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (8 de out. de 2021 16:11:15)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.logic.groups</a> &gt; <span class="el_source">KeywordGroup.java</span></div><h1>KeywordGroup.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.logic.groups;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+import net.sf.jabref.importer.fileformat.ParseException;
+import net.sf.jabref.logic.FieldChange;
+import net.sf.jabref.logic.l10n.Localization;
+import net.sf.jabref.logic.util.strings.QuotedStringTokenizer;
+import net.sf.jabref.logic.util.strings.StringUtil;
+import net.sf.jabref.model.entry.BibEntry;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * @author jzieren
+ */
+public class KeywordGroup extends AbstractGroup {
+
+    public static final String ID = &quot;KeywordGroup:&quot;;
+
+    private final String searchField;
+    private final String searchExpression;
+    private final boolean caseSensitive;
+    private final boolean regExp;
+    private Pattern pattern;
+
+<span class="nc" id="L49">    private static final Log LOGGER = LogFactory.getLog(KeywordGroup.class);</span>
+
+
+    /**
+     * Creates a KeywordGroup with the specified properties.
+     */
+    public KeywordGroup(String name, String searchField,
+                        String searchExpression, boolean caseSensitive, boolean regExp,
+                        GroupHierarchyType context) throws ParseException {
+<span class="nc" id="L58">        super(name, context);</span>
+<span class="nc" id="L59">        this.searchField = searchField;</span>
+<span class="nc" id="L60">        this.searchExpression = searchExpression;</span>
+<span class="nc" id="L61">        this.caseSensitive = caseSensitive;</span>
+<span class="nc" id="L62">        this.regExp = regExp;</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (this.regExp) {</span>
+<span class="nc" id="L64">            compilePattern();</span>
+        }
+<span class="nc" id="L66">    }</span>
+
+    private void compilePattern() throws ParseException {
+        try {
+<span class="nc bnc" id="L70" title="All 2 branches missed.">            pattern = caseSensitive ? Pattern.compile(&quot;\\b&quot; + searchExpression + &quot;\\b&quot;) : Pattern.compile(</span>
+<span class="nc" id="L71">                    &quot;\\b&quot; + searchExpression + &quot;\\b&quot;, Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L72">        } catch (PatternSyntaxException exception) {</span>
+<span class="nc" id="L73">            throw new ParseException(Localization.lang(&quot;Syntax error in regular-expression pattern&quot;, searchExpression));</span>
+        }
+<span class="nc" id="L75">    }</span>
+
+    /**
+     * Parses s and recreates the KeywordGroup from it.
+     *
+     * @param s The String representation obtained from
+     *          KeywordGroup.toString()
+     */
+    public static AbstractGroup fromString(String s) throws ParseException {
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if (!s.startsWith(KeywordGroup.ID)) {</span>
+<span class="nc" id="L85">            throw new IllegalArgumentException(&quot;KeywordGroup cannot be created from \&quot;&quot; + s + &quot;\&quot;.&quot;);</span>
+        }
+<span class="nc" id="L87">        QuotedStringTokenizer tok = new QuotedStringTokenizer(s.substring(KeywordGroup.ID</span>
+<span class="nc" id="L88">                .length()), AbstractGroup.SEPARATOR, AbstractGroup.QUOTE_CHAR);</span>
+
+<span class="nc" id="L90">        String name = tok.nextToken();</span>
+<span class="nc" id="L91">        int context = Integer.parseInt(tok.nextToken());</span>
+<span class="nc" id="L92">        String field = tok.nextToken();</span>
+<span class="nc" id="L93">        String expression = tok.nextToken();</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        boolean caseSensitive = Integer.parseInt(tok.nextToken()) == 1;</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        boolean regExp = Integer.parseInt(tok.nextToken()) == 1;</span>
+<span class="nc" id="L96">        return new KeywordGroup(StringUtil.unquote(name, AbstractGroup.QUOTE_CHAR),</span>
+<span class="nc" id="L97">                StringUtil.unquote(field, AbstractGroup.QUOTE_CHAR),</span>
+<span class="nc" id="L98">                StringUtil.unquote(expression, AbstractGroup.QUOTE_CHAR), caseSensitive, regExp,</span>
+<span class="nc" id="L99">                GroupHierarchyType.getByNumber(context));</span>
+    }
+
+    /**
+     * Returns a String representation of this object that can be used to
+     * reconstruct it.
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L108">        return KeywordGroup.ID + StringUtil.quote(getName(), AbstractGroup.SEPARATOR, AbstractGroup.QUOTE_CHAR) +</span>
+<span class="nc" id="L109">                AbstractGroup.SEPARATOR</span>
+<span class="nc" id="L110">                + getContext().ordinal() + AbstractGroup.SEPARATOR</span>
+<span class="nc" id="L111">                + StringUtil.quote(searchField, AbstractGroup.SEPARATOR, AbstractGroup.QUOTE_CHAR) + AbstractGroup.SEPARATOR</span>
+<span class="nc" id="L112">                + StringUtil.quote(searchExpression, AbstractGroup.SEPARATOR, AbstractGroup.QUOTE_CHAR)</span>
+<span class="nc" id="L113">                + AbstractGroup.SEPARATOR + StringUtil.booleanToBinaryString(caseSensitive) + AbstractGroup.SEPARATOR</span>
+<span class="nc" id="L114">                + StringUtil.booleanToBinaryString(regExp) + AbstractGroup.SEPARATOR;</span>
+    }
+
+    @Override
+    public boolean supportsAdd() {
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        return !regExp;</span>
+    }
+
+    @Override
+    public boolean supportsRemove() {
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        return !regExp;</span>
+    }
+
+    @Override
+    public Optional&lt;EntriesGroupChange&gt; add(List&lt;BibEntry&gt; entriesToAdd) {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        if (!supportsAdd()) {</span>
+<span class="nc" id="L130">            return Optional.empty();</span>
+        }
+<span class="nc bnc" id="L132" title="All 4 branches missed.">        if ((entriesToAdd != null) &amp;&amp; !(entriesToAdd.isEmpty())) {</span>
+<span class="nc" id="L133">            List&lt;FieldChange&gt; changes = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L134">            boolean modified = false;</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            for (BibEntry entry : entriesToAdd) {</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">                if (!contains(entry)) {</span>
+<span class="nc" id="L137">                    String oldContent = entry</span>
+<span class="nc" id="L138">                            .getField(searchField);</span>
+<span class="nc" id="L139">                    String pre = Globals.prefs.get(JabRefPreferences.GROUP_KEYWORD_SEPARATOR);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">                    String newContent = (oldContent == null ? &quot;&quot; : oldContent</span>
+<span class="nc" id="L141">                            + pre)</span>
+<span class="nc" id="L142">                            + searchExpression;</span>
+<span class="nc" id="L143">                    entry.setField(searchField, newContent);</span>
+
+                    // Store change information.
+<span class="nc" id="L146">                    changes.add(new FieldChange(entry, searchField, oldContent, newContent));</span>
+<span class="nc" id="L147">                    modified = true;</span>
+                }
+            }
+
+<span class="nc bnc" id="L151" title="All 2 branches missed.">            return modified ? Optional.of(new EntriesGroupChange(changes)) : Optional.empty();</span>
+        }
+
+<span class="nc" id="L154">        return Optional.empty();</span>
+    }
+
+    @Override
+    public Optional&lt;EntriesGroupChange&gt; remove(List&lt;BibEntry&gt; entriesToRemove) {
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        if (!supportsRemove()) {</span>
+<span class="nc" id="L160">            return Optional.empty();</span>
+        }
+
+<span class="nc bnc" id="L163" title="All 4 branches missed.">        if ((entriesToRemove != null) &amp;&amp; (entriesToRemove.size() &gt; 0)) {</span>
+<span class="nc" id="L164">            List&lt;FieldChange&gt; changes = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L165">            boolean modified = false;</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            for (BibEntry entry : entriesToRemove) {</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">                if (contains(entry)) {</span>
+<span class="nc" id="L168">                    String oldContent = entry</span>
+<span class="nc" id="L169">                            .getField(searchField);</span>
+<span class="nc" id="L170">                    removeMatches(entry);</span>
+
+                    // Store change information.
+<span class="nc" id="L173">                    changes.add(new FieldChange(entry, searchField, oldContent, entry.getField(searchField)));</span>
+<span class="nc" id="L174">                    modified = true;</span>
+                }
+            }
+
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            return modified ? Optional.of(new EntriesGroupChange(changes)) : Optional.empty();</span>
+        }
+
+<span class="nc" id="L181">        return Optional.empty();</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (!(o instanceof KeywordGroup)) {</span>
+<span class="nc" id="L187">            return false;</span>
+        }
+<span class="nc" id="L189">        KeywordGroup other = (KeywordGroup) o;</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        return getName().equals(other.getName())</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">                &amp;&amp; searchField.equals(other.searchField)</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">                &amp;&amp; searchExpression.equals(other.searchExpression)</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                &amp;&amp; (caseSensitive == other.caseSensitive)</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">                &amp;&amp; (regExp == other.regExp)</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">                &amp;&amp; (getHierarchicalContext() == other.getHierarchicalContext());</span>
+    }
+
+    @Override
+    public boolean contains(BibEntry entry) {
+<span class="nc bnc" id="L200" title="All 2 branches missed.">        if (!entry.hasField(searchField)) {</span>
+<span class="nc" id="L201">            return false;</span>
+        }
+<span class="nc" id="L203">        String content = entry.getField(searchField);</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">        if (regExp) {</span>
+<span class="nc" id="L205">            return pattern.matcher(content).find();</span>
+        }
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (caseSensitive) {</span>
+<span class="nc" id="L208">            return KeywordGroup.containsWord(searchExpression, content);</span>
+        }
+<span class="nc" id="L210">        return KeywordGroup.containsWord(searchExpression.toLowerCase(), content.toLowerCase());</span>
+    }
+
+    /**
+     * Look for the given non-regexp string in another string, but check whether a
+     * match concerns a complete word, not part of a word.
+     *
+     * @param word The word to look for.
+     * @param text The string to look in.
+     * @return true if the word was found, false otherwise.
+     */
+    private static boolean containsWord(String word, String text) {
+<span class="nc" id="L222">        int piv = 0;</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">        while (piv &lt; text.length()) {</span>
+<span class="nc" id="L224">            int index = text.indexOf(word, piv);</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">            if (index &lt; 0) {</span>
+<span class="nc" id="L226">                return false;</span>
+            }
+            // Found a match. See if it is a complete word:
+<span class="nc bnc" id="L229" title="All 4 branches missed.">            if (((index == 0) || !Character.isLetterOrDigit(text.charAt(index - 1))) &amp;&amp;</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">                    (((index + word.length()) == text.length())</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">                            || !Character.isLetterOrDigit(text.charAt(index + word.length())))) {</span>
+<span class="nc" id="L232">                return true;</span>
+            } else {
+<span class="nc" id="L234">                piv = index + 1;</span>
+            }
+        }
+<span class="nc" id="L237">        return false;</span>
+    }
+
+    /**
+     * Removes matches of searchString in the entry's field. This is only
+     * possible if the search expression is not a regExp.
+     */
+    private void removeMatches(BibEntry entry) {
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        if (!entry.hasField(searchField)) {</span>
+<span class="nc" id="L246">            return; // nothing to modify</span>
+        }
+<span class="nc" id="L248">        String content = entry.getField(searchField);</span>
+<span class="nc" id="L249">        StringBuffer sbOrig = new StringBuffer(content);</span>
+<span class="nc" id="L250">        StringBuffer sbLower = new StringBuffer(content.toLowerCase());</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">        StringBuffer haystack = caseSensitive ? sbOrig : sbLower;</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">        String needle = caseSensitive ? searchExpression</span>
+<span class="nc" id="L253">                : searchExpression.toLowerCase();</span>
+        int i;
+        int j;
+        int k;
+<span class="nc" id="L257">        final String separator = Globals.prefs.get(JabRefPreferences.GROUP_KEYWORD_SEPARATOR);</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">        while ((i = haystack.indexOf(needle)) &gt;= 0) {</span>
+<span class="nc" id="L259">            sbOrig.replace(i, i + needle.length(), &quot;&quot;);</span>
+<span class="nc" id="L260">            sbLower.replace(i, i + needle.length(), &quot;&quot;);</span>
+            // reduce spaces at i to 1
+<span class="nc" id="L262">            j = i;</span>
+<span class="nc" id="L263">            k = i;</span>
+<span class="nc bnc" id="L264" title="All 4 branches missed.">            while (((j - 1) &gt;= 0) &amp;&amp; (separator.indexOf(haystack.charAt(j - 1)) &gt;= 0)) {</span>
+<span class="nc" id="L265">                --j;</span>
+            }
+<span class="nc bnc" id="L267" title="All 4 branches missed.">            while ((k &lt; haystack.length()) &amp;&amp; (separator.indexOf(haystack.charAt(k)) &gt;= 0)) {</span>
+<span class="nc" id="L268">                ++k;</span>
+            }
+<span class="nc bnc" id="L270" title="All 4 branches missed.">            sbOrig.replace(j, k, (j &gt;= 0) &amp;&amp; (k &lt; sbOrig.length()) ? separator : &quot;&quot;);</span>
+<span class="nc bnc" id="L271" title="All 4 branches missed.">            sbLower.replace(j, k, (j &gt;= 0) &amp;&amp; (k &lt; sbOrig.length()) ? separator : &quot;&quot;);</span>
+        }
+
+<span class="nc" id="L274">        String result = sbOrig.toString().trim();</span>
+<span class="nc bnc" id="L275" title="All 2 branches missed.">        if (result.isEmpty()) {</span>
+<span class="nc" id="L276">            entry.clearField(searchField);</span>
+<span class="nc" id="L277">        } else {</span>
+<span class="nc" id="L278">            entry.setField(searchField, result);</span>
+        }
+<span class="nc" id="L280">    }</span>
+
+    @Override
+    public AbstractGroup deepCopy() {
+        try {
+<span class="nc" id="L285">            return new KeywordGroup(getName(), searchField, searchExpression,</span>
+<span class="nc" id="L286">                    caseSensitive, regExp, getContext());</span>
+<span class="nc" id="L287">        } catch (ParseException exception) {</span>
+            // this should never happen, because the constructor obviously succeeded in creating _this_ instance!
+<span class="nc" id="L289">            LOGGER.error(&quot;Internal error in KeywordGroup.deepCopy(). &quot;</span>
+<span class="nc" id="L290">                    + &quot;Please report this on https://github.com/JabRef/jabref/issues&quot;, exception);</span>
+<span class="nc" id="L291">            return null;</span>
+        }
+    }
+
+    public boolean isCaseSensitive() {
+<span class="nc" id="L296">        return caseSensitive;</span>
+    }
+
+    public boolean isRegExp() {
+<span class="nc" id="L300">        return regExp;</span>
+    }
+
+    public String getSearchExpression() {
+<span class="nc" id="L304">        return searchExpression;</span>
+    }
+
+    public String getSearchField() {
+<span class="nc" id="L308">        return searchField;</span>
+    }
+
+    @Override
+    public boolean isDynamic() {
+<span class="nc" id="L313">        return true;</span>
+    }
+
+    @Override
+    public String getDescription() {
+<span class="nc" id="L318">        return KeywordGroup.getDescriptionForPreview(searchField, searchExpression, caseSensitive, regExp);</span>
+    }
+
+    public static String getDescriptionForPreview(String field, String expr, boolean caseSensitive, boolean regExp) {
+<span class="nc bnc" id="L322" title="All 2 branches missed.">        String header = regExp ? Localization.lang(&quot;This group contains entries whose &lt;b&gt;%0&lt;/b&gt; field contains the regular expression &lt;b&gt;%1&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L323">                field, StringUtil.quoteForHTML(expr))</span>
+<span class="nc" id="L324">                : Localization.lang(&quot;This group contains entries whose &lt;b&gt;%0&lt;/b&gt; field contains the keyword &lt;b&gt;%1&lt;/b&gt;&quot;,</span>
+<span class="nc" id="L325">                field, StringUtil.quoteForHTML(expr));</span>
+<span class="nc bnc" id="L326" title="All 2 branches missed.">        String caseSensitiveText = caseSensitive ? Localization.lang(&quot;case sensitive&quot;) :</span>
+<span class="nc" id="L327">            Localization.lang(&quot;case insensitive&quot;);</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">        String footer = regExp ?</span>
+<span class="nc" id="L329">                Localization.lang(&quot;Entries cannot be manually assigned to or removed from this group.&quot;)</span>
+<span class="nc" id="L330">                : Localization.lang(</span>
+<span class="nc" id="L331">                &quot;Additionally, entries whose &lt;b&gt;%0&lt;/b&gt; field does not contain &quot;</span>
+                        + &quot;&lt;b&gt;%1&lt;/b&gt; can be assigned manually to this group by selecting them &quot;
+                        + &quot;then using either drag and drop or the context menu. &quot;
+                        + &quot;This process adds the term &lt;b&gt;%1&lt;/b&gt; to &quot;
+                        + &quot;each entry's &lt;b&gt;%0&lt;/b&gt; field. &quot;
+                        + &quot;Entries can be removed manually from this group by selecting them &quot;
+                        + &quot;then using the context menu. &quot;
+                        + &quot;This process removes the term &lt;b&gt;%1&lt;/b&gt; from &quot;
+                        + &quot;each entry's &lt;b&gt;%0&lt;/b&gt; field.&quot;,
+<span class="nc" id="L340">                field, StringUtil.quoteForHTML(expr));</span>
+<span class="nc" id="L341">        return String.format(&quot;%s (%s). %s&quot;, header, caseSensitiveText, footer);</span>
+    }
+
+    @Override
+    public String getShortDescription() {
+<span class="nc" id="L346">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L347">        sb.append(&quot;&lt;b&gt;&quot;);</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">        if (Globals.prefs.getBoolean(JabRefPreferences.GROUP_SHOW_DYNAMIC)) {</span>
+<span class="nc" id="L349">            sb.append(&quot;&lt;i&gt;&quot;).append(StringUtil.quoteForHTML(getName())).append(&quot;&lt;/i&gt;&quot;);</span>
+<span class="nc" id="L350">        } else {</span>
+<span class="nc" id="L351">            sb.append(StringUtil.quoteForHTML(getName()));</span>
+        }
+<span class="nc" id="L353">        sb.append(&quot;&lt;/b&gt; - &quot;);</span>
+<span class="nc" id="L354">        sb.append(Localization.lang(&quot;dynamic group&quot;));</span>
+<span class="nc" id="L355">        sb.append(&quot;&lt;b&gt;&quot;);</span>
+<span class="nc" id="L356">        sb.append(searchField);</span>
+<span class="nc" id="L357">        sb.append(&quot;&lt;/b&gt;&quot;);</span>
+<span class="nc" id="L358">        sb.append(Localization.lang(&quot;contains&quot;));</span>
+<span class="nc" id="L359">        sb.append(&quot; &lt;b&gt;&quot;);</span>
+<span class="nc" id="L360">        sb.append(StringUtil.quoteForHTML(searchExpression));</span>
+<span class="nc" id="L361">        sb.append(&quot;&lt;/b&gt;)&quot;);</span>
+<span class="nc bnc" id="L362" title="All 3 branches missed.">        switch (getHierarchicalContext()) {</span>
+            case INCLUDING:
+<span class="nc" id="L364">                sb.append(&quot;, &quot;).append(Localization.lang(&quot;includes subgroups&quot;));</span>
+<span class="nc" id="L365">                break;</span>
+            case REFINING:
+<span class="nc" id="L367">                sb.append(&quot;, &quot;).append(Localization.lang(&quot;refines supergroup&quot;));</span>
+<span class="nc" id="L368">                break;</span>
+            default:
+                break;
+        }
+<span class="nc" id="L372">        return sb.toString();</span>
+    }
+
+    @Override
+    public String getTypeId() {
+<span class="nc" id="L377">        return KeywordGroup.ID;</span>
+    }
+
+    @Override
+    public int hashCode() {
+        // TODO Auto-generated method stub
+<span class="nc" id="L383">        return super.hashCode();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (8 de out. de 2021 16:11:15)</div></body></html>

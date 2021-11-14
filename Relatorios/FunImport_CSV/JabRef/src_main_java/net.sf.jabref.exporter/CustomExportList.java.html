@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../jacoco-resources/report.gif" type="image/gif"/><title>CustomExportList.java</title><link rel="stylesheet" href="../../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">JabRefMain (11 de nov. de 2021 13:50:13)</a> &gt; <a href="../../index.html" class="el_group">JabRef</a> &gt; <a href="../index.html" class="el_bundle">src/main/java</a> &gt; <a href="index.source.html" class="el_package">net.sf.jabref.exporter</a> &gt; <span class="el_source">CustomExportList.java</span></div><h1>CustomExportList.java</h1><pre class="source lang-java linenums">/*  Copyright (C) 2003-2015 JabRef contributors.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+package net.sf.jabref.exporter;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+
+import net.sf.jabref.Globals;
+import net.sf.jabref.JabRefPreferences;
+
+import ca.odell.glazedlists.BasicEventList;
+import ca.odell.glazedlists.EventList;
+import ca.odell.glazedlists.SortedList;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * This class handles user defined custom export formats. They are initially
+ * read from Preferences, and kept alphabetically (sorted by name). Formats can
+ * be added or removed. When modified, the sort() method must be called to make
+ * sure the formats stay properly sorted. When the method store() is called,
+ * export formats are written to Preferences.
+ */
+
+public class CustomExportList {
+
+    private final EventList&lt;List&lt;String&gt;&gt; list;
+    private final SortedList&lt;List&lt;String&gt;&gt; sorted;
+<span class="fc" id="L45">    private final Map&lt;String, ExportFormat&gt; formats = new TreeMap&lt;&gt;();</span>
+
+<span class="fc" id="L47">    private static final Log LOGGER = LogFactory.getLog(CustomExportList.class);</span>
+
+
+<span class="fc" id="L50">    public CustomExportList(Comparator&lt;List&lt;String&gt;&gt; comp) {</span>
+<span class="fc" id="L51">        list = new BasicEventList&lt;&gt;();</span>
+<span class="fc" id="L52">        sorted = new SortedList&lt;&gt;(list, comp);</span>
+<span class="fc" id="L53">    }</span>
+
+    public Map&lt;String, ExportFormat&gt; getCustomExportFormats() {
+<span class="fc" id="L56">        formats.clear();</span>
+<span class="fc" id="L57">        readPrefs();</span>
+<span class="fc" id="L58">        return formats;</span>
+    }
+
+    public int size() {
+<span class="nc" id="L62">        return list.size();</span>
+    }
+
+    public EventList&lt;List&lt;String&gt;&gt; getSortedList() {
+<span class="nc" id="L66">        return sorted;</span>
+    }
+
+    private void readPrefs() {
+<span class="fc" id="L70">        formats.clear();</span>
+<span class="fc" id="L71">        list.clear();</span>
+<span class="fc" id="L72">        int i = 0;</span>
+        List&lt;String&gt; s;
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        while (!((s = Globals.prefs.getStringList(JabRefPreferences.CUSTOM_EXPORT_FORMAT + i)).isEmpty())) {</span>
+<span class="nc" id="L75">            Optional&lt;ExportFormat&gt; format = createFormat(s);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">            if (format.isPresent()) {</span>
+<span class="nc" id="L77">                formats.put(format.get().getConsoleName(), format.get());</span>
+<span class="nc" id="L78">                list.add(s);</span>
+<span class="nc" id="L79">            } else {</span>
+<span class="nc" id="L80">                String customExportFormat = Globals.prefs.get(JabRefPreferences.CUSTOM_EXPORT_FORMAT + i);</span>
+<span class="nc" id="L81">                LOGGER.error(&quot;Error initializing custom export format from string &quot; + customExportFormat);</span>
+            }
+<span class="nc" id="L83">            i++;</span>
+        }
+<span class="fc" id="L85">    }</span>
+
+    private Optional&lt;ExportFormat&gt; createFormat(List&lt;String&gt; s) {
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (s.size() &lt; 3) {</span>
+<span class="nc" id="L89">            return Optional.empty();</span>
+        }
+        String lfFileName;
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (s.get(1).endsWith(&quot;.layout&quot;)) {</span>
+<span class="nc" id="L93">            lfFileName = s.get(1).substring(0, s.get(1).length() - 7);</span>
+<span class="nc" id="L94">        } else {</span>
+<span class="nc" id="L95">            lfFileName = s.get(1);</span>
+        }
+<span class="nc" id="L97">        ExportFormat format = new ExportFormat(s.get(0), s.get(0), lfFileName, null, s.get(2));</span>
+<span class="nc" id="L98">        format.setCustomExport(true);</span>
+<span class="nc" id="L99">        return Optional.of(format);</span>
+    }
+
+    public void addFormat(List&lt;String&gt; s) {
+<span class="nc" id="L103">        createFormat(s).ifPresent(format -&gt; {</span>
+<span class="nc" id="L104">            formats.put(format.getConsoleName(), format);</span>
+<span class="nc" id="L105">            list.add(s);</span>
+<span class="nc" id="L106">        });</span>
+<span class="nc" id="L107">    }</span>
+
+    public void remove(List&lt;String&gt; toRemove) {
+<span class="nc" id="L110">        createFormat(toRemove).ifPresent(format -&gt; {</span>
+<span class="nc" id="L111">            formats.remove(format.getConsoleName());</span>
+<span class="nc" id="L112">            list.remove(toRemove);</span>
+<span class="nc" id="L113">        });</span>
+<span class="nc" id="L114">    }</span>
+
+    public void store() {
+
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (list.isEmpty()) {</span>
+<span class="fc" id="L119">            purge(0);</span>
+<span class="fc" id="L120">        } else {</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">            for (int i = 0; i &lt; list.size(); i++) {</span>
+<span class="nc" id="L122">                Globals.prefs.putStringList(JabRefPreferences.CUSTOM_EXPORT_FORMAT + i, list.get(i));</span>
+            }
+<span class="nc" id="L124">            purge(list.size());</span>
+        }
+<span class="fc" id="L126">    }</span>
+
+    private void purge(int from) {
+<span class="fc" id="L129">        int i = from;</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        while (!Globals.prefs.getStringList(JabRefPreferences.CUSTOM_EXPORT_FORMAT + i).isEmpty()) {</span>
+<span class="nc" id="L131">            Globals.prefs.remove(JabRefPreferences.CUSTOM_EXPORT_FORMAT + i);</span>
+<span class="nc" id="L132">            i++;</span>
+        }
+<span class="fc" id="L134">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span>JabRefMain (11 de nov. de 2021 13:50:13)</div></body></html>
